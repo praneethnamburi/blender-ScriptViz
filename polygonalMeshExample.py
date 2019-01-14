@@ -5,6 +5,8 @@ from math import sin
 m = bpy.data.meshes.new('sin')
 
 n = 100
+
+# make a mesh
 m.vertices.add(n)
 m.edges.add(n-1)
 yVals = np.linspace(0, 10, 100)
@@ -15,6 +17,11 @@ for i,y in zip(range(n), yVals):
     if i < n-1:
         m.edges[i].vertices = (i, i+1)
 
-o = bpy.data.objects.new('sin', m)
+# make an object from that mesh, an object is an instantiation of a mesh
+o = bpy.data.objects.new('sin'+'1', m)
 
 bpy.context.scene.collection.objects.link( o )
+
+a1 = 1
+# bpy.data.objects['sin'].select_set(True)
+# bpy.ops.transform.translate(value=(-2, 0, 0))

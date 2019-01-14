@@ -2,7 +2,7 @@
 import bpy #pylint: disable=import-error
 from random import randint
 
-n = 5
+n = 25
 m = []
 for i in range(0,n):
     x = randint(-5, 5)
