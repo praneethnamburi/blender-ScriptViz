@@ -21,7 +21,3 @@ for i,y in zip(range(n), yVals):
 o = bpy.data.objects.new('sin'+'1', m)
 
 bpy.context.scene.collection.objects.link( o )
-
-a1 = 1
-# bpy.data.objects['sin'].select_set(True)
-# bpy.ops.transform.translate(value=(-2, 0, 0))
