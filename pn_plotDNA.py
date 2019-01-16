@@ -40,5 +40,3 @@ def genMesh(mshName, xVals, yVals): # generate mesh for plotting
 # remember that in python, you need to define functions before using them
 if __name__ == '__main__':
     pn_plotDNA()
-
-    
