@@ -1,6 +1,5 @@
 import bpy #pylint: disable=import-error
 import numpy as np
-from math import sin
 
 bpy.ops.wm.read_homefile() # reset the scene
 
