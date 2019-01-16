@@ -3,6 +3,13 @@ import numpy as np
 
 bpy.ops.wm.read_homefile() # reset the scene
 
+def pn_plotDNA(): # MATLAB style
+    x = np.linspace(0, 2.0*np.pi, 100)
+    y = lambda x, offset: np.sin(x+offset)
+    h1, m1 = plot(x, y(x, np.pi/2))
+    h2, m2 = plot(x, y(x, -np.pi/2))
+    return [h1, h2], [m1, m2]
+
 def plot(x, y):
     mshName = 'autoMshName'
     objName = 'autoObjName'
@@ -29,7 +36,7 @@ def genMesh(mshName, xVals, yVals): # generate mesh for plotting
             msh.edges[i].vertices = (i, i+1)
     return msh
 
-x = np.linspace(0, 2.0*np.pi, 100)
-y = lambda x, offset: np.sin(x+offset)
-h1, m1 = plot(x, y(x, np.pi/2))
-h2, m2 = plot(x, y(x, -np.pi/2))
+# using this syntax, we don't have to worry about forward declaration
+# remember that in python, you need to define functions before using them
+if __name__ == '__main__':
+    pn_plotDNA()
