@@ -12,8 +12,11 @@ h2, m2 = plot(x, y(x, -np.pi/2))
 def plot(x, y):
     mshName = 'autoMshName'
     objName = 'autoObjName'
+    # create a mesh
     msh = genMesh(mshName, x, y)
+    # instantiate an object
     obj = genObj(objName, msh)
+    # put that object in the scene
     bpy.context.scene.collection.objects.link(obj)
     return obj, msh
 
