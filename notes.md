@@ -1,9 +1,12 @@
 # Questions to guide development
 
 1. How to clean up the scene at the beginning of a script?
+      - This does the job in the command line: bpy.ops.wm.read_homefile()
 2. How to animate?
 3. Import meshes programatically from files
 4. Overlay maps as textures over the meshes
+5. How to assign object to a collection
+6. WTF is a depsgraph?
 
 - Try Chris Conlan's commands in the command window (to make sure they work in blender 2.8), and then using VScode
 - Also see what works and what doesn't work in VScode's debug mode
@@ -39,6 +42,7 @@ coords = [(o.matrix_world * v.co) for v in o.data.vertices]
 ## move a referenced object (object-specific)
 
 o.location = (-2.0, -2.0, -2.0)
+o.rotation_euler = (pi/3, 0, 0) # radians!!
 bpy.data.objects['sin'].location = (0.0, 2.0, 1.0)
 bpy.ops.transform.translate(value=(-2,0,0)) #this is discouraged!
 
@@ -58,3 +62,7 @@ m.vertices[2].co = Vector((1, 0, 2)) # Vector is in mathutils.Vector, and appear
 
 for obj in bpy.data.objects:
     obj.select_set(True)
+
+## add a modifier to a referenced object
+
+mod = myObj.modifiers.new("Skin", "SKIN")
