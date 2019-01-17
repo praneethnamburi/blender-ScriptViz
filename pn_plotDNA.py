@@ -13,9 +13,9 @@ def pn_plotDNA(): # MATLAB style
 
 def pn_animateObj(objList, frameList):
     scn = bpy.context.scene # assuming there is only one scene
-    scn.frame_end = frameList[-1] # assuming frameList is monotonically increasing
+    scn.frame_end = frameList[-1]+1 # assuming frameList is monotonically increasing
     for frameNum in frameList:
-        scn.frame_set(frameNum)
+        scn.frame_set(frameNum+1) # because keyframes are 1-indexed in Blender
         for obj in objList:
             obj.rotation_euler = Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
             obj.keyframe_insert(data_path="rotation_euler", index=-1)

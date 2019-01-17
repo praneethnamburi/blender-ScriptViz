@@ -1,4 +1,11 @@
-# Questions to guide development
+# Notes
+
+## Next steps
+
+1. Import meshes from STL files
+2. Add color to vertices of these meshes
+
+## Questions to guide development
 
 1. How to clean up the scene at the beginning of a script?
       - This does the job in the command line: bpy.ops.wm.read_homefile()
