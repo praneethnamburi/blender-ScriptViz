@@ -11,14 +11,14 @@ def pn_plotDNA(): # MATLAB style
     h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
     return [h1, h2], [m1, m2] # objList, mshList
 
-def pn_animateObj(objList, frameList):
+def pn_animateObj_whole(objList, frameList): # skeleton to transform the entire object
     scn = bpy.context.scene # assuming there is only one scene
     scn.frame_end = frameList[-1]+1 # assuming frameList is monotonically increasing
     for frameNum in frameList:
         scn.frame_set(frameNum+1) # because keyframes are 1-indexed in Blender
         for obj in objList:
             obj.rotation_euler = Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
-            obj.keyframe_insert(data_path="rotation_euler", index=-1)
+            obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
 def plot(x, y, z=0):
     mshName = 'autoMshName'
@@ -48,8 +48,25 @@ def genMesh(mshName, xVals, yVals, zVals=None): # generate mesh for plotting
             msh.edges[i].vertices = (i, i+1)
     return msh
 
+def pn_animateObj_vertex(obj, frameList):
+    scn = bpy.context.scene
+    scn.frame_end = frameList[-1]+1
+    for frameNum in frameList:
+        scn.frame_set(frameNum+1) # choose frame
+        # what happens after you choose the frame?
+
+def getMshCoords(msh):
+    if not isinstance(msh, bpy.types.Mesh):
+        raise TypeError("Expected input of type bpy.types.Mesh, got " + str(type(msh)) + " instead")
+    coords = np.array([v.co for v in msh.vertices])
+    return coords
+
+def setMshCoords(msh, coords): # set vertex positions of a mesh using a numpy array of size nVertices x 3
+    for vertexCount, vertex in enumerate(msh.vertices):
+        vertex.co = Vector(coords[vertexCount, :])
+
 # using this syntax, we don't have to worry about forward declaration
 # remember that in python, you need to define functions before using them
 if __name__ == '__main__':
     objList, mshList = pn_plotDNA()
-    pn_animateObj(objList, np.arange(0, 101, 20))
+    pn_animateObj_whole(objList, np.arange(0, 101, 20))
