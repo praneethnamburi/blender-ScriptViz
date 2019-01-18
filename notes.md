@@ -73,3 +73,6 @@ for obj in bpy.data.objects:
 ## add a modifier to a referenced object
 
 mod = myObj.modifiers.new("Skin", "SKIN")
+
+## errors
+
