@@ -162,7 +162,7 @@ o = bpy.data.objects.new('sin'+'1', m)
 bpy.context.scene.collection.objects.link( o )
 ```
 
-### Event handlers. Wow
+### Event handlers. Wow!!
 
 This code shows a way to change mesh vertices every time a frame is updated.
 
