@@ -4,7 +4,7 @@ from mathutils import Vector #pylint: disable=import-error
 
 # bpy.ops.wm.read_homefile() # reset the scene
 
-def pn_plotDNA(): # MATLAB style
+def pn_plotDNA(): # ! MATLAB style - may not be the best idea in python?
     x = np.linspace(0, 2.0*np.pi, 100)
     y = lambda x, offset: np.sin(x+offset)
     h1, m1 = plot(y(x, np.pi/2), y(x, 0), x)
