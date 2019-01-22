@@ -84,6 +84,19 @@ for obj in bpy.data.objects:
 mod = myObj.modifiers.new("Skin", "SKIN")
 ```
 
+### IMPORTANT: calling a function when its name is in a string
+
+This is the python equivalent of how MATLAB evaluates myStruct.(myVar)  
+but more general!
+
+```python
+import numpy as np
+myVar = 'arange'
+getattr(np, myVar)(0, 5, 2)
+```
+
+This gives [0,2,4]
+
 ## Errors
 
 ### file not found
