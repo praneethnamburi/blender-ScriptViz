@@ -12,31 +12,13 @@ def getFileName_full(fPath, fName):
 class bpnClass:
     """
     Place everything that uses bpy here. This was the best way I could think of
-    to extend blender's functionality without unnecessarily passing bpy around.
-    Use this class by instantiating a bpn object like so:
-    bpn = bpnModule.bpnClass(bpy, mathutils) # pass the bpy module (object)
+    to extend blender's functionality without unnecessarily passing bpy to every 
+    function that I call.
+    Use this class by instantiating a bpn object like so in the blender python console:
+    bpn = bpnModule.bpnClass(bpy) # pass the bpy module (object)
     """
     def __init__(self, bpy):
         self.bpy = bpy
-    
-    # Blender usefulness exercise #3 - importing marmoset brain meshes
-    def loadSTL(self, fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes", fName = "bma-1-region_seg_24.stl"):
-        self.bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
-
-    def addPrimitive(self, type='monkey', location=(1.0, 3.0, 5.0)):
-        """
-        Add a primitive at a given location - just simplifies syntax
-        type can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
-        monkey, plane, torus
-        Adding a primitive while in edit mode will add the primitive to the
-        mesh that is being edited in mesh mode! This means that you can inherit
-        animations (and perhaps modifiers) by adding to a mesh!
-        """
-        funcName = 'primitive_'+type+'_add'
-        if hasattr(self.bpy.ops.mesh, funcName):
-            getattr(self.bpy.ops.mesh, funcName)(location=location)
-        else:
-            raise ValueError(f"{type} is not a valid argument")
 
     # Blender usefulness exercise #1 - Plotting
     # Plotting two strands of DNA
@@ -92,8 +74,13 @@ class bpnClass:
                 obj.rotation_euler = Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
                 obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
+    # Blender usefulness exercise #3 - importing marmoset brain meshes
+    def loadSTL(self, fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes", fName = "bma-1-region_seg_24.stl"):
+        self.bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
+
+    # Blender usefulness exercise #4 - basic mesh access and manipulation
     def getMshCoords(self, msh):
-        msh = self.chkMesh(msh)
+        msh = self.chkType(msh, 'Mesh')
         coords = np.array([v.co for v in msh.vertices])
         return coords
 
@@ -117,18 +104,19 @@ class bpnClass:
         if modeChangeFlag:
             self.bpy.ops.object.mode_set(mode=current_mode)
 
-    def chkMesh(self, msh):
-        if isinstance(msh, str):
-            if msh in [k.name for k in self.bpy.data.meshes]:
-                return self.bpy.data.meshes[msh]
-        if not isinstance(msh, self.bpy.types.Mesh):
-            raise TypeError("Expected input of type bpy.types.Mesh, got " + str(type(msh)) + " instead")
-        return msh
+    def getMesh(self, msh):
+        """Return a mesh given it's name."""
+        return self.chkType(msh, 'Mesh')
+    
+    def getObject(self, obj):
+        """Return an object given it's name."""
+        return self.chkType(obj, 'Object')
 
     def chkType(self, inp, inpType='Mesh'):
         """
         Check if a given input is a mesh or an object.
         If an input is a string, then find and return the appropriate python object.
+        inpType is either 'Mesh' or 'Object'
         """
         if inpType == 'Mesh':
             inpType_bpyData = 'meshes'
@@ -142,3 +130,19 @@ class bpnClass:
         if not isinstance(inp, getattr(self.bpy.types, inpType)):
             raise TypeError("Expected input of type bpy.types." + inpType + ", got, " + str(type(inp)) + " instead")
         return inp
+
+    # Blender usefulness exercise #5 - add primitives
+    def addPrimitive(self, type='monkey', location=(1.0, 3.0, 5.0)):
+        """
+        Add a primitive at a given location - just simplifies syntax
+        type can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
+        monkey, plane, torus
+        Adding a primitive while in edit mode will add the primitive to the
+        mesh that is being edited in mesh mode! This means that you can inherit
+        animations (and perhaps modifiers) by adding to a mesh!
+        """
+        funcName = 'primitive_'+type+'_add'
+        if hasattr(self.bpy.ops.mesh, funcName):
+            getattr(self.bpy.ops.mesh, funcName)(location=location)
+        else:
+            raise ValueError(f"{type} is not a valid argument")
