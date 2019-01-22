@@ -20,6 +20,10 @@ class bpnClass:
     def __init__(self, bpy):
         self.bpy = bpy
 
+    # Make some demo functions here! 
+    # Animating DNA, 
+    # meshDance
+
     # Blender usefulness exercise #1 - Plotting
     # Plotting two strands of DNA
     def plotDNA(self):
