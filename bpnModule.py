@@ -22,6 +22,9 @@ class bpnClass:
 
     # Make some demo functions here! 
     # Animating DNA, 
+    def demo_animateDNA(self):
+        objList, _ = self.plotDNA()
+        self.animateObj_whole(objList, np.arange(0, 101, 20))
     # meshDance
 
     # Blender usefulness exercise #1 - Plotting
