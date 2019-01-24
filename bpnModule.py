@@ -4,19 +4,19 @@ import numpy as np
 from mathutils import Vector #pylint: disable=import-error
 import sys
 import glob
-import bpy #pylint: disable=import-error
+
+def raiseNotFoundError(thisDirFiles):
+    if isinstance(thisDirFiles, str):
+        thisDirFiles = [thisDirFiles]
+    for dirFile in thisDirFiles:
+        if not os.path.exists(dirFile):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
 
 def checkIfOutputExists(func):
-    def raiseNotFoundError(thisDirFile):
-        if not os.path.exists(thisDirFile):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), thisDirFile)
     def checkedFunction(*args, **kwargs):
         output = func(*args, **kwargs)
-        if isinstance(output, str):
-            output = [output]
-        for thisOut in output:
-            raiseNotFoundError(thisOut)
-        return func(*args, **kwargs)
+        raiseNotFoundError(output)
+        return output
     return checkedFunction
 
 @checkIfOutputExists
@@ -32,20 +32,6 @@ def marmosetAtlasPath(src='bma'):
         else:
             fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes"
     return fPath
-
-'''
-# Class syntax for making a decorator
-class baseNames:
-    def __init__(self, func):
-        self.f = func
-    def __call__(self, *args, **kwargs):
-        # input validation code goes here
-        fOut = self.f(*args, **kwargs)
-        # output validation code goes here
-        # output modification code goes here
-        fOut2 = [os.path.basename(k) for k in fOut]
-        return fOut2
-'''
 
 # function syntax for making a decorator
 def baseNames(func):
