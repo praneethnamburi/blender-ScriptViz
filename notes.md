@@ -228,3 +228,23 @@ bpy.app.handlers.frame_change_pre.append(my_handler)
 # to remove all handlers, say
 bpy.app.handlers.frame_change_pre.clear()
 ```
+
+### Decorators in python
+
+A decorator takes a function and returns a function. In the example below, smart_divide is a decorator that takes the function divide and returns a function, let's say smart_divide, and call it divide again. Therefore, the function chkDivideByZero is *decorating* the function *divide* by adding some functionality. More generally, I need to wrap my head around passing functions as arguments
+
+```python
+def chkDivideByZero(func):
+   def inner(a,b):
+      print("I am going to divide",a,"and",b)
+      if b == 0:
+         print("Whoops! cannot divide")
+         return
+
+      return func(a,b)
+   return inner
+
+@chkDivideByZero
+def divide(a,b):
+    return a/b
+```

@@ -2,12 +2,41 @@ import os
 import errno
 import numpy as np
 from mathutils import Vector #pylint: disable=import-error
+import sys
+import glob
+import bpy #pylint: disable=import-error
 
+def checkIfOutputExists(func):
+    def raiseNotFoundError(thisDirFile):
+        if not os.path.exists(thisDirFile):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), thisDirFile)
+
+    def checkedFunction(*args, **kwargs):
+        output = func()
+        if isinstance(output, str):
+            output = [output]
+        [raiseNotFoundError(k) for k in output]
+        return func(*args, **kwargs)
+    return checkedFunction
+
+@checkIfOutputExists
 def getFileName_full(fPath, fName):
     fullName = os.path.join(os.path.normpath(fPath), fName)
-    if not os.path.exists(fullName):
-        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), fullName)
     return fullName
+
+@checkIfOutputExists
+def marmosetAtlasPath(src='bma'):
+    if src=='bma':
+        if sys.platform == 'linux':
+            fPath = "/media/praneeth/Reservoir/GDrive Columbia/issalab_data/Marmoset brain/Woodward segmentation/meshes/"
+        else:
+            fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes"
+    return fPath
+
+def getMeshNames(fPath=marmosetAtlasPath('bma'), searchStr='smooth'): # mshType = 'region-seg', 'smooth'
+    mshNames_full = glob.glob(fPath + '*' + searchStr + '*.stl')
+    mshNames = [os.path.basename(k) for k in mshNames_full]
+    return mshNames
 
 class bpnClass:
     """
@@ -17,8 +46,8 @@ class bpnClass:
     Use this class by instantiating a bpn object like so in the blender python console:
     bpn = bpnModule.bpnClass(bpy) # pass the bpy module (object)
     """
-    def __init__(self, bpy):
-        self.bpy = bpy
+    def __init__(self, bpyLive):
+        self.bpy = bpyLive
 
     # Make some demo functions here! 
     # Animating DNA, 
@@ -26,6 +55,7 @@ class bpnClass:
         objList, _ = self.plotDNA()
         self.animateObj_whole(objList, np.arange(0, 101, 20))
     # meshDance
+    # brainExplosion
 
     # Blender usefulness exercise #1 - Plotting
     # Plotting two strands of DNA
@@ -82,8 +112,13 @@ class bpnClass:
                 obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
     # Blender usefulness exercise #3 - importing marmoset brain meshes
-    def loadSTL(self, fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes", fName = "bma-1-region_seg_24.stl"):
-        self.bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
+    def loadSTL(self, fPath=marmosetAtlasPath(), searchStr='smooth'):
+        fNames=getMeshNames(fPath, searchStr)
+        for fName in fNames:
+            self.bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
+
+    def getMshCenter(self, msh):
+        msh = self.chkType(msh, 'Mesh')
 
     # Blender usefulness exercise #4 - basic mesh access and manipulation
     def getMshCoords(self, msh):
@@ -111,19 +146,24 @@ class bpnClass:
         if modeChangeFlag:
             self.bpy.ops.object.mode_set(mode=current_mode)
 
-    def getMesh(self, msh):
-        """Return a mesh given it's name."""
+    def getMesh(self, msh, mshProperty=None):
+        """
+        Return a mesh given its name.
+        Given an object (or its name), return its mesh.
+        """        
         return self.chkType(msh, 'Mesh')
     
     def getObject(self, obj):
-        """Return an object given it's name."""
+        """Return an object given its name."""
         return self.chkType(obj, 'Object')
-
+        
     def chkType(self, inp, inpType='Mesh'):
         """
         Check if a given input is a mesh or an object.
-        If an input is a string, then find and return the appropriate python object.
         inpType is either 'Mesh' or 'Object'
+        If inp is the name of a mesh/object, then find and return the appropriate python object.
+        If you requested a mesh but gave an object name, then return the mesh.
+        If you input an object, but are looking for a mesh, return the associated mesh.
         """
         if inpType == 'Mesh':
             inpType_bpyData = 'meshes'
@@ -132,9 +172,15 @@ class bpnClass:
         if isinstance(inp, str):
             if inp in [k.name for k in getattr(self.bpy.data, inpType_bpyData)]:
                 return getattr(self.bpy.data, inpType_bpyData)[inp]
+            elif (inpType == 'Mesh') and (inp in [k.name for k in self.bpy.data.objects]):
+                # if you requested a mesh but gave an object name, then return the mesh
+                return self.bpy.data.objects[inp].data
             else:
                 raise ValueError("Could not find " + inp + " of type " + inpType)
+        if isinstance(inp, self.bpy.types.Object) and inpType=='Mesh':
+            return inp.data # in blender, obj.data points to the mesh corresponding to that object
         if not isinstance(inp, getattr(self.bpy.types, inpType)):
+            # this will only happen if you didn't pass a mesh, object, or an appropriate string
             raise TypeError("Expected input of type bpy.types." + inpType + ", got, " + str(type(inp)) + " instead")
         return inp
 
