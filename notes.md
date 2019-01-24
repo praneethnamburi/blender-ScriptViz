@@ -280,3 +280,19 @@ def getMeshNames(fPath=marmosetAtlasPath(), searchStr='smooth'):
     mshNames = glob.glob(fPath + '*' + searchStr + '*.stl')
     return mshNames
 ```
+
+### Executing a script from the python console
+
+Use this code to execute a script within the python console. Then everything within that script is accessible in the python console's workspace
+
+```python
+filename = '/home/praneeth/Workspace/blenderPython/pn_test1.py'
+exec(compile(open(filename).read(), filename, 'exec'))
+```
+
+Here is a test script. Run the two commands in the python console, and here is an example of pn_test1.py
+
+```python
+import pymesh
+print('testPrint')
+```

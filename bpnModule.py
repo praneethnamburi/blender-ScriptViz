@@ -37,7 +37,7 @@ def marmosetAtlasPath(src='bma'):
 def baseNames(func):
     def baseModFunc(*args, **kwargs):
         # input validation code goes here
-        fOut = func(*args, **kwargs)
+        fOut = func(*args, **kwargs) #commentretyg
         # output validation and modification code goes here
         fOutBase = [os.path.basename(k) for k in fOut]
         return fOutBase
