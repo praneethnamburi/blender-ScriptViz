@@ -10,12 +10,12 @@ def checkIfOutputExists(func):
     def raiseNotFoundError(thisDirFile):
         if not os.path.exists(thisDirFile):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), thisDirFile)
-
     def checkedFunction(*args, **kwargs):
-        output = func()
+        output = func(*args, **kwargs)
         if isinstance(output, str):
             output = [output]
-        [raiseNotFoundError(k) for k in output]
+        for thisOut in output:
+            raiseNotFoundError(thisOut)
         return func(*args, **kwargs)
     return checkedFunction
 
@@ -33,9 +33,34 @@ def marmosetAtlasPath(src='bma'):
             fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes"
     return fPath
 
-def getMeshNames(fPath=marmosetAtlasPath('bma'), searchStr='smooth'): # mshType = 'region-seg', 'smooth'
-    mshNames_full = glob.glob(fPath + '*' + searchStr + '*.stl')
-    mshNames = [os.path.basename(k) for k in mshNames_full]
+'''
+# Class syntax for making a decorator
+class baseNames:
+    def __init__(self, func):
+        self.f = func
+    def __call__(self, *args, **kwargs):
+        # input validation code goes here
+        fOut = self.f(*args, **kwargs)
+        # output validation code goes here
+        # output modification code goes here
+        fOut2 = [os.path.basename(k) for k in fOut]
+        return fOut2
+'''
+
+# function syntax for making a decorator
+def baseNames(func):
+    def baseModFunc(*args, **kwargs):
+        # input validation code goes here
+        fOut = func(*args, **kwargs)
+        # output validation and modification code goes here
+        fOutBase = [os.path.basename(k) for k in fOut]
+        return fOutBase
+    return baseModFunc
+
+@baseNames
+@checkIfOutputExists
+def getMeshNames(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
+    mshNames = glob.glob(fPath + searchStr)
     return mshNames
 
 class bpnClass:

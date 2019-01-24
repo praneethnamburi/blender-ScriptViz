@@ -229,7 +229,7 @@ bpy.app.handlers.frame_change_pre.append(my_handler)
 bpy.app.handlers.frame_change_pre.clear()
 ```
 
-### Decorators in python
+## Decorators in python
 
 A decorator takes a function and returns a function. In the example below, smart_divide is a decorator that takes the function divide and returns a function, let's say smart_divide, and call it divide again. Therefore, the function chkDivideByZero is *decorating* the function *divide* by adding some functionality. More generally, I need to wrap my head around passing functions as arguments
 
@@ -247,4 +247,36 @@ def chkDivideByZero(func):
 @chkDivideByZero
 def divide(a,b):
     return a/b
+```
+
+### two ways of defining decorators
+
+```python
+# Class syntax for making a decorator
+class baseNames:
+    def __init__(self, func):
+        self.f = func
+    def __call__(self, *args, **kwargs):
+        # input validation code goes here
+        fOut = self.f(*args, **kwargs)
+        # output validation code goes here
+        # output modification code goes here
+        fOut2 = [os.path.basename(k) for k in fOut]
+        return fOut2
+
+# function syntax for making a decorator
+def baseNames(func):
+    def baseModFunc(*args, **kwargs):
+        # input validation code goes here
+        fOut = func(*args, **kwargs)
+        # output validation and modification code goes here
+        fOutBase = [os.path.basename(k) for k in fOut]
+        return fOutBase
+    return baseModFunc
+
+# using the decorator
+@baseNames
+def getMeshNames(fPath=marmosetAtlasPath(), searchStr='smooth'):
+    mshNames = glob.glob(fPath + '*' + searchStr + '*.stl')
+    return mshNames
 ```
