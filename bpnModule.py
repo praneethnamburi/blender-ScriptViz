@@ -123,7 +123,7 @@ class bpnClass:
                 obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
     # Blender usefulness exercise #3 - importing marmoset brain meshes
-    def loadSTL(self, fPath=marmosetAtlasPath(), searchStr='smooth'):
+    def loadSTL(self, fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
         fNames=getMeshNames(fPath, searchStr)
         for fName in fNames:
             self.bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
