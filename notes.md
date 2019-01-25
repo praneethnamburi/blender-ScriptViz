@@ -266,13 +266,14 @@ class baseNames:
 
 # function syntax for making a decorator
 def baseNames(func):
-    def baseModFunc(*args, **kwargs):
+    """This decorator function returns just the file names in case full file paths are used"""
+    def funcWithBaseNameOutput(*args, **kwargs):
         # input validation code goes here
         fOut = func(*args, **kwargs)
         # output validation and modification code goes here
         fOutBase = [os.path.basename(k) for k in fOut]
         return fOutBase
-    return baseModFunc
+    return funcWithBaseNameOutput
 
 # using the decorator
 @baseNames
@@ -280,6 +281,132 @@ def getMeshNames(fPath=marmosetAtlasPath(), searchStr='smooth'):
     mshNames = glob.glob(fPath + '*' + searchStr + '*.stl')
     return mshNames
 ```
+
+Remember that the above syntax of using the decorator (@basenames) just before a function definition translates to redefining the function getMeshNames like so:
+
+```python
+getMeshNames = baseNames(getMeshNames)
+```
+
+If you call it without using the decorator, it will be the equivalent of saying:  
+baseNames(getMeshNames)(searchStr='smooth')
+
+Also note that there are two parentheses after baseNames. You can access two functions of a python class using two sets of parentheses, the first set executes the __init__() method wrapper and the second set executes the __call__() method wrapper. Each of those can have arguments of their own.
+
+Another decorator example
+
+```python
+# decorator - takes a function: function to be decorated
+def checkIfOutputExistsFDEF(func):
+    """This decorator function raises an error if the output does not exist on disk"""
+    # makes a new function: the decorated function
+    def funcWithChecking(*args, **kwargs):
+        output = func(*args, **kwargs)
+        raiseNotFoundError(output)
+        return output
+    # returns the new function
+    return funcWithChecking
+```
+
+And this would be the same as calling
+
+```python
+baseNames(getMeshNames)(searchStr='smooth')
+```
+
+Parameters in parentheses 2 get passed to the object in parentheses 1
+
+Decorators can improve code readability. If a reader is just trying to understand the core concepts of the code, then they can skip over the decorator definitions and simply focus on the 'core' functions
+
+### Decorators with arguments
+
+```python
+class reportDelta:
+    """This decorator reports what changed in the scene after the decorated function is executed"""
+    def __init__(self, deltaType='objects'): # what changed? report 'objects' or 'meshes'
+        self.deltaType = deltaType
+    def __call__(self, func):
+        def deltaAfterFunc(*args, **kwargs):
+            namesBefore = [k.name for k in getattr(bpy.data, self.deltaType)]
+            funcOut = func(*args, **kwargs)
+            if not isinstance(funcOut, dict):
+                funcOut = {'funcOut': funcOut}
+            namesAfter = [k.name for k in getattr(bpy.data, self.deltaType)] # read: bpy.data.objects
+            funcOut['new'+self.deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
+            return funcOut
+        return deltaAfterFunc
+
+# It can also be redefined using def like so:
+def reportDelta(deltaType='meshes'):
+    def deltaAfterFunc(func):
+        # tell what kind of modification
+        def nameGenerationFunction(*args, **args):
+                # find names before
+                funcOutput = func(*args, **args)
+                # find names after, modify funcOutput
+            return modifiedFuncOutput
+        return nameGenerationFunction
+    return deltaAfterFunc
+
+@reportDelta(deltaType='objects')
+@reportDelta(deltaType='meshes')
+def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
+    fNames=getMeshNames(fPath, searchStr)
+    for fName in fNames:
+        bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
+
+reportDelta(deltaType='objects')(reportDelta(deltaType='meshes')(loadSTL))
+
+# alternate syntax
+loadSTL = reportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
+# this is equivalent to:
+tmp1 = bpy.b.reportDelta(deltaType='meshes')
+# tmp1 is <bpnModule.reportDelta object at 0x7fc0ea199470>
+tmp2 = tmp1(bpy.b.loadSTL)
+# tmp2 is <function reportDelta.__call__.<locals>.deltaAfterFunc at 0x7fc13f7e06a8>
+tmp2(searchStr='*123*.stl')
+# this is the final evaluation that produces the output
+# h(g(f(x)))  h(g)(f)(x)
+# reportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
+```
+
+Another way of doing the same thing: can't use the decorator syntax in this case, but you can modify a function using another function nonetheless
+
+```python
+def reportDeltaAlt(func, deltaType='meshes'):
+    def deltaAfterFunc(*args, **kwargs):
+        namesBefore = [k.name for k in getattr(bpy.data, deltaType)]
+        funcOut = func(*args, **kwargs)
+        if not isinstance(funcOut, dict):
+            funcOut = {'funcOut': funcOut}
+        namesAfter = [k.name for k in getattr(bpy.data, deltaType)] # read: bpy.data.objects
+        funcOut['new'+deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
+        return funcOut
+    return deltaAfterFunc
+
+loadSTL2 = reportDeltaAlt(reportDeltaAlt(loadSTL, deltaType='meshes'), deltaType='objects')
+# call as loadSTL2(searchStr='*142*.stl')
+```
+
+You can do the same thing using classes, which might be easier to read
+
+```python
+class reportDeltaAlt:
+    def __init__(self, func, deltaType='meshes'):
+        # func is any function that ideally changes the scene in blender
+        self.func = func
+        self.deltaType = deltaType
+    def __call__(self, *args, **kwargs):
+        namesBefore = [k.name for k in getattr(bpy.data, deltaType)]
+        funcOut = self.func(*args, **kwargs)
+        if not isinstance(funcOut, dict):
+            funcOut = {'funcOut': funcOut}
+        namesAfter = [k.name for k in getattr(bpy.data, deltaType)] # read: bpy.data.objects
+        funcOut['new'+deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
+        return funcOut
+```
+
+The syntax is not as nice (the part where I load STL2). This way is easier to understand though! So, stick to the class method of using decorators? Remember, whatever is in the first set of parentheses calls the __init__ function, and whatever is in the second set of parenteses calls the __call__ function of a class
 
 ### Executing a script from the python console
 

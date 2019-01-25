@@ -6,6 +6,7 @@ import sys
 import glob
 import bpy #pylint: disable=import-error
 
+### Exceptions
 def raiseNotFoundError(thisDirFiles):
     if isinstance(thisDirFiles, str):
         thisDirFiles = [thisDirFiles]
@@ -13,13 +14,29 @@ def raiseNotFoundError(thisDirFiles):
         if not os.path.exists(dirFile):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
 
-def checkIfOutputExists(func):
-    def checkedFunction(*args, **kwargs):
-        output = func(*args, **kwargs)
-        raiseNotFoundError(output)
-        return output
-    return checkedFunction
+### General utilities (don't require blender)
+## General utilities - Decorators 
+# exception handling
+class checkIfOutputExists:
+    """This decorator function raises an error if the output does not exist on disk"""
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        funcOut = self.func(*args, **kwargs)
+        raiseNotFoundError(funcOut)
+        return funcOut
 
+# General utilities - Decorators - output modifiers
+class baseNames:
+    """This decorator function returns just the file names if func's output consists of full file paths"""
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        funcOut = self.func(*args, **kwargs)
+        funcOutBase = [os.path.basename(k) for k in funcOut]
+        return funcOutBase
+
+## General utilities - Functions
 @checkIfOutputExists
 def getFileName_full(fPath, fName):
     fullName = os.path.join(os.path.normpath(fPath), fName)
@@ -34,16 +51,6 @@ def marmosetAtlasPath(src='bma'):
             fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes"
     return fPath
 
-# function syntax for making a decorator
-def baseNames(func):
-    def baseModFunc(*args, **kwargs):
-        # input validation code goes here
-        fOut = func(*args, **kwargs)
-        # output validation and modification code goes here
-        fOutBase = [os.path.basename(k) for k in fOut]
-        return fOutBase
-    return baseModFunc
-
 @baseNames
 @checkIfOutputExists
 def getMeshNames(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
@@ -51,7 +58,28 @@ def getMeshNames(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
     return mshNames
 
 
-# Make some demo functions here! 
+### Blender functions
+## Decorators for blender
+class reportDelta:
+    """
+    This decorator reports changes to blender data after the decorated function is executed
+    usage: @reportDelta(deltaType='objects')
+    deltaType can be anything in bpy.data, like objects, or meshes
+    """
+    def __init__(self, deltaType='objects'):
+        self.deltaType = deltaType
+    def __call__(self, func):
+        def deltaAfterFunc(*args, **kwargs):
+            namesBefore = [k.name for k in getattr(bpy.data, self.deltaType)]
+            funcOut = func(*args, **kwargs)
+            if not isinstance(funcOut, dict):
+                funcOut = {'funcOut': funcOut}
+            namesAfter = [k.name for k in getattr(bpy.data, self.deltaType)] # read: bpy.data.objects
+            funcOut['new'+self.deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
+            return funcOut
+        return deltaAfterFunc
+
+### Demo functions that demonstrate some ways to use this API
 # Animating DNA, 
 def demo_animateDNA():
     objList, _ = plotDNA()
@@ -59,7 +87,7 @@ def demo_animateDNA():
 # meshDance
 # brainExplosion
 
-# Blender usefulness exercise #1 - Plotting
+## Blender usefulness exercise #1 - Plotting
 # Plotting two strands of DNA
 def plotDNA():
     """
@@ -102,7 +130,7 @@ def genObj(msh, name='autoObjName', location=(0.0,0.0,0.0)):
     bpy.context.scene.collection.objects.link(obj)
     return obj
 
-# Blender usefulness exercise #2 - animation
+## Blender usefulness exercise #2 - animation
 # Animate the two strands of DNA
 def animateObj_whole(objList, frameList): # skeleton to transform the entire object
     scn = bpy.context.scene # assuming there is only one scene
@@ -113,24 +141,9 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
             obj.rotation_euler = Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
             obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
-class reportDelta:
-    """This decorator reports what changed in the scene after the decorated function is executed"""
-    def __init__(self, deltaType='objects'): # what changed? report 'objects' or 'meshes'
-        self.deltaType = deltaType
-    def __call__(self, func):
-        def deltaAfterFunc(*args, **kwargs):
-            namesBefore = [k.name for k in getattr(bpy.data, self.deltaType)]
-            funcOut = func(*args, **kwargs)
-            if not isinstance(funcOut, dict):
-                funcOut = {'funcOut': funcOut}
-            namesAfter = [k.name for k in getattr(bpy.data, self.deltaType)] # read: bpy.data.objects
-            funcOut['new'+self.deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
-            return funcOut
-        return deltaAfterFunc
-
-# Blender usefulness exercise #3 - importing marmoset brain meshes
-@reportDelta(deltaType='meshes')
-@reportDelta(deltaType='objects')
+## Blender usefulness exercise #3 - importing marmoset brain meshes
+@reportDelta(deltaType='meshes') # includes list of new mesh names in the output
+@reportDelta(deltaType='objects') # includes list of new object names in the output
 def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
     fNames=getMeshNames(fPath, searchStr)
     for fName in fNames:
@@ -139,7 +152,7 @@ def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Col
 def getMshCenter(msh):
     msh = chkType(msh, 'Mesh')
 
-# Blender usefulness exercise #4 - basic mesh access and manipulation
+## Blender usefulness exercise #4 - basic mesh access and manipulation
 def getMshCoords(msh):
     msh = chkType(msh, 'Mesh')
     coords = np.array([v.co for v in msh.vertices])
