@@ -62,28 +62,8 @@ def getMeshNames(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
 ## Decorators for blender
 class reportDelta:
     """
-    This decorator reports changes to blender data after the decorated function is executed
-    usage: @reportDelta(deltaType='objects')
-    deltaType can be anything in bpy.data, like objects, or meshes
-    """
-    def __init__(self, deltaType='objects'):
-        self.deltaType = deltaType
-    def __call__(self, func):
-        def deltaAfterFunc(*args, **kwargs):
-            namesBefore = [k.name for k in getattr(bpy.data, self.deltaType)]
-            funcOut = func(*args, **kwargs)
-            if not isinstance(funcOut, dict):
-                funcOut = {'funcOut': funcOut}
-            namesAfter = [k.name for k in getattr(bpy.data, self.deltaType)] # read: bpy.data.objects
-            funcOut['new'+self.deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
-            return funcOut
-        return deltaAfterFunc
-
-class reportDeltaData:
-    """
-    This class is primarily meant to be used as a decorator
-    This decorator reports changes to all bpy prop collections after a decorated function is executed
-    This decorator does not accept arguments
+    This class is primarily meant to be used as a decorator.
+    This decorator reports changes to blender data (prop collections) after the decorated function is executed.
     Within a script, you can use the decorator syntax, for example
     @reportDeltaData
     def demo_animateDNA():
@@ -199,8 +179,7 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
             obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
 ## Blender usefulness exercise #3 - importing marmoset brain meshes
-@reportDelta(deltaType='meshes') # includes list of new mesh names in the output
-@reportDelta(deltaType='objects') # includes list of new object names in the output
+@reportDelta
 def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
     fNames=getMeshNames(fPath, searchStr)
     for fName in fNames:
