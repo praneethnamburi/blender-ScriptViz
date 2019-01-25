@@ -113,8 +113,25 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
             obj.rotation_euler = Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
             obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
+class reportDelta:
+    """This decorator reports what changed in the scene after the decorated function is executed"""
+    def __init__(self, deltaType='objects'): # what changed? report 'objects' or 'meshes'
+        self.deltaType = deltaType
+    def __call__(self, func):
+        def deltaAfterFunc(*args, **kwargs):
+            namesBefore = [k.name for k in getattr(bpy.data, self.deltaType)]
+            funcOut = func(*args, **kwargs)
+            if not isinstance(funcOut, dict):
+                funcOut = {'funcOut': funcOut}
+            namesAfter = [k.name for k in getattr(bpy.data, self.deltaType)] # read: bpy.data.objects
+            funcOut['new'+self.deltaType.capitalize()] = list(set(namesAfter)-set(namesBefore))
+            return funcOut
+        return deltaAfterFunc
+
 # Blender usefulness exercise #3 - importing marmoset brain meshes
-def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
+@reportDelta(deltaType='meshes')
+@reportDelta(deltaType='objects')
+def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
     fNames=getMeshNames(fPath, searchStr)
     for fName in fNames:
         bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
