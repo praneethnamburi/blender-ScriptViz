@@ -7,7 +7,7 @@ sys.path.append('/home/praneeth/Workspace/blenderPython')
 
 
 ## import custom modules
-import bpnModule_liveTest as b
+import bpnModule as b
 
 ## store them in bpy
 '''this is the only way by which I managed to send data from the command line to the python console inside blender'''
