@@ -69,6 +69,7 @@ class reportDelta:
     def demo_animateDNA():
         #animation code goes here
         pass
+    deltaReport = demo_animateDNA()
     OR
     when using from a terminal, or from within a script, use
     deltaReport = bpy.b.reportDeltaData(bpy.b.demo_animateDNA)()
