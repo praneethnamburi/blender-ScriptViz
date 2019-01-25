@@ -79,6 +79,63 @@ class reportDelta:
             return funcOut
         return deltaAfterFunc
 
+class reportDeltaData:
+    """
+    This class is primarily meant to be used as a decorator
+    This decorator reports changes to all bpy prop collections after a decorated function is executed
+    This decorator does not accept arguments
+    Within a script, you can use the decorator syntax, for example
+    @reportDeltaData
+    def demo_animateDNA():
+        #animation code goes here
+        pass
+    OR
+    when using from a terminal, or from within a script, use
+    deltaReport = bpy.b.reportDeltaData(bpy.b.demo_animateDNA)()
+    This is useful in the console: [print(k, ':', out1[k]) for k in out1]
+    """
+    def __init__(self, func):
+        self.func = func # a function that changes something in the blender data
+
+        # find all the things to monitor
+        self.monFieldNames = [k for k in dir(bpy.data) if 'bpy_prop_collection' in str(type(getattr(bpy.data, k)))]
+
+        # initialize generated report
+        self.deltaReport = {
+            'funcOut'         : [],                 # output of the function passed to this decorator
+            'monitoredFields' : self.monFieldNames, # list of monitored fields in bpy.data
+            'unchangedFields' : [],                 # list of fields unchanged by func
+            'changedFields'   : [],                 # list of fields changed by func
+        }
+
+    def __call__(self, *args, **kwargs):
+        # get the 'before' state
+        propsBefore = self.getProps()
+        
+        # evaluate the function that is going to change blender data, and stash its output
+        self.deltaReport['funcOut'] = self.func(*args, **kwargs)
+
+        # get the 'after' state
+        propsAfter = self.getProps()
+        
+        # find all the new things
+        for fieldName in self.monFieldNames:
+            thisDelta = propsAfter[fieldName] - propsBefore[fieldName]
+            if not thisDelta == set(): # only if something changed
+                self.deltaReport[fieldName] = list(thisDelta)
+                self.deltaReport['changedFields'].append(fieldName)
+            else:
+                self.deltaReport['unchangedFields'].append(fieldName)
+
+        # if an object is modified, then arrange meshes and groups according to the object order?
+        return self.deltaReport
+
+    def getProps(self):
+        props = {}
+        for fieldName in self.monFieldNames:
+            props[fieldName] = set(getattr(bpy.data, fieldName)) #[k.name for k in getattr(bpy.data, fieldName)]
+        return props
+
 ### Demo functions that demonstrate some ways to use this API
 # Animating DNA, 
 def demo_animateDNA():
