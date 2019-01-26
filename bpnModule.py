@@ -53,7 +53,10 @@ def marmosetAtlasPath(src='bma'):
 
 @baseNames
 @checkIfOutputExists
-def getMeshNames(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl'):
+def getMeshNames(fPath=None, searchStr='*smooth*.stl'):
+    if fPath is None:
+        # doing it this way because the module will not load if the brain atlas does not exist
+        fPath = marmosetAtlasPath()
     mshNames = glob.glob(fPath + searchStr)
     return mshNames
 
@@ -181,7 +184,9 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
 
 ## Blender usefulness exercise #3 - importing marmoset brain meshes
 @reportDelta
-def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
+def loadSTL(fPath=None, searchStr='*smooth*.stl', collName = 'Collection'):
+    if fPath is None:
+        fPath = marmosetAtlasPath()
     fNames=getMeshNames(fPath, searchStr)
     for fName in fNames:
         bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
@@ -254,17 +259,17 @@ def chkType(inp, inpType='Mesh'):
     return inp
 
 # Blender usefulness exercise #5 - add primitives
-def addPrimitive(type='monkey', location=(1.0, 3.0, 5.0)):
+def addPrimitive(pType='monkey', location=(1.0, 3.0, 5.0)):
     """
     Add a primitive at a given location - just simplifies syntax
-    type can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
+    pType can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
     monkey, plane, torus
     Adding a primitive while in edit mode will add the primitive to the
     mesh that is being edited in mesh mode! This means that you can inherit
     animations (and perhaps modifiers) by adding to a mesh!
     """
-    funcName = 'primitive_'+type+'_add'
+    funcName = 'primitive_'+pType+'_add'
     if hasattr(bpy.ops.mesh, funcName):
         getattr(bpy.ops.mesh, funcName)(location=location)
     else:
-        raise ValueError(f"{type} is not a valid argument")
+        raise ValueError(f"{pType} is not a valid argument")

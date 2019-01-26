@@ -423,3 +423,52 @@ Here is a test script. Run the two commands in the python console, and here is a
 import pymesh
 print('testPrint')
 ```
+
+## Old way of launching blender from the terminal
+
+```python
+### Use the command blender --python launch.py in the terminal to launch blender
+
+# add custom module locations to system path
+# note that the appended paths persist
+import sys
+sys.path.append('/home/praneeth/Workspace/blenderPython')
+
+
+## import custom modules
+import bpnModule as b
+
+## store them in bpy
+'''this is the only way by which I managed to send data from the command line to the python console inside blender'''
+import bpy #pylint: disable=import-error
+bpy.b = b
+
+## do stuff on startup
+# b.demo_animateDNA()
+```
+
+## New way of launching blender from the terminal
+
+Step 1: Put everything you want to type into the blender python terminal into a file (call it startupContents.py)
+
+Step 2: Put the following code in a separate script, either on its own, or if there are other commands in that script, then simply use the if __name__ == '__main__' trick, which is shown below. So, for the latter strategy, place this code at the end of a script, say bpnModule.py
+
+```python
+#strategy #1 - make a file with these three lines as the contents, say launch.py
+import bpy
+import os
+launchFileName = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'startupContents.py')
+bpy.loadStr = open(launchFileName).read()
+```
+
+```python
+# strategy #2 - put this at the end of a file, say bpnModule.py
+if __name__ == '__main__':
+    launchFileName = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'startupContents.py')
+    bpy.loadStr = open(launchFileName).read()
+```
+
+Step 3: For strategy #1, launch blender from the terminal using blender --python launch.py
+        For strategy #2, launch blender from the terminal using blender --python bpnModule.py
+
+Step 4: execute the command (exec bpy.loadStr)
