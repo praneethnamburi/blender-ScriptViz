@@ -1,10 +1,12 @@
 import os
 import errno
 import numpy as np
-from mathutils import Vector #pylint: disable=import-error
 import sys
 import glob
+import functools
+
 import bpy #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 ### Exceptions
 def raiseNotFoundError(thisDirFiles):
@@ -21,6 +23,7 @@ class checkIfOutputExists:
     """This decorator function raises an error if the output does not exist on disk"""
     def __init__(self, func):
         self.func = func
+        functools.update_wrapper(self, func)
     def __call__(self, *args, **kwargs):
         funcOut = self.func(*args, **kwargs)
         raiseNotFoundError(funcOut)
@@ -31,6 +34,7 @@ class baseNames:
     """This decorator function returns just the file names if func's output consists of full file paths"""
     def __init__(self, func):
         self.func = func
+        functools.update_wrapper(self, func)
     def __call__(self, *args, **kwargs):
         funcOut = self.func(*args, **kwargs)
         funcOutBase = [os.path.basename(k) for k in funcOut]
@@ -53,13 +57,12 @@ def marmosetAtlasPath(src='bma'):
 
 @baseNames
 @checkIfOutputExists
-def getMeshNames(fPath=None, searchStr='*smooth*.stl'):
+def getMshNames(fPath=None, searchStr='*smooth*.stl'):
     if fPath is None:
         # doing it this way because the module will not load if the brain atlas does not exist
         fPath = marmosetAtlasPath()
     mshNames = glob.glob(fPath + searchStr)
     return mshNames
-
 
 ### Blender functions
 ## Decorators for blender
@@ -80,6 +83,7 @@ class reportDelta:
     """
     def __init__(self, func):
         self.func = func # a function that changes something in the blender data
+        functools.update_wrapper(self, func) # to preserve original signatures
 
         # find all the things to monitor
         self.monFieldNames = [k for k in dir(bpy.data) if 'bpy_prop_collection' in str(type(getattr(bpy.data, k)))]
@@ -167,7 +171,7 @@ def genObj(msh, name='autoObjName', location=(0.0,0.0,0.0)):
     """Generates an object fraom a mesh and attaches it to the current scene."""
     obj = bpy.data.objects.new(name, msh)
     # put that object in the scene
-    obj.location = Vector(location)
+    obj.location = mathutils.Vector(location)
     bpy.context.scene.collection.objects.link(obj)
     return obj
 
@@ -179,7 +183,7 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
     for frameNum in frameList:
         scn.frame_set(frameNum+1) # because keyframes are 1-indexed in Blender
         for obj in objList:
-            obj.rotation_euler = Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
+            obj.rotation_euler = mathutils.Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
             obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
 ## Blender usefulness exercise #3 - importing marmoset brain meshes
@@ -187,7 +191,7 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
 def loadSTL(fPath=None, searchStr='*smooth*.stl', collName = 'Collection'):
     if fPath is None:
         fPath = marmosetAtlasPath()
-    fNames=getMeshNames(fPath, searchStr)
+    fNames=getMshNames(fPath, searchStr)
     for fName in fNames:
         bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
 
@@ -215,22 +219,22 @@ def setMshCoords(msh, coords):
         bpy.ops.object.mode_set(mode='OBJECT')
 
     for vertexCount, vertex in enumerate(msh.vertices):
-        vertex.co = Vector(coords[vertexCount, :])
+        vertex.co = mathutils.Vector(coords[vertexCount, :])
 
     if modeChangeFlag:
         bpy.ops.object.mode_set(mode=current_mode)
 
-def getMesh(msh, mshProperty=None):
+def getMsh(msh, mshProperty=None):
     """
     Return a mesh given its name.
     Given an object (or its name), return its mesh.
     """        
     return chkType(msh, 'Mesh')
 
-def getObject(obj):
+def getObj(obj):
     """Return an object given its name."""
     return chkType(obj, 'Object')
-    
+
 def chkType(inp, inpType='Mesh'):
     """
     Check if a given input is a mesh or an object.
