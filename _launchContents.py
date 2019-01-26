@@ -11,7 +11,7 @@ import mathutils #pylint: disable=import-error
 
 ## import custom modules
 sys.path.append('/home/praneeth/Workspace/blenderPython')
-import bpnModule as bpn
+import bpn
 import pnTools as my
 import marmosetAtlas as atl
 

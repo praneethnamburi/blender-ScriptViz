@@ -4,7 +4,7 @@ import glob
 import bpy #pylint: disable=import-error
 
 import pnTools as my
-import bpnModule as bpn
+import bpn
 
 @my.checkIfOutputExists
 def marmosetAtlasPath(src='bma'):

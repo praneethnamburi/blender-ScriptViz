@@ -361,7 +361,7 @@ reportDelta(deltaType='objects')(reportDelta(deltaType='meshes')(loadSTL))
 loadSTL = reportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
 # this is equivalent to:
 tmp1 = bpy.b.reportDelta(deltaType='meshes')
-# tmp1 is <bpnModule.reportDelta object at 0x7fc0ea199470>
+# tmp1 is <bpn.reportDelta object at 0x7fc0ea199470>
 tmp2 = tmp1(bpy.b.loadSTL)
 # tmp2 is <function reportDelta.__call__.<locals>.deltaAfterFunc at 0x7fc13f7e06a8>
 tmp2(searchStr='*123*.stl')
@@ -436,7 +436,7 @@ sys.path.append('/home/praneeth/Workspace/blenderPython')
 
 
 ## import custom modules
-import bpnModule as b
+import bpn as b
 
 ## store them in bpy
 '''this is the only way by which I managed to send data from the command line to the python console inside blender'''
@@ -451,7 +451,7 @@ bpy.b = b
 
 Step 1: Put everything you want to type into the blender python terminal into a file (call it startupContents.py)
 
-Step 2: Put the following code in a separate script, either on its own, or if there are other commands in that script, then simply use the if __name__ == '__main__' trick, which is shown below. So, for the latter strategy, place this code at the end of a script, say bpnModule.py
+Step 2: Put the following code in a separate script, either on its own, or if there are other commands in that script, then simply use the if __name__ == '__main__' trick, which is shown below. So, for the latter strategy, place this code at the end of a script, say bpn.py
 
 ```python
 #strategy #1 - make a file with these three lines as the contents, say launch.py
@@ -462,13 +462,13 @@ bpy.loadStr = open(launchFileName).read()
 ```
 
 ```python
-# strategy #2 - put this at the end of a file, say bpnModule.py
+# strategy #2 - put this at the end of a file, say bpn.py
 if __name__ == '__main__':
     launchFileName = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'startupContents.py')
     bpy.loadStr = open(launchFileName).read()
 ```
 
 Step 3: For strategy #1, launch blender from the terminal using blender --python launch.py
-        For strategy #2, launch blender from the terminal using blender --python bpnModule.py
+        For strategy #2, launch blender from the terminal using blender --python bpn.py
 
 Step 4: execute the command (exec bpy.loadStr)
