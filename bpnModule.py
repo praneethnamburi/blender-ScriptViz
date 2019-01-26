@@ -1,68 +1,10 @@
 import os
-import errno
 import numpy as np
-import sys
-import glob
 import functools
 
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
-
-### Exceptions
-def raiseNotFoundError(thisDirFiles):
-    if isinstance(thisDirFiles, str):
-        thisDirFiles = [thisDirFiles]
-    for dirFile in thisDirFiles:
-        if not os.path.exists(dirFile):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
-
-### General utilities (don't require blender)
-## General utilities - Decorators 
-# exception handling
-class checkIfOutputExists:
-    """This decorator function raises an error if the output does not exist on disk"""
-    def __init__(self, func):
-        self.func = func
-        functools.update_wrapper(self, func)
-    def __call__(self, *args, **kwargs):
-        funcOut = self.func(*args, **kwargs)
-        raiseNotFoundError(funcOut)
-        return funcOut
-
-# General utilities - Decorators - output modifiers
-class baseNames:
-    """This decorator function returns just the file names if func's output consists of full file paths"""
-    def __init__(self, func):
-        self.func = func
-        functools.update_wrapper(self, func)
-    def __call__(self, *args, **kwargs):
-        funcOut = self.func(*args, **kwargs)
-        funcOutBase = [os.path.basename(k) for k in funcOut]
-        return funcOutBase
-
-## General utilities - Functions
-@checkIfOutputExists
-def getFileName_full(fPath, fName):
-    fullName = os.path.join(os.path.normpath(fPath), fName)
-    return fullName
-
-@checkIfOutputExists
-def marmosetAtlasPath(src='bma'):
-    if src=='bma':
-        if sys.platform == 'linux':
-            fPath = "/media/praneeth/Reservoir/GDrive Columbia/issalab_data/Marmoset brain/Woodward segmentation/meshes/"
-        else:
-            fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes"
-    return fPath
-
-@baseNames
-@checkIfOutputExists
-def getMshNames(fPath=None, searchStr='*smooth*.stl'):
-    if fPath is None:
-        # doing it this way because the module will not load if the brain atlas does not exist
-        fPath = marmosetAtlasPath()
-    mshNames = glob.glob(fPath + searchStr)
-    return mshNames
+import pnTools as my
 
 ### Blender functions
 ## Decorators for blender
@@ -148,12 +90,12 @@ def plotDNA():
 def plot(x, y, z=0):
     mshName = 'autoMshName'
     # create a mesh
-    msh = genMesh(mshName, x, y, z)
+    msh = genPlotMsh(mshName, x, y, z)
     # instantiate an object
     obj = genObj(msh)
     return obj, msh
 
-def genMesh(mshName, xVals, yVals, zVals=None):
+def genPlotMsh(mshName, xVals, yVals, zVals=None):
     """Generates a mesh for plotting."""
     n = np.size(xVals)
     if zVals is None:
@@ -187,13 +129,7 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
             obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
 ## Blender usefulness exercise #3 - importing marmoset brain meshes
-@reportDelta
-def loadSTL(fPath=None, searchStr='*smooth*.stl', collName = 'Collection'):
-    if fPath is None:
-        fPath = marmosetAtlasPath()
-    fNames=getMshNames(fPath, searchStr)
-    for fName in fNames:
-        bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
+# ported to marmosetAtlas.py
 
 def getMshCenter(msh):
     msh = chkType(msh, 'Mesh')
