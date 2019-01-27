@@ -4,6 +4,7 @@
 # That will execute the contents of this file
 # If you are using bpn, it will do this for you. Just launch blender from any script that imports bpn (such as marmosetAtlas.py) using the following command in the terminal:
 # blender --python marmosetAtlas.py
+# ! Don't call this function from the command line (don't do blender --python _blenderWksp.py)
 
 ## import commonly used modules
 import sys
@@ -38,7 +39,8 @@ def clearWorkSpace():
     del(globals()['C'])
     del(globals()['D'])
 
+clearWorkSpace()
+del(clearWorkSpace)
 del(bpy.loadStr)
 
-## do stuff on startup
-# normally, you would do this in a different file
+## Don't add anything here to test. Add only things you want done every time you load blender
