@@ -11,6 +11,7 @@
 # Do this by typing 'pip freeze > _requirements.txt' into the terminal
 # You can also add the entry manually into _requirements.txt. Don't forget the double equals == There are TWO of them!
 # In fact, the preferred way of adding a package (even for the first time would be to add the entry to _requirements.txt and running a blender script
+# NOTE: If you just did pip install -r _requirements.txt, version changes and new installs are OK, but uninstalls won't work!
 # TODO: install pip automatically if it isn't already installed
 # TODO: ensure correct blender and pip executables
 '''
