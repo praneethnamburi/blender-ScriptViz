@@ -1,10 +1,18 @@
 import os
 import numpy as np
 import functools
+import sys
 
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import pnTools as my
+
+### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
+# Import bpy from bpn in all scripts from which you will launch blender
+launchFileName = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_blenderWksp.py')
+bpy.loadStr = open(launchFileName).read()
 
 ### Blender functions
 ## Decorators for blender

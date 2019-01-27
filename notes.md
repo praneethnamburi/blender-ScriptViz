@@ -472,3 +472,11 @@ Step 3: For strategy #1, launch blender from the terminal using blender --python
         For strategy #2, launch blender from the terminal using blender --python bpn.py
 
 Step 4: execute the command (exec bpy.loadStr)
+
+### Dealing with bpy py lint errors
+
+Import bpy and other built-in modules into bpn ONLY, and import bpn in all the other scripts, and get bpy and other modules from the bpn import
+
+### Readme
+
+Files that start with _ add functionality, and you shouldn't need to use them if you're an end user

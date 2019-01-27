@@ -1,10 +1,11 @@
 import sys
 import glob
+import os
 
-import bpy #pylint: disable=import-error
-
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import pnTools as my
 import bpn
+from bpn import bpy
 
 @my.checkIfOutputExists
 def marmosetAtlasPath(src='bma'):
@@ -34,3 +35,7 @@ def loadSTL(fPath=None, searchStr='*smooth*.stl', collName = 'Collection'):
         bpy.ops.import_mesh.stl(filepath=my.getFileName_full(fPath, fName))
 
 ## make a blender decorator to put imports in a specified collection!!
+
+# what to do if this scrips is run directly
+if __name__ == '__main__':
+    loadSTL(searchStr='*52*.stl')

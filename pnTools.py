@@ -47,10 +47,10 @@ def functionInputs(func):
     defaultValues = [inspect.signature(func).parameters[k].default for k in [str(k) for k in inspect.signature(func).parameters.keys()]]
     return inputVarNames, defaultValues
 
-def getmembers(mod):
+def getmembers(mod, includeSubModules=True):
     members = {}
     for name, data in inspect.getmembers(mod):
-        if name.startswith('__') or inspect.ismodule(data):
+        if name.startswith('__') or (inspect.ismodule(data) and not includeSubModules):
             continue
         members[name] = str(type(inspect.unwrap(data))).split("'")[1]
     return members
