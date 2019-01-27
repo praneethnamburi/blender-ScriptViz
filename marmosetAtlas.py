@@ -34,7 +34,7 @@ def loadSTL(fPath=None, searchStr='*smooth*.stl', collName = 'Collection'):
     for fName in fNames:
         bpy.ops.import_mesh.stl(filepath=my.getFileName_full(fPath, fName))
 
-## make a blender decorator to put imports in a specified collection!!
+## TODO: make a blender decorator to put imports in a specified collection!!
 
 # what to do if this scrips is run directly
 if __name__ == '__main__':
