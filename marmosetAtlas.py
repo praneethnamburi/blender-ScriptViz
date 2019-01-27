@@ -13,16 +13,16 @@ def marmosetAtlasPath(src='bma'):
         if sys.platform == 'linux':
             fPath = "/media/praneeth/Reservoir/GDrive Columbia/issalab_data/Marmoset brain/Woodward segmentation/meshes/"
         else:
-            fPath = "D:\\GDrive Columbia\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes"
-    return fPath
+            fPath = "D:\\Google Drive (pn2322@columbia.edu)\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes\\"
+    return os.path.realpath(fPath)
 
 @my.baseNames
 @my.checkIfOutputExists
-def getMshNames(fPath=None, searchStr='*smooth*.stl'):
+def getMshNames(fPath=None, searchStr='*52*.stl'):
     if fPath is None:
         # doing it this way because the module will not load if the brain atlas does not exist
         fPath = marmosetAtlasPath()
-    mshNames = glob.glob(fPath + searchStr)
+    mshNames = glob.glob(os.path.join(fPath, searchStr))
     return mshNames
 
 ## Blender usefulness exercise #3 - importing marmoset brain meshes

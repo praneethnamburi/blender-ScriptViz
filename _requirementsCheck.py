@@ -51,6 +51,7 @@ def listDiff(lstA, lstB):
 proc = subprocess.Popen('pip freeze', stdout=subprocess.PIPE, shell=True)
 out = proc.communicate()
 currPkgs = out[0].decode("utf-8").rstrip('\n').split('\n')
+currPkgs = [k.rstrip('\r') for k in currPkgs] # windows compatibility
 currPkgNames, _ = getPkgNameVer(currPkgs)
 
 # Read from _requirements.txt if it is there
