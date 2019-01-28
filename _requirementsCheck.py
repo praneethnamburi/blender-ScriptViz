@@ -87,7 +87,7 @@ if __name__ == '__main__':
     print(verChangePkgs)
     print('New installs including version changes (shows installed version): ')
     print(missingPkgs)
-    print('These packages were uninstalled: ')
+    print('These packages were in the uninstall list: ')
     print(extraPkgs)
 
     # update _requirements file after install process!
