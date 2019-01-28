@@ -26,7 +26,7 @@ def getMshNames(fPath=None, searchStr='*52*.stl'):
     return mshNames
 
 ## Blender usefulness exercise #3 - importing marmoset brain meshes
-@bpn.reportDelta
+@bpn.ReportDelta
 def loadSTL(fPath=None, searchStr='*smooth*.stl', collName = 'Collection'):
     if fPath is None:
         fPath = marmosetAtlasPath()

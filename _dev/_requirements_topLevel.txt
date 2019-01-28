@@ -1,0 +1,17 @@
+'''
+ This file is updated manually to keep track of the packages that I installed manually
+ Advantage: You don't see the dependencies this way
+ Disadvantage: This document requires manual updates
+'''
+
+# These don't need to be included in the distribution package
+pylint==2.2.2
+autopep8==1.4.3
+
+sphinx==1.8.3
+
+# these are required (but blender already ships with numpy?)
+numpy==1.15.0
+pandas==0.24.0
+xlrd==1.2.0
+xlwt==1.3.0

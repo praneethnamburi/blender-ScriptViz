@@ -1,7 +1,7 @@
 import os
-import numpy as np
 import functools
 import sys
+import numpy as np
 
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
@@ -11,12 +11,12 @@ import pnTools as my
 
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
-launchFileName = os.path.join(os.path.dirname(os.path.realpath(__file__)), '_blenderWksp.py')
-bpy.loadStr = open(launchFileName).read()
+BPN_DIR = str(os.path.dirname(os.path.realpath(__file__)))
+bpy.loadStr = ''.join([line for line in open(os.path.join(BPN_DIR, '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', BPN_DIR)
 
 ### Blender functions
 ## Decorators for blender
-class reportDelta:
+class ReportDelta:
     """
     This class is primarily meant to be used as a decorator.
     This decorator reports changes to blender data (prop collections) after the decorated function is executed.

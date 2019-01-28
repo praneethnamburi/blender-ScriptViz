@@ -321,7 +321,7 @@ Decorators can improve code readability. If a reader is just trying to understan
 ### Decorators with arguments
 
 ```python
-class reportDelta:
+class ReportDelta:
     """This decorator reports what changed in the scene after the decorated function is executed"""
     def __init__(self, deltaType='objects'): # what changed? report 'objects' or 'meshes'
         self.deltaType = deltaType
@@ -337,7 +337,7 @@ class reportDelta:
         return deltaAfterFunc
 
 # It can also be redefined using def like so:
-def reportDelta(deltaType='meshes'):
+def ReportDelta(deltaType='meshes'):
     def deltaAfterFunc(func):
         # tell what kind of modification
         def nameGenerationFunction(*args, **args):
@@ -348,26 +348,26 @@ def reportDelta(deltaType='meshes'):
         return nameGenerationFunction
     return deltaAfterFunc
 
-@reportDelta(deltaType='objects')
-@reportDelta(deltaType='meshes')
+@ReportDelta(deltaType='objects')
+@ReportDelta(deltaType='meshes')
 def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
     fNames=getMeshNames(fPath, searchStr)
     for fName in fNames:
         bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))
 
-reportDelta(deltaType='objects')(reportDelta(deltaType='meshes')(loadSTL))
+ReportDelta(deltaType='objects')(ReportDelta(deltaType='meshes')(loadSTL))
 
 # alternate syntax
-loadSTL = reportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
+loadSTL = ReportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
 # this is equivalent to:
-tmp1 = bpy.b.reportDelta(deltaType='meshes')
-# tmp1 is <bpn.reportDelta object at 0x7fc0ea199470>
+tmp1 = bpy.b.ReportDelta(deltaType='meshes')
+# tmp1 is <bpn.ReportDelta object at 0x7fc0ea199470>
 tmp2 = tmp1(bpy.b.loadSTL)
-# tmp2 is <function reportDelta.__call__.<locals>.deltaAfterFunc at 0x7fc13f7e06a8>
+# tmp2 is <function ReportDelta.__call__.<locals>.deltaAfterFunc at 0x7fc13f7e06a8>
 tmp2(searchStr='*123*.stl')
 # this is the final evaluation that produces the output
 # h(g(f(x)))  h(g)(f)(x)
-# reportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
+# ReportDelta(deltaType='meshes')(loadSTL)(searchStr='*123*.stl')
 ```
 
 Another way of doing the same thing: can't use the decorator syntax in this case, but you can modify a function using another function nonetheless
