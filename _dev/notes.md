@@ -498,4 +498,9 @@ env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" (set some environment variable
 /home/praneeth/Workspace/blenderPython/_requirementsCheck.py
 (supply your script to the executable)
 
-cd /home/praneeth/Workspace/blenderPython ; env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" blender --python /home/praneeth/.vscode/extensions/ms-python.python-2018.12.1/pythonFiles/ptvsd_launcher.py -- -- default --client --host localhost --port 43051
+cd /home/praneeth/Workspace/blenderPython ; env "PYTHONIOENCODING=UTF-8"
+"PYTHONUNBUFFERED=1" blender --python
+/home/praneeth/.vscode/extensions/ms-python.python-2018.12.1/pythonFiles/ptvsd_launcher.py
+-- -- default --client --host localhost --port 43051
+
+# dropbox check
