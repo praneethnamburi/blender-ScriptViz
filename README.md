@@ -30,14 +30,16 @@ We aim to achieve this by:
 ## Development workflow
 
 1. Start VSCode
-2. git pull
-3. Check requirements using shift+f6 (blender --python
+2. sync VSCode settings
+3. git pull
+4. Check requirements using shift+f6 (blender --python
    _requirementsCheck.py) (add an exit blender command here)
-4. Start blender using VSCode extension
-5. Clean up workspace (this probably won't work unless you import bpn?)
-6. Run scripts (blender extension, add shortcut f6) and develop!
-7. During development, update documentation, notes and readme.md
-8. git Commit and push
+5. Start blender using VSCode extension
+6. Clean up workspace (this probably won't work unless you import bpn?)
+7. Run scripts (blender extension, add shortcut f6) and develop!
+8. During development, update documentation, notes and readme.md
+9. git Commit and push
+10. Sync VSCode settings
 
 ## Setting up VSCode for blender + python development
 
