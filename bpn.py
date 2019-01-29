@@ -9,8 +9,6 @@ import mathutils #pylint: disable=import-error
 if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
     sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-import pnTools as my
-
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
 BPN_DIR = str(os.path.dirname(os.path.realpath(__file__)))
@@ -51,13 +49,13 @@ class ReportDelta:
     def __call__(self, *args, **kwargs):
         # get the 'before' state
         propsBefore = self.getProps()
-        
+
         # evaluate the function that is going to change blender data, and stash its output
         self.deltaReport['funcOut'] = self.func(*args, **kwargs)
 
         # get the 'after' state
         propsAfter = self.getProps()
-        
+
         # find all the new things
         for fieldName in self.monFieldNames:
             thisDelta = propsAfter[fieldName] - propsBefore[fieldName]
@@ -77,7 +75,7 @@ class ReportDelta:
         return props
 
 ### Demo functions that demonstrate some ways to use this API
-# Animating DNA, 
+# Animating DNA
 def demo_animateDNA():
     objList, _ = plotDNA()
     animateObj_whole(objList, np.arange(0, 101, 20))
@@ -119,7 +117,7 @@ def genPlotMsh(mshName, xVals, yVals, zVals=None):
             msh.edges[i].vertices = (i, i+1)
     return msh
 
-def genObj(msh, name='autoObjName', location=(0.0,0.0,0.0)):
+def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0)):
     """Generates an object fraom a mesh and attaches it to the current scene."""
     obj = bpy.data.objects.new(name, msh)
     # put that object in the scene
@@ -201,7 +199,7 @@ def chkType(inp, inpType='Mesh'):
             return bpy.data.objects[inp].data
         else:
             raise ValueError("Could not find " + inp + " of type " + inpType)
-    if isinstance(inp, bpy.types.Object) and inpType=='Mesh':
+    if isinstance(inp, bpy.types.Object) and inpType == 'Mesh':
         return inp.data # in blender, obj.data points to the mesh corresponding to that object
     if not isinstance(inp, getattr(bpy.types, inpType)):
         # this will only happen if you didn't pass a mesh, object, or an appropriate string

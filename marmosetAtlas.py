@@ -17,9 +17,9 @@ def marmosetAtlasPath(src='bma'):
     """Return the marmoset atlas directory."""
     if src == 'bma':
         if sys.platform == 'linux':
-            fPath = "/media/praneeth/Reservoir/GDrive Columbia/issalab_data/Marmoset brain/Woodward segmentation/meshes/"
+            fPath = "/media/praneeth/Reservoir/GDrive Columbia/issalab_data/Marmoset brain/Woodward segmentation/meshes/" # pylint: disable=C0301
         else:
-            fPath = "D:\\Google Drive (pn2322@columbia.edu)\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes\\"
+            fPath = "D:\\Google Drive (pn2322@columbia.edu)\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes\\" # pylint: disable=C0301
     return os.path.realpath(fPath)
 
 @my.baseNames
@@ -30,7 +30,7 @@ def getMshNames(fPath=marmosetAtlasPath(), searchStr='*52*.stl'):
     return mshNames
 
 @bpn.ReportDelta
-def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
+def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName='Collection'):
     """Import brain meshes into blender and report changes in output"""
     fNames = getMshNames(fPath, searchStr)
     for fName in fNames:

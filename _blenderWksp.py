@@ -40,13 +40,13 @@ line that should be removed #__bpnRemovesThisLine__
 """
 
 import sys
-print("_blenderWksp.py is used by bpn. Don't run it from the command line. Exiting.") #__bpnRemovesThisLine__
+print("Don't run _blenderWksp.py directly. Exiting.") #__bpnRemovesThisLine__
 sys.exit() #__bpnRemovesThisLine__
 import os
 import math
-import inspect
-import numpy as np
-from importlib import reload
+import inspect # pylint: disable=W0611
+from importlib import reload # pylint: disable=W0611
+import numpy as np # pylint: disable=W0611
 
 import mathutils #pylint: disable=import-error
 
@@ -57,23 +57,25 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
 
 import bpn
 import pnTools as my
-import marmosetAtlas as atl
+import marmosetAtlas as atl # pylint: disable=W0611
 
 def reloadAll():
-    exec('bpn = reload(bpn); my = reload(my)')
+    """Reloads bpn and my (pnTools)"""
+    exec('bpn = reload(bpn); my = reload(my)') # pylint: disable=W0122
 
 # delete convenience variables that are polluting the namespace!
 def clearWorkSpace():
-    for k in list(my.getmembers(math).keys()): 
-        del(globals()[k])
-    for k in list(my.getmembers(mathutils).keys()): 
-        del(globals()[k])
-    del(globals()['C'])
-    del(globals()['D'])
+    """Removes blender's convenience variables and import * imports"""
+    for k in list(my.getmembers(math).keys()):
+        del globals()[k]
+    for k in list(my.getmembers(mathutils).keys()):
+        del globals()[k]
+    del globals()['C']
+    del globals()['D']
 
 clearWorkSpace()
-del(clearWorkSpace)
-del(bpn.bpy.loadStr)
+del clearWorkSpace
+del bpn.bpy.loadStr
 
 # Don't add anything here to test. Add only things you want done every
 # time you load blender
