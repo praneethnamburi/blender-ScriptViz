@@ -479,4 +479,21 @@ Import bpy and other built-in modules into bpn ONLY, and import bpn in all the o
 
 ### Readme
 
-Files that start with _ add functionality, and you shouldn't need to use them if you're an end user
+Files that start with _ add functionality, and you shouldn't need to use
+them if you're an end user
+
+### Understand and setup debugging
+
+Currently, this is what F5 is doing:
+
+cd /home/praneeth/Workspace/blenderPython ; (cd to current working directory)
+
+env "PYTHONIOENCODING=UTF-8" "PYTHONUNBUFFERED=1" (set some environment variables)
+
+/home/praneeth/blender/2.80.0/2.80/python/bin/python3.7m (choose the executable)
+
+/home/praneeth/.vscode/extensions/ms-python.python-2018.12.1/pythonFiles/ptvsd_launcher.py--default
+--client --host localhost --port 43051 (supply debugger to the exe)
+
+/home/praneeth/Workspace/blenderPython/_requirementsCheck.py 
+(supply your script to the executable)
