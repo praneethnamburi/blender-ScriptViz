@@ -6,7 +6,9 @@ import numpy as np
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
+    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+
 import pnTools as my
 
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py

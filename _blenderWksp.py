@@ -52,7 +52,9 @@ import mathutils #pylint: disable=import-error
 
 ## import custom modules
 # Note that in this file, the paths unfortunately have to be hard coded
-sys.path.append('__bpnModifyFilePath__')
+if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
+    sys.path.append('__bpnModifyFilePath__')
+
 import bpn
 import pnTools as my
 import marmosetAtlas as atl

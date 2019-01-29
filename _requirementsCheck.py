@@ -49,25 +49,30 @@ Tips:
     },
     Then use f6 to start using your script after checking for package
     harmony!
-2. When you install a package on a given machine using pip, update the
+2. [recommended!] If you are using Jacques Lucke's Blender Development
+   add-on in VSCode to debug, then map f6 to blender: run script. Map
+   the requirements checker to shift+f6. Run the requirements checker
+   periodically (manually). The manual part is not ideal at the moment.
+3. When you install a package on a given machine using pip, update the
    _requirements.txt file so that the next time requirements are
    checked, the code will not bug you asking if you wish to uninstall
    some packages. Note that this will only happen once because this
    script will update _requirements.txt file every time it runs
    successfully, so if it does happen, just say no.
-3. It is a good idea to keep track of the "top-level" packages that you
+4. It is a good idea to keep track of the "top-level" packages that you
    use when developing a package. I do this by having a text file called
    _requirements_topLevel.txt in a folder called _dev. This is important
    because _requriements.txt can quickly become unreadable, and simply
    used as a project management tool.
-4. If you just did pip install -r _requirements.txt, version changes and
+5. If you just did pip install -r _requirements.txt, version changes and
    new installs are OK, but uninstalls won't work!
-5. It is a VERY good idea to use version control to keep track of
+6. It is a VERY good idea to use version control to keep track of
    _requirements.txt. Try to indicate in someway that you changed this
    file in the commit message. I use for _requirements - added pkgname.
 
 # TODO:
-1. Add checks to ensure the correct pip and python are being used!
+1. Add checks to ensure the correct pip and python are being used using
+   whereis command in linux, and !
 2. Install pip automatically if it isn't already installed
 3. Add exception if the file doesn't find _requirements.txt file
 """
@@ -103,7 +108,7 @@ def listDiff(lstA, lstB):
     lstDiff = [k for i, k in enumerate(lstA) if lstDiffBool[i]]
     return lstDiff, lstDiffBool
 
-if __name__ == '__main__':
+if __name__ == '__main__' or __name__ == '<run_path>':
     # Check for pip and check if it is the correct one
     if sys.platform == 'linux':
         queryCmd = 'which'
@@ -111,7 +116,7 @@ if __name__ == '__main__':
         queryCmd = 'where'
 
     pathCheckRequire = 'blender'
-    procPip = subprocess.Popen(queryCmd+' pipa', stdout=subprocess.PIPE, shell=True)
+    procPip = subprocess.Popen(queryCmd+' pip', stdout=subprocess.PIPE, shell=True)
     pipPath = procPip.communicate()[0].decode('utf-8')
     if not pipPath:
         raise SystemExit('Did not find pip.')
