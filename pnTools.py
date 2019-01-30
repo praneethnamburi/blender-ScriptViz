@@ -1,7 +1,10 @@
-import os
 import errno
 import functools
+import importlib
 import inspect
+import os
+import sys
+import subprocess
 
 ### Exceptions
 def raiseNotFoundError(thisDirFiles):
@@ -40,6 +43,72 @@ class baseNames:
 def getFileName_full(fPath, fName):
     fullName = os.path.join(os.path.normpath(fPath), fName)
     return fullName
+
+def ospath(thingToFind, errContent=None):
+    """
+    Find file or directory.
+    
+    :param thingToFind: string input to os path
+    :param errContent=None: what to show when not found
+    :returns: Full path to thingToFind if it exists.
+              Empty string if thingToFind does not exist.
+    """
+    if errContent is None:
+        errContent = thingToFind
+    if os.path.exists(thingToFind):
+        print('Found: ', os.path.realpath(thingToFind))
+        return os.path.realpath(thingToFind)
+    else:
+        print('Did not find ', errContent)
+        return ''
+
+def locateCommand(thingToFind, requireStr=None):
+    """
+    Locate an executable in on your computer.
+
+    :param thingToFind: string name of the executable (e.g. python)
+    :param requireStr: require path to thingToFind to have a certain string
+    :returns: Full path (like realpath) to thingToFind if it exists
+              Empty string if thing does not exist
+    """
+    if sys.platform == 'linux':
+        queryCmd = 'which'
+    elif sys.platform == 'win32':
+        queryCmd = 'where'
+    proc = subprocess.Popen(queryCmd+' '+thingToFind, stdout=subprocess.PIPE, shell=True)
+    thingPath = proc.communicate()[0].decode('utf-8').rstrip('\n').rstrip('\r')
+    if not thingPath:
+        print('Terminal cannot find ', thingToFind)
+        return ''
+    else:
+        print('Terminal found: ', thingPath)
+        if requireStr is not None:
+            if requireStr not in thingPath:
+                print('Path to ' + thingToFind + ' does not have ' + requireStr + ' in it!')
+                return ''
+        return thingPath
+
+## Package management
+def pkglist():
+    """
+    Return a list of installed packages.
+
+    :returns: output of pip freeze
+    :raises keyError: raises an exception
+    """
+    proc = subprocess.Popen('pip freeze', stdout=subprocess.PIPE, shell=True)
+    out = proc.communicate()
+    pkgs = out[0].decode('utf-8').rstrip('\n').split('\n')
+    pkgs = [k.rstrip('\r') for k in pkgs]  # windows compatibility
+    pkgNames = [m[0] for m in [k.split('==') for k in pkgs]]
+    pkgVers = [m[0] for m in [k.split('==') for k in pkgs]]
+    return pkgs, pkgNames, pkgVers
+
+def pkgpath():
+    _, pkgNames, _ = pkglist()
+    for pkgName in pkgNames:
+        currPkgDir = importlib.import_module(str(pkgName).lower().replace('-', '_')).__file__
+    return currPkgDir
 
 ## introspection
 def functionInputs(func):
