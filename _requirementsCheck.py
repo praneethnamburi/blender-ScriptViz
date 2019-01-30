@@ -69,12 +69,6 @@ Tips:
 6. It is a VERY good idea to use version control to keep track of
    _requirements.txt. Try to indicate in someway that you changed this
    file in the commit message. I use for _requirements - added pkgname.
-
-# TODO:
-1. Add checks to ensure the correct pip and python are being used using
-   whereis command in linux, and !
-2. Install pip automatically if it isn't already installed
-3. Add exception if the file doesn't find _requirements.txt file
 """
 
 import os
@@ -174,8 +168,11 @@ def main():
     #     currPkgDir = importlib.import_module(str(pkgName).lower().replace('-', '_')).__file__
 
     # Read from _requirements.txt if it is there
-    reqPkgs = [line.rstrip('\n') for line in open(
-        '_requirements.txt') if line.rstrip('\n')]  # 'if' part to discard empty lines
+    print('Reading requirements file:')
+    reqFile = checkPath('_requirements.txt', 'requirements file. Use pip freeze > _requirements.txt to make one')
+    if not reqFile:
+        return
+    reqPkgs = [line.rstrip('\n') for line in open(reqFile) if line.rstrip('\n')]
     reqPkgNames, _ = getPkgNameVer(reqPkgs)
 
     # If some packages are not listed, ask for uninstall
@@ -208,20 +205,7 @@ def main():
     print(extraPkgs)
 
     # update _requirements file after install process!
-    os.system('pip freeze > _requirements.txt')
-
-    ## This DID NOT WORK!!
-    blenderExtDir = 'C:\\Users\\Praneeth\\.vscode\\extensions\\jacqueslucke.blender-development-0.0.10\\pythonFiles'
-    sys.path.append(str(os.path.join(blenderExtDir, "include")))
-    blenderExtPath = os.path.join(blenderExtDir, 'launch.py')
-    if not checkPath(blenderExtPath, 'VSCode blender add-on launcher'):
-        return
-    if os.path.dirname(blenderExtPath) not in sys.path:
-        sys.path.append(os.path.dirname(blenderExtPath))
-
-    launchCmd = blenderPath + ' --python ' + blenderExtPath
-    print(launchCmd)
-    # subprocess.run(launchCmd)
+    os.system('pip freeze > ' + reqFile)
 
 if __name__ == '__main__' or __name__ == '<run_path>':
     main()
