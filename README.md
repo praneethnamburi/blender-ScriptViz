@@ -41,6 +41,12 @@ We aim to achieve this by:
 9. git Commit and push
 10. Sync VSCode settings
 
+Don't use system exits! This will terminate blender as well
+
 ## Setting up VSCode for blender + python development
+
+Environment variables: add paths to env variables so that blender and
+python bundled with blender show up when you query blender and python,
+and the corresponding pip
 
 ## Using the bpn module

@@ -20,6 +20,8 @@ def marmosetAtlasPath(src='bma'):
             fPath = "/media/praneeth/Reservoir/GDrive Columbia/issalab_data/Marmoset brain/Woodward segmentation/meshes/" # pylint: disable=C0301
         else:
             fPath = "D:\\Google Drive (pn2322@columbia.edu)\\issalab_data\\Marmoset brain\\Woodward segmentation\\meshes\\" # pylint: disable=C0301
+            if not os.path.exists(fPath):
+                fPath = fPath.replace('Google Drive (pn2322@columbia.edu)', 'GDrive Columbia')
     return os.path.realpath(fPath)
 
 @my.baseNames

@@ -81,6 +81,40 @@ import os
 import subprocess
 import sys
 
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+if THIS_DIR not in sys.path:
+    sys.path.append(THIS_DIR)
+
+def checkPath(thingToFind, errContent=None):
+    """Find file or directory."""
+    if errContent is None:
+        errContent = thingToFind
+    if os.path.exists(thingToFind):
+        print('Found: ', os.path.realpath(thingToFind))
+        return os.path.realpath(thingToFind)
+    else:
+        print('Did not find ', errContent)
+        return ''
+
+def getPath_os(thingToFind, requireStr=None):
+    """Return the path of a file accessible inside the terminal."""
+    if sys.platform == 'linux':
+        queryCmd = 'which'
+    elif sys.platform == 'win32':
+        queryCmd = 'where'
+    proc = subprocess.Popen(queryCmd+' '+thingToFind, stdout=subprocess.PIPE, shell=True)
+    thingPath = proc.communicate()[0].decode('utf-8').rstrip('\n').rstrip('\r')
+    if not thingPath:
+        print('Terminal cannot find ', thingToFind)
+        return ''
+    else:
+        print('Terminal found: ', thingPath)
+        if requireStr is not None:
+            if requireStr not in thingPath:
+                print('Path to ' + thingToFind + ' does not have ' + requireStr + ' in it!')
+                return ''
+        return thingPath
+
 def getPkgNameVer(pkgs):
     """
     Takes a string list describing pinned packages e.g. numpy==1.15.0
@@ -93,7 +127,6 @@ def getPkgNameVer(pkgs):
     pkgNames = list(tmpDict.keys())
     pkgVers = list(tmpDict.values())
     return pkgNames, pkgVers
-
 
 def listDiff(lstA, lstB):
     """
@@ -108,22 +141,27 @@ def listDiff(lstA, lstB):
     lstDiff = [k for i, k in enumerate(lstA) if lstDiffBool[i]]
     return lstDiff, lstDiffBool
 
-if __name__ == '__main__' or __name__ == '<run_path>':
-    # Check for pip and check if it is the correct one
-    if sys.platform == 'linux':
-        queryCmd = 'which'
-    elif sys.platform == 'win32':
-        queryCmd = 'where'
+def main():
+    print('Checking if Blender exists:')
+    blenderPath = getPath_os('blender')
+    if not blenderPath:
+        return
 
-    pathCheckRequire = 'blender'
-    procPip = subprocess.Popen(queryCmd+' pip', stdout=subprocess.PIPE, shell=True)
-    pipPath = procPip.communicate()[0].decode('utf-8')
+    print('Checking for the correct python:')
+    pythonPath = getPath_os('python', 'blender')
+    if not pythonPath:
+        return
+
+    print('Looking for pip in blender:')
+    pipPath = getPath_os('pip', 'blender')
     if not pipPath:
-        raise SystemExit('Did not find pip.')
-
-    print('Found this pip: ', pipPath)
-    if pathCheckRequire not in pipPath:
-        raise SystemExit('Path to pip does not have ' + pathCheckRequire + ' in it!')
+        print('Installing pip:')
+        getPipPath = checkPath(os.path.join('_ext', 'get-pip.py'), 'pip installer')
+        if not getPipPath:
+            return
+        pipInstallCmd = pythonPath + ' ' + getPipPath
+        print(pipInstallCmd)
+        subprocess.run(pipInstallCmd)
 
     # Get list of installed packages
     proc = subprocess.Popen('pip freeze', stdout=subprocess.PIPE, shell=True)
@@ -131,6 +169,9 @@ if __name__ == '__main__' or __name__ == '<run_path>':
     currPkgs = out[0].decode('utf-8').rstrip('\n').split('\n')
     currPkgs = [k.rstrip('\r') for k in currPkgs]  # windows compatibility
     currPkgNames, _ = getPkgNameVer(currPkgs)
+
+    # for pkgName in currPkgNames:
+    #     currPkgDir = importlib.import_module(str(pkgName).lower().replace('-', '_')).__file__
 
     # Read from _requirements.txt if it is there
     reqPkgs = [line.rstrip('\n') for line in open(
@@ -168,3 +209,19 @@ if __name__ == '__main__' or __name__ == '<run_path>':
 
     # update _requirements file after install process!
     os.system('pip freeze > _requirements.txt')
+
+    ## This DID NOT WORK!!
+    blenderExtDir = 'C:\\Users\\Praneeth\\.vscode\\extensions\\jacqueslucke.blender-development-0.0.10\\pythonFiles'
+    sys.path.append(str(os.path.join(blenderExtDir, "include")))
+    blenderExtPath = os.path.join(blenderExtDir, 'launch.py')
+    if not checkPath(blenderExtPath, 'VSCode blender add-on launcher'):
+        return
+    if os.path.dirname(blenderExtPath) not in sys.path:
+        sys.path.append(os.path.dirname(blenderExtPath))
+
+    launchCmd = blenderPath + ' --python ' + blenderExtPath
+    print(launchCmd)
+    # subprocess.run(launchCmd)
+
+if __name__ == '__main__' or __name__ == '<run_path>':
+    main()
