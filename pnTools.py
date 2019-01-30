@@ -6,30 +6,35 @@ import os
 import sys
 import subprocess
 
-### Exceptions
-def raiseNotFoundError(thisDirFiles):
-    if isinstance(thisDirFiles, str):
-        thisDirFiles = [thisDirFiles]
-    for dirFile in thisDirFiles:
-        if not os.path.exists(dirFile):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
+## General utilities - Decorators
+class OnDisk:
+    """
+    Raise error if function output not on disk. Decorator.
 
-### General utilities (don't require blender)
-## General utilities - Decorators 
-# exception handling
-class checkIfOutputExists:
-    """This decorator function raises an error if the output does not exist on disk"""
+    :param func: function that outputs a path/directory
+    :returns: decorated function with output handling
+    :raises keyError: FileNotFoundError if func's output is not on disk
+    """
     def __init__(self, func):
         self.func = func
         functools.update_wrapper(self, func)
     def __call__(self, *args, **kwargs):
-        funcOut = self.func(*args, **kwargs)
-        raiseNotFoundError(funcOut)
-        return funcOut
+        thisDirFiles = self.func(*args, **kwargs)
+        if isinstance(thisDirFiles, str):
+            thisDirFiles = [thisDirFiles]
+        for dirFile in thisDirFiles:
+            if not os.path.exists(dirFile):
+                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
+        return thisDirFiles
 
 # General utilities - Decorators - output modifiers
-class baseNames:
-    """This decorator function returns just the file names if func's output consists of full file paths"""
+class BaseNames:
+    """
+    Return file names given full paths.
+    
+    :param func: function that outputs a list of names of files
+    :returns: decorated function that outputs only basenames
+    """
     def __init__(self, func):
         self.func = func
         functools.update_wrapper(self, func)
@@ -39,11 +44,12 @@ class baseNames:
         return funcOutBase
 
 ## General utilities - Functions
-@checkIfOutputExists
+@OnDisk
 def getFileName_full(fPath, fName):
     fullName = os.path.join(os.path.normpath(fPath), fName)
     return fullName
 
+## File system
 def ospath(thingToFind, errContent=None):
     """
     Find file or directory.

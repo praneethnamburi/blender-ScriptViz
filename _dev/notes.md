@@ -253,7 +253,7 @@ def divide(a,b):
 
 ```python
 # Class syntax for making a decorator
-class baseNames:
+class BaseNames:
     def __init__(self, func):
         self.f = func
     def __call__(self, *args, **kwargs):
@@ -265,7 +265,7 @@ class baseNames:
         return fOut2
 
 # function syntax for making a decorator
-def baseNames(func):
+def BaseNames(func):
     """This decorator function returns just the file names in case full file paths are used"""
     def funcWithBaseNameOutput(*args, **kwargs):
         # input validation code goes here
@@ -276,28 +276,28 @@ def baseNames(func):
     return funcWithBaseNameOutput
 
 # using the decorator
-@baseNames
+@BaseNames
 def getMeshNames(fPath=marmosetAtlasPath(), searchStr='smooth'):
     mshNames = glob.glob(fPath + '*' + searchStr + '*.stl')
     return mshNames
 ```
 
-Remember that the above syntax of using the decorator (@basenames) just before a function definition translates to redefining the function getMeshNames like so:
+Remember that the above syntax of using the decorator (@BaseNames) just before a function definition translates to redefining the function getMeshNames like so:
 
 ```python
-getMeshNames = baseNames(getMeshNames)
+getMeshNames = BaseNames(getMeshNames)
 ```
 
 If you call it without using the decorator, it will be the equivalent of saying:  
-baseNames(getMeshNames)(searchStr='smooth')
+BaseNames(getMeshNames)(searchStr='smooth')
 
-Also note that there are two parentheses after baseNames. You can access two functions of a python class using two sets of parentheses, the first set executes the __init__() method wrapper and the second set executes the __call__() method wrapper. Each of those can have arguments of their own.
+Also note that there are two parentheses after BaseNames. You can access two functions of a python class using two sets of parentheses, the first set executes the __init__() method wrapper and the second set executes the __call__() method wrapper. Each of those can have arguments of their own.
 
 Another decorator example
 
 ```python
 # decorator - takes a function: function to be decorated
-def checkIfOutputExistsFDEF(func):
+def OnDiskFDEF(func):
     """This decorator function raises an error if the output does not exist on disk"""
     # makes a new function: the decorated function
     def funcWithChecking(*args, **kwargs):
@@ -311,7 +311,7 @@ def checkIfOutputExistsFDEF(func):
 And this would be the same as calling
 
 ```python
-baseNames(getMeshNames)(searchStr='smooth')
+BaseNames(getMeshNames)(searchStr='smooth')
 ```
 
 Parameters in parentheses 2 get passed to the object in parentheses 1

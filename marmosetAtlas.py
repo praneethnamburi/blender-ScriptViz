@@ -12,7 +12,7 @@ import pnTools as my
 import bpn
 from bpn import bpy
 
-@my.checkIfOutputExists
+@my.OnDisk
 def marmosetAtlasPath(src='bma'):
     """Return the marmoset atlas directory."""
     if src == 'bma':
@@ -24,8 +24,8 @@ def marmosetAtlasPath(src='bma'):
                 fPath = fPath.replace('Google Drive (pn2322@columbia.edu)', 'GDrive Columbia')
     return os.path.realpath(fPath)
 
-@my.baseNames
-@my.checkIfOutputExists
+@my.BaseNames
+@my.OnDisk
 def getMshNames(fPath=marmosetAtlasPath(), searchStr='*52*.stl'):
     """Get mesh names of marmoset atlas brain matching the pattern in searchStr."""
     mshNames = glob.glob(os.path.join(fPath, searchStr))

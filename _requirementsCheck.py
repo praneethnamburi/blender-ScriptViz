@@ -129,8 +129,11 @@ def main():
     currPkgs, currPkgNames, _ = my.pkglist()
 
     # Read from _requirements.txt if it is there
-    reqPkgs = [line.rstrip('\n') for line in open(
-        '_requirements.txt') if line.rstrip('\n')]  # 'if' part to discard empty lines
+    reqFile = my.ospath('_requirements.txt', 'requirements file. Use pip freeze > _requirements.txt to make one')
+    print('Reading requirements file:')
+    reqPkgs = [line.rstrip('\n') for line in open('_requirements.txt') if line.rstrip('\n')]  # 'if' part to discard empty lines
+    if not reqFile:
+        return
     reqPkgNames = [m[0] for m in [k.split('==') for k in reqPkgs]]
 
     # If some packages are not listed, ask for uninstall
@@ -141,7 +144,7 @@ def main():
     extraPkgs = [k for i, k in enumerate(currPkgs) if currMinusReq[i]]
     for pkgName in extraPkgs:
         thisCmd = 'pip uninstall ' + pkgName
-        exCode = os.system(thisCmd)
+        os.system(thisCmd)
 
     # which packages changed versions?
     # this has the old version number in it
@@ -151,7 +154,7 @@ def main():
     missingPkgs = list(set(reqPkgs) - set(currPkgs))
     for pkgName in missingPkgs:
         thisCmd = 'pip install ' + pkgName
-        exCode = os.system(thisCmd)
+        os.system(thisCmd)
 
     # summarize changes
     print('Requirements update summmary:')
@@ -163,7 +166,7 @@ def main():
     print(extraPkgs)
 
     # update _requirements file after install process!
-    os.system('pip freeze > _requirements.txt')
+    os.system('pip freeze > ' + reqFile)
 
 if __name__ == '__main__' or __name__ == '<run_path>':
     main()
