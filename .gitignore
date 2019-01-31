@@ -1,3 +1,4 @@
 *.pyc
 *.blend1
-blPython.code-workspace
+.vscode/blPython.code-workspace
+.vscode/.ropeproject/

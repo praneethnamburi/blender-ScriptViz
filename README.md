@@ -20,12 +20,18 @@ We aim to achieve this by:
 1. Download blender (in zip format)
 2. Make sure that the path string to the blender executable has the
    string 'blender' in it
-3. set paths
-4. install pip for blender's python
-5. install all the required packages using blender --python
-   $_requirementsCheck.py
-6. Setting up VSCode for blender python development
-7. Add-ons
+3. Set paths to blender and packaged python executables in blender
+   - Check using terminal that when you do where/which blender and where/which python, you get the correct executables
+4. Install JacquesLucke's blender development extension for VSCode
+5. Git clone this repository
+6. Run python _requirementsCheck.py, which should:
+   1. Check if blender, and the correct python executables are visible to the terminal
+   2. Make a startup file in blender's startup directory (for customizing blender's workspace variables)
+   3. Install pip inside blender if it doesn't exist
+   4. Use _requirements.txt to download and install packages into blender
+   5. Print a summary of these changes, and update the _requirements.txt file
+7. Setting up VSCode for blender python development
+8. Add-ons
 
 ## Development workflow
 
@@ -36,7 +42,7 @@ We aim to achieve this by:
    _requirementsCheck.py)
 5. Start blender using VSCode extension
    - automated 3, 4, and 5 using the multi-command extension
-6. Clean up workspace (this probably won't work unless you import bpn?)
+6. Clean up workspace by typing exec(bpy.loadStr) into blender's python console. This will work if _requirementsCheck.py completed successfully.
 7. Run scripts (blender extension, add shortcut f6) and develop!
 8. During development, update documentation, notes and readme.md
 9. git Commit and push

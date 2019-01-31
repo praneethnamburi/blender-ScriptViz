@@ -74,12 +74,25 @@ Tips:
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 if THIS_DIR not in sys.path:
     sys.path.append(THIS_DIR)
 
 import pnTools as my
+
+def writeBlenderStartupFile(fName_full):
+    pathToAppend = str(THIS_DIR).replace('\\', '\\\\')
+    try:
+        f = open(fName_full, 'w')
+        f.write("import sys\n")
+        f.write("import os\n")
+        f.write("sys.path.append(os.path.realpath('"+ pathToAppend +"'))\n")
+        f.write("import bpn\n")
+    finally:
+        f.close()
+    print("Wrote to: " + fName_full)
 
 def getPkgNameVer(pkgs):
     """
@@ -113,6 +126,12 @@ def main():
     pythonPath = my.locateCommand('python', 'blender')
     if not pythonPath:
         return
+
+    print('(over)writing blender startup file:')
+    blenderStartupPath = my.ospath(str(os.path.join(Path(pythonPath).parents[2], 'scripts', 'startup')))
+    if not blenderStartupPath:
+        return
+    writeBlenderStartupFile(os.path.join(blenderStartupPath, 'pnStartup.py'))
 
     print('Looking for pip in blender:')
     pipPath = my.locateCommand('pip', 'blender')
