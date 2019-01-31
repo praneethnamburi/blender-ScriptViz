@@ -83,6 +83,11 @@ if THIS_DIR not in sys.path:
 import pnTools as my
 
 def writeBlenderStartupFile(fName_full):
+    """
+    Generate a startup file to load the contents of _blenderWksp.py into
+    a string that is available via bpy. Only changes to bpy are
+    available in the blender console.
+    """
     pathToAppend = str(THIS_DIR).replace('\\', '\\\\')
     try:
         f = open(fName_full, 'w')
@@ -92,7 +97,6 @@ def writeBlenderStartupFile(fName_full):
         f.write("import bpn\n")
     finally:
         f.close()
-    print("Wrote to: " + fName_full)
 
 def getPkgNameVer(pkgs):
     """
