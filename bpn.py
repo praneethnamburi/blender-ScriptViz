@@ -69,6 +69,7 @@ class ReportDelta:
         return self.deltaReport
 
     def getProps(self):
+        """Dictionary of bpy.data objects"""
         props = {}
         for fieldName in self.monFieldNames:
             props[fieldName] = set(getattr(bpy.data, fieldName)) #[k.name for k in getattr(bpy.data, fieldName)]
@@ -136,37 +137,55 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
             obj.rotation_euler = mathutils.Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
             obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
-## Blender usefulness exercise #3 - importing marmoset brain meshes
-# ported to marmosetAtlas.py
-
-def getMshCenter(msh):
-    msh = chkType(msh, 'Mesh')
-
-## Blender usefulness exercise #4 - basic mesh access and manipulation
-def getMshCoords(msh):
-    msh = chkType(msh, 'Mesh')
-    coords = np.array([v.co for v in msh.vertices])
-    return coords
-
-def setMshCoords(msh, coords):
+class msh:
     """
-    Set vertex positions of a mesh using a numpy array of size nVertices x 3.
-    Note that this will only work when blender 3D viewport is in object mode.
-    Therefore, this code will temporarily change the 3D viewport mode to Object,
-    change the mesh coordinates and switch it back.
+    Easy access to blender meshes for manipulation.
     """
-    msh = chkType(msh, 'Mesh')
-    modeChangeFlag = False
-    if not bpy.context.object.mode == 'OBJECT':
-        current_mode = bpy.context.object.mode
-        modeChangeFlag = True
-        bpy.ops.object.mode_set(mode='OBJECT')
+    def __init__(self, bpyMsh):
+        """
+        :param bpyMsh: (str, bpy.types.Mesh)
+                (str) name of a mesh loaded in blender
+                (bpy.types.Mesh) the bpy mesh object
+                (str) is str matches 
+        """
+        self.bpyMsh = chkType(bpyMsh, 'Mesh')
 
-    for vertexCount, vertex in enumerate(msh.vertices):
-        vertex.co = mathutils.Vector(coords[vertexCount, :])
+    @property
+    def coords(self):
+        thisCoords = np.array([v.co for v in self.bpyMsh.vertices])
+        return thisCoords
 
-    if modeChangeFlag:
-        bpy.ops.object.mode_set(mode=current_mode)
+    @coords.setter
+    def coords(self, thisCoords):
+        """
+        Set vertex positions of a mesh using a numpy array of size nVertices x 3.
+        Note that this will only work when blender 3D viewport is in object mode.
+        Therefore, this code will temporarily change the 3D viewport mode to Object,
+        change the mesh coordinates and switch it back.
+        """
+        modeChangeFlag = False
+        if not bpy.context.object.mode == 'OBJECT':
+            current_mode = bpy.context.object.mode
+            modeChangeFlag = True
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        for vertexCount, vertex in enumerate(self.bpyMsh.vertices):
+            vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
+
+        if modeChangeFlag:
+            bpy.ops.object.mode_set(mode=current_mode)
+
+    @property
+    def center(self):
+        return np.mean(self.coords, axis=0)
+
+    @center.setter
+    def center(self, newCenter):
+        self.coords = self.coords + newCenter - self.center
+
+    def delete(self):
+        """Remove the mesh and corresponding objects from blender."""
+        bpy.data.meshes.remove(self.bpyMsh, do_unlink=True)
 
 def getMsh(msh, mshProperty=None):
     """

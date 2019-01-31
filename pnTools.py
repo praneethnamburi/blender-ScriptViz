@@ -18,14 +18,18 @@ class OnDisk:
     def __init__(self, func):
         self.func = func
         functools.update_wrapper(self, func)
+    
     def __call__(self, *args, **kwargs):
         thisDirFiles = self.func(*args, **kwargs)
-        if isinstance(thisDirFiles, str):
-            thisDirFiles = [thisDirFiles]
-        for dirFile in thisDirFiles:
+        self.checkFiles(thisDirFiles)
+        return thisDirFiles
+    
+    def checkFiles(self, thisFileList):
+        if isinstance(thisFileList, str):
+            thisFileList = [thisFileList]
+        for dirFile in thisFileList:
             if not os.path.exists(dirFile):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
-        return thisDirFiles
 
 # General utilities - Decorators - output modifiers
 class BaseNames:
