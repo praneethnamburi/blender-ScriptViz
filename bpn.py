@@ -12,7 +12,7 @@ if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
 BPN_DIR = str(os.path.dirname(os.path.realpath(__file__)))
-bpy.loadStr = ''.join([line for line in open(os.path.join(BPN_DIR, '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', BPN_DIR)
+bpy.loadStr = ''.join([line for line in open(os.path.join(BPN_DIR, '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', BPN_DIR.replace('\\', '\\\\'))
 
 ### Blender functions
 ## Decorators for blender

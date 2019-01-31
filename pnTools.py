@@ -99,7 +99,7 @@ def locateCommand(thingToFind, requireStr=None):
         return thingPath
 
 ## Package management
-def pkglist():
+def pkgList():
     """
     Return a list of installed packages.
 
@@ -114,10 +114,18 @@ def pkglist():
     pkgVers = [m[0] for m in [k.split('==') for k in pkgs]]
     return pkgs, pkgNames, pkgVers
 
-def pkgpath():
-    _, pkgNames, _ = pkglist()
-    for pkgName in pkgNames:
-        currPkgDir = importlib.import_module(str(pkgName).lower().replace('-', '_')).__file__
+def pkgPath(pkgNames=None):
+    if not pkgNames:
+        _, pkgNames, _ = pkgList()
+    elif isinstance(pkgNames, str):
+        pkgNames = [pkgNames]
+
+    currPkgDir = [importlib.import_module(str(pkgName)\
+                        .lower()\
+                        .replace('-', '_')\
+                        .replace('python_', '')\
+                        .replace('_websupport', '')\
+                    ).__file__ for pkgName in pkgNames]
     return currPkgDir
 
 ## introspection

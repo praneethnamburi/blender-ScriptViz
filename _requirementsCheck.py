@@ -126,7 +126,7 @@ def main():
         subprocess.run(pipInstallCmd)
 
     # Get list of installed packages
-    currPkgs, currPkgNames, _ = my.pkglist()
+    currPkgs, currPkgNames, _ = my.pkgList()
 
     # Read from _requirements.txt if it is there
     reqFile = my.ospath('_requirements.txt', 'requirements file. Use pip freeze > _requirements.txt to make one')
