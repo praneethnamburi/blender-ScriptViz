@@ -502,3 +502,76 @@ cd /home/praneeth/Workspace/blenderPython ; env "PYTHONIOENCODING=UTF-8"
 "PYTHONUNBUFFERED=1" blender --python
 /home/praneeth/.vscode/extensions/ms-python.python-2018.12.1/pythonFiles/ptvsd_launcher.py
 -- -- default --client --host localhost --port 43051
+
+## To change bpn.py from one file into a folder (solution #1 - do not use)
+
+1. Put all files into a folder, say sciBlender and make an __init__.py
+   containing the following code
+
+```python
+from os.path import dirname, basename, isfile
+import glob
+modules = glob.glob(dirname(__file__)+"/*.py")
+print(modules)
+__all__ = [ basename(f)[:-3] for f in modules if isfile(f) and not f.endswith('__init__.py')]
+```
+
+2. Now, import all the modules in that folder using:
+
+```python
+from sciBlender import *
+```
+
+## To change bpn.py from one file into a folder (solution #2)
+
+If you really wish to do this, then here is the procedure.
+
+1. Make a folder and name it bpn
+2. Break bpn.py into two files, say bpn1.py and bpn2.py and put them in
+   the bpn folder
+3. In bpn1.py and bpn2.py, make an __all__ variable to list all of the
+   exports. Use introspection and functional programming to automate
+   this if possible?
+4. Make a file called __init__.py in bpn
+5. Put the following statements in it
+
+```python
+from .bpn1 import *
+from .bpn2 import *
+```
+
+Now, `import bpn` should import all the exports from bpn1.py and
+bpn2.py. Note that the more pythonic way of doing things would be to
+keep everything togeher. This is only useful for setting up different
+environments and making module initialization flexible, perhaps using
+introspection.
+
+> Therefore, start module development in one file. If, at a later stage,
+you need to break it apart, you can aways make a folder with the name of
+that module. Importing it should work the same way (I think and hope)!
+
+Rremember! With a blank __init__.py, you don't have access to bpn1 and
+bpn2 by importing bpn. BUT, you can nonetheless say import bpn.bpn1, or
+from bpn import bpn1
+
+IF you have a statement in __init__.py that imports one thing, e.g.,
+from .bpn1 import msh
+THEN, when you import bpn, you can access bpn.bpn1, in addition to just
+gaining access to msh. Therefore, you have access to bpn.bpn1.msh, AND
+bpn.msh and I'm thinking that a module is accessible once you import
+anything from it! This happens only when an importer gets imported.
+
+For example,
+IF `__init__.py` has `from .bpn1 import msh`,
+AND bpn1.py has two methods, `msh` and `otherMsh`,
+THEN within `__init__.py`, you don't have access to `bpn1` directly,
+and therfore you're cut off from `otherMsh`,
+BUT when you go into another file and `import bpn as b`,
+you will have access to `b.bpn1.msh` AND `b.bpn1.otherMsh`. If this is a
+problem and you want to make all access explicit, then add
+`__all__ = ['msh']` to `__init__.py` AND you'll be forced to say
+`from bpn import *`, which defeats the purpose of being explicit anyway.
+
+Therefore, break apart the bpn.py module ONLY if they need to be
+imported and accessed separately! Not simply because there are too many
+lines in that piece of code
