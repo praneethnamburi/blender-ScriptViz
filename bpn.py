@@ -149,7 +149,8 @@ class msh:
                 (str) is str matches 
         """
         self.bpyMsh = chkType(bpyMsh, 'Mesh')
-        self.bkpCoords = self.coords
+        self.initCoords = self.coords # for resetting
+        self.bkpCoords = self.coords  # for undoing (switching back and forth)
 
     @property
     def coords(self):
@@ -200,9 +201,22 @@ class msh:
         """
         self.coords, self.bkpCoords = self.bkpCoords, self.coords
 
-    def smooth(self, lamb=0.1, nIter=200):
-        """Smooth a mesh towards a sphere"""
-        return lamb, nIter
+    def inflate(self, lamb=0.1, nIter=20):
+        """
+        Inflate a mesh towards a sphere
+        
+        See section 3.1 in this paper
+        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4587758/
+
+        :param lamb: lambda (float), the inflation parameter
+        :param nIter: this is a second param
+
+        TODO: This is a work in progress!
+        """
+        tmpCoord = self.coords
+        for _ in range(0, nIter):
+            tmpCoord = (1-lamb)*tmpCoord + lamb*np.mean(tmpCoord, axis=0)
+        self.coords = tmpCoord
 
 
 def getMsh(msh, mshProperty=None):
