@@ -149,9 +149,11 @@ class msh:
                 (str) is str matches 
         """
         self.bpyMsh = chkType(bpyMsh, 'Mesh')
+        self.bkpCoords = self.coords
 
     @property
     def coords(self):
+        """Coordinates of a mesh as an nx3 numpy array"""
         thisCoords = np.array([v.co for v in self.bpyMsh.vertices])
         return thisCoords
 
@@ -163,6 +165,8 @@ class msh:
         Therefore, this code will temporarily change the 3D viewport mode to Object,
         change the mesh coordinates and switch it back.
         """
+        # stash current coords in bkpCoords
+        self.bkpCoords = self.coords
         modeChangeFlag = False
         if not bpy.context.object.mode == 'OBJECT':
             current_mode = bpy.context.object.mode
@@ -177,6 +181,7 @@ class msh:
 
     @property
     def center(self):
+        """Return mesh center"""
         return np.mean(self.coords, axis=0)
 
     @center.setter
@@ -186,6 +191,19 @@ class msh:
     def delete(self):
         """Remove the mesh and corresponding objects from blender."""
         bpy.data.meshes.remove(self.bpyMsh, do_unlink=True)
+
+    def undo(self):
+        """
+        Undo the last change to coords.
+        Repeated application of undo will keep switching between the
+        last two views.
+        """
+        self.coords, self.bkpCoords = self.bkpCoords, self.coords
+
+    def smooth(self, lamb=0.1, nIter=200):
+        """Smooth a mesh towards a sphere"""
+        return lamb, nIter
+
 
 def getMsh(msh, mshProperty=None):
     """
