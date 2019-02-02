@@ -144,15 +144,17 @@ class msh:
     Properties: 
         v - vertices (can be set, but only as a whole)
         vn - vertex normals
-        f - faces
+        f - faces (vertex indices)
         fn - face normals
         fc - face centers
         fa - area of each face
+        e - edges (vertex indices)
+        eL - edge length
+
         nV - number of vertices
         nF - number of faces
         
-
-    TODO: What happens if some faces are not triangular?
+    Note: Use this only with triangular meshes
     """
     def __init__(self, bpyMsh):
         """
@@ -196,14 +198,32 @@ class msh:
         return np.array([polygon.center for polygon in self.bpyMsh.polygons])
 
     @property
+    def e(self):
+        """Vertex indices of edges."""
+        return np.array([edge.vertices[:] for edge in self.bpyMsh.edges])
+
+    @property
+    def eL(self):
+        """Edge lengths."""
+        e = self.e
+        v = self.v
+        # This will take forever! Need a better way
+        return [np.sqrt(np.sum(np.diff(v[k], axis=0)**2)) for k in e]
+
+    @property
     def nV(self):
         """Number of vertices."""
         return np.shape(self.v)[0]
 
     @property
     def nF(self):
-        """Number of faces"""
+        """Number of faces."""
         return np.shape(self.f)[0]
+
+    @property
+    def nE(self):
+        """Number of edges."""
+        return np.shape(self.e)[0]
 
     @v.setter
     def v(self, thisCoords):
@@ -252,30 +272,47 @@ class msh:
         """Reset the mesh to its initalized state"""
         self.v = self.vInit
 
-    def inflate(self, lamb=0.1, nIter=20):
+    def inflate(self, pres=0.2, elas=0.1, delta=1.0, nIter=20):
         """
         Inflate a mesh towards a sphere
         
-        See section 3.1 in this paper
-        https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4587758/
+        Try these inflations on Suzanne
+        m.inflate(0.2, 0.02, 0.5, 100)
+        m.inflate(0.2, 0.2, 0.5, 100)
+        m.inflate(0.2, 0.1, 0.5, 150)
 
-        :param lamb: lambda (float), the inflation parameter
-        :param nIter: this is a second param
-
-        TODO: This is a work in progress!
+        Don't normalize pressure vector by area
+        F_p = np.sum(fn[tNei[i]], 0)
+        Then, try
+        m.inflate(1, 0.1, 0.5, 150)
         """
         f = self.f
+        fn = self.fn
         fa = self.fa
-        fc = self.fc
+        e = self.e
         newV = self.v
+        nV = np.shape(newV)[0]
 
+        vnv = [self.vnv(e, i) for i in range(nV)]
+        tNei = [self.fnv(f, i) for i in range(nV)]
         for _ in range(nIter):
             for i in range(self.nV):
-                tNei = np.flatnonzero(np.sum(f == i, 1)) # list of faces containing this vertex
-                vA = np.sum(fc[tNei].T*fa[tNei], 1)/np.sum(fa[tNei])
-                newV[i] = (1.0-lamb)*newV[i] + lamb*vA
-                # self.bpyMsh.vertices[i].co = (1-lamb)*self.bpyMsh.vertices[i].co + mathutils.Vector(lamb*vA)
-            self.v = newV
+                F_el = np.sum(newV[vnv[i]] - newV[i], 0) # elastic force vector
+                F_p = np.sum(fn[tNei[i]].T*fa[tNei[i]], 1) # pressure force vector
+                F = elas*F_el + pres*F_p # sum of elastic and pressure forces
+                newV[i] = newV[i] + delta*F
+        
+        self.v = newV
+        
+    def fnv(self, f, i):
+        """Face neighbors of a vertex i.
+        Faces attached to vertex i, given faces f."""
+        return np.flatnonzero(np.sum(f == i, 1))
+    
+    def vnv(self, e, i):
+        """Vertex neighbors of vertex i.
+        Vertex indices attached to vertex i, given edges e."""
+        return [np.setdiff1d(k, i)[0] for k in e if i in k]
 
 def getObj(obj):
     """Return an object given its name."""
