@@ -10,18 +10,14 @@ if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
     sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 # add modules here
+bpy = bpn.bpy
 
 def main():
     """Actual development happens here"""
-    import pnTools as my
-    my.getFileName_full("C:\\blender\\2.80.0", "blender.exe")
-    
-    @my.OnDisk
-    def dummyFunc(arg1):
-        arg2 = arg1 + "blender"
-        return arg2
-
-    dummyFunc(arg1="C:\\")
+    bpy.ops.mesh.primitive_monkey_add()
+    bpy.ops.object.modifier_add(type='TRIANGULATE')
+    m = bpn.msh(bpy.data.meshes[0])
+    m.inflate()
 
 if __name__ == '__main__' or __name__ == '<run_path>':
     main()

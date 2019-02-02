@@ -139,7 +139,20 @@ def animateObj_whole(objList, frameList): # skeleton to transform the entire obj
 
 class msh:
     """
-    Easy access to blender meshes for manipulation.
+    Numpy-like access to blender meshes.
+
+    Properties: 
+        v - vertices (can be set, but only as a whole)
+        vn - vertex normals
+        f - faces
+        fn - face normals
+        fc - face centers
+        fa - area of each face
+        nV - number of vertices
+        nF - number of faces
+        
+
+    TODO: What happens if some faces are not triangular?
     """
     def __init__(self, bpyMsh):
         """
@@ -149,25 +162,59 @@ class msh:
                 (str) is str matches 
         """
         self.bpyMsh = chkType(bpyMsh, 'Mesh')
-        self.initCoords = self.coords # for resetting
-        self.bkpCoords = self.coords  # for undoing (switching back and forth)
+        self.vInit = self.v # for resetting
+        self.vBkp = self.v  # for undoing (switching back and forth)
 
     @property
-    def coords(self):
-        """Coordinates of a mesh as an nx3 numpy array"""
-        thisCoords = np.array([v.co for v in self.bpyMsh.vertices])
-        return thisCoords
+    def v(self):
+        """Coordinates of a mesh as an nVx3 numpy array."""
+        return np.array([v.co for v in self.bpyMsh.vertices])
 
-    @coords.setter
-    def coords(self, thisCoords):
+    @property
+    def vn(self):
+        """Vertex normals as an nVx3 numpy array."""
+        return np.array([v.normal[:] for v in self.bpyMsh.vertices])
+    
+    @property
+    def f(self):
+        """Faces as an nFx3 numpy array."""
+        return np.array([polygon.vertices[:] for polygon in self.bpyMsh.polygons])
+
+    @property
+    def fn(self):
+        """Face normals as an nFx3 numpy array."""
+        return np.array([polygon.normal[:] for polygon in self.bpyMsh.polygons])
+        
+    @property
+    def fa(self):
+        """Area of faces as an nFx3 numpy array."""
+        return np.array([polygon.area for polygon in self.bpyMsh.polygons])
+    
+    @property
+    def fc(self):
+        """Coordinates of face centers."""
+        return np.array([polygon.center for polygon in self.bpyMsh.polygons])
+
+    @property
+    def nV(self):
+        """Number of vertices."""
+        return np.shape(self.v)[0]
+
+    @property
+    def nF(self):
+        """Number of faces"""
+        return np.shape(self.f)[0]
+
+    @v.setter
+    def v(self, thisCoords):
         """
         Set vertex positions of a mesh using a numpy array of size nVertices x 3.
         Note that this will only work when blender 3D viewport is in object mode.
         Therefore, this code will temporarily change the 3D viewport mode to Object,
         change the mesh coordinates and switch it back.
         """
-        # stash current coords in bkpCoords
-        self.bkpCoords = self.coords
+        self.vBkp = self.v # for undo
+        # TODO: mode changing -> decorator with target mode
         modeChangeFlag = False
         if not bpy.context.object.mode == 'OBJECT':
             current_mode = bpy.context.object.mode
@@ -183,11 +230,11 @@ class msh:
     @property
     def center(self):
         """Return mesh center"""
-        return np.mean(self.coords, axis=0)
+        return np.mean(self.v, axis=0)
 
     @center.setter
     def center(self, newCenter):
-        self.coords = self.coords + newCenter - self.center
+        self.v = self.v + newCenter - self.center
 
     def delete(self):
         """Remove the mesh and corresponding objects from blender."""
@@ -199,7 +246,11 @@ class msh:
         Repeated application of undo will keep switching between the
         last two views.
         """
-        self.coords, self.bkpCoords = self.bkpCoords, self.coords
+        self.v, self.vBkp = self.vBkp, self.v
+
+    def reset(self):
+        """Reset the mesh to its initalized state"""
+        self.v = self.vInit
 
     def inflate(self, lamb=0.1, nIter=20):
         """
@@ -213,18 +264,18 @@ class msh:
 
         TODO: This is a work in progress!
         """
-        tmpCoord = self.coords
-        for _ in range(0, nIter):
-            tmpCoord = (1-lamb)*tmpCoord + lamb*np.mean(tmpCoord, axis=0)
-        self.coords = tmpCoord
+        f = self.f
+        fa = self.fa
+        fc = self.fc
+        newV = self.v
 
-
-def getMsh(msh, mshProperty=None):
-    """
-    Return a mesh given its name.
-    Given an object (or its name), return its mesh.
-    """        
-    return chkType(msh, 'Mesh')
+        for _ in range(nIter):
+            for i in range(self.nV):
+                tNei = np.flatnonzero(np.sum(f == i, 1)) # list of faces containing this vertex
+                vA = np.sum(fc[tNei].T*fa[tNei], 1)/np.sum(fa[tNei])
+                newV[i] = (1.0-lamb)*newV[i] + lamb*vA
+                # self.bpyMsh.vertices[i].co = (1-lamb)*self.bpyMsh.vertices[i].co + mathutils.Vector(lamb*vA)
+            self.v = newV
 
 def getObj(obj):
     """Return an object given its name."""
