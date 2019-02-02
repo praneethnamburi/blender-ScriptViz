@@ -285,24 +285,30 @@ class msh:
         F_p = np.sum(fn[tNei[i]], 0)
         Then, try
         m.inflate(1, 0.1, 0.5, 150)
-        """
-        f = self.f
-        fn = self.fn
-        fa = self.fa
-        e = self.e
-        newV = self.v
-        nV = np.shape(newV)[0]
 
-        vnv = [self.vnv(e, i) for i in range(nV)]
-        tNei = [self.fnv(f, i) for i in range(nV)]
+        Try this sequence:
+        m.inflate(0.2, 0.1, 0.05, 300)
+        m.inflate(0.02, 0.1, 0.01, 300)
+        m.inflate(0.05, 0.1, 0.01, 300)
+        m.inflate(0.1, 0.1, 0.01, 300)
+        m.inflate(0.15, 0.1, 0.02, 600)
+        """
+        newV = self.v
+        f = self.f
+        e = self.e
+        nV = self.nV
+
+        fnv = [self.fnv(f, i) for i in range(nV)] # face neighbors of vertices
+        vnv = [self.vnv(e, i) for i in range(nV)] # vertex neighbors of vertices
         for _ in range(nIter):
+            fn = self.fn
+            fa = self.fa
             for i in range(self.nV):
                 F_el = np.sum(newV[vnv[i]] - newV[i], 0) # elastic force vector
-                F_p = np.sum(fn[tNei[i]].T*fa[tNei[i]], 1) # pressure force vector
+                F_p = np.sum(fn[fnv[i]].T*fa[fnv[i]], 1) # pressure force vector
                 F = elas*F_el + pres*F_p # sum of elastic and pressure forces
                 newV[i] = newV[i] + delta*F
-        
-        self.v = newV
+            self.v = newV
         
     def fnv(self, f, i):
         """Face neighbors of a vertex i.
