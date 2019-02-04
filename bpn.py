@@ -1,3 +1,6 @@
+"""
+Praneeth'a blender python module
+"""
 import os
 import functools
 import sys

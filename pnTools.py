@@ -5,6 +5,7 @@ import inspect
 import os
 import sys
 import subprocess
+from timeit import default_timer as timer
 
 ## General utilities - Decorators
 class OnDisk:
@@ -46,6 +47,26 @@ class BaseNames:
         funcOut = self.func(*args, **kwargs)
         funcOutBase = [os.path.basename(k) for k in funcOut]
         return funcOutBase
+
+class Time:
+    """
+    Prints execution time. Decorator.
+    Note that this only works on functions.
+    Consider a function call:
+    out1 = m.inflate(0.15, 0.1, 0.02, 100)
+    Using the following will give the output in addition to printing the
+    execution time.
+    out1 = my.Time(m.inflate)(0.15, 0.1, 0.02, 100)
+    """
+    def __init__(self, func):
+        self.func = func
+        functools.update_wrapper(self, func)
+    def __call__(self, *args, **kwargs):
+        start = timer()
+        funcOut = self.func(*args, **kwargs)
+        end = timer()
+        print(end-start)
+        return funcOut
 
 ## General utilities - Functions
 @OnDisk
