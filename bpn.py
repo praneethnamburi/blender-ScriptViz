@@ -75,6 +75,35 @@ class ReportDelta:
             props[fieldName] = set(getattr(bpy.data, fieldName)) #[k.name for k in getattr(bpy.data, fieldName)]
         return props
 
+class ModeSet:
+    """
+    Set the mode of blender's 3D viewport for executing a function func.
+    This class is primarily meant to be used as a decorator.
+    It can even be used for a setter like so:
+    @v.setter
+    @ModeSet(targetMode='OBJECT')
+    def v(self, thisCoords): # v is the func
+        # do stuff with thisCoords here
+    """
+    def __init__(self, targetMode='OBJECT'):
+        self.targetMode = targetMode
+
+    def __call__(self, func):
+        functools.update_wrapper(self, func)
+        def wrapperFunc(*args, **kwargs):
+            modeChangeFlag = False
+            if not bpy.context.object.mode == self.targetMode:
+                current_mode = bpy.context.object.mode
+                modeChangeFlag = True
+                bpy.ops.object.mode_set(mode=self.targetMode)
+
+            funcOut = func(*args, **kwargs)
+
+            if modeChangeFlag:
+                bpy.ops.object.mode_set(mode=current_mode)
+            return funcOut
+        return wrapperFunc
+
 ### Demo functions that demonstrate some ways to use this API
 # Animating DNA
 def demo_animateDNA():
@@ -226,6 +255,7 @@ class msh:
         return np.shape(self.e)[0]
 
     @v.setter
+    @ModeSet(targetMode='OBJECT')
     def v(self, thisCoords):
         """
         Set vertex positions of a mesh using a numpy array of size nVertices x 3.
@@ -234,18 +264,8 @@ class msh:
         change the mesh coordinates and switch it back.
         """
         self.vBkp = self.v # for undo
-        # TODO: mode changing -> decorator with target mode
-        modeChangeFlag = False
-        if not bpy.context.object.mode == 'OBJECT':
-            current_mode = bpy.context.object.mode
-            modeChangeFlag = True
-            bpy.ops.object.mode_set(mode='OBJECT')
-
         for vertexCount, vertex in enumerate(self.bpyMsh.vertices):
             vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
-
-        if modeChangeFlag:
-            bpy.ops.object.mode_set(mode=current_mode)
 
     @property
     def center(self):
