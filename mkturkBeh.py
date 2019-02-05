@@ -23,16 +23,3 @@ docs = db.collection('data')\
 # download data files from the entire query
 # Note, once you download the data, you need to re-generate the query.
 a = [k.to_dict() for k in list(docs)]
-
-# download data one file at a time
-a = []
-i = 0
-for doc in docs:
-    print(doc.id)
-    thisContent = doc.to_dict()
-    a.append(thisContent)
-    i = i+1
-    if i < 10:
-        continue
-    if i > 10:
-        break
