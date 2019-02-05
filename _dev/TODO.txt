@@ -1,0 +1,5 @@
+1. Visualize firestore data using blender!
+2. Make an implant
+3. Color vertices on a mesh!
+4. Highlight brain regions
+5. Explode brain

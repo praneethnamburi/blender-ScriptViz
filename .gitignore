@@ -3,3 +3,4 @@ __pycache__/
 *.blend1
 .vscode/blPython.code-workspace
 .vscode/.ropeproject/
+_auth/
