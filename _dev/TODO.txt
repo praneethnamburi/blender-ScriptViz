@@ -3,3 +3,10 @@
 3. Color vertices on a mesh!
 4. Highlight brain regions
 5. Explode brain
+
+bpn - animation tools
+Data analysis from fireplace data
+Make a neural network model that learns by 'looking' at 3d objects - one aspect of marmoset world
+Use meshroom to bring objects into marmoset world
+Talk to Elias about organizing assets for marmoset world
+Inter-process communication
