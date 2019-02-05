@@ -17,8 +17,14 @@ docs = db.collection('data')\
         .where('Doctype', '==', 'task')\
         .where('CurrentDateValue', '>', startDate)\
         .where('CurrentDateValue', '<', endDate)\
+        .limit(100)\
         .get()
 
+# download data files from the entire query
+# Note, once you download the data, you need to re-generate the query.
+a = [k.to_dict() for k in list(docs)]
+
+# download data one file at a time
 a = []
 i = 0
 for doc in docs:
