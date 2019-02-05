@@ -292,26 +292,21 @@ class msh:
         """Reset the mesh to its initalized state"""
         self.v = self.vInit
 
-    def inflate(self, pres=0.2, elas=0.1, delta=1.0, nIter=20):
+    def inflate(self, pres=0.2, elas=0.1, delta=0.05, nIter=20):
         """
         Inflate a mesh towards a sphere
-        
-        Try these inflations on Suzanne
-        m.inflate(0.2, 0.02, 0.5, 100)
-        m.inflate(0.2, 0.2, 0.5, 100)
-        m.inflate(0.2, 0.1, 0.5, 150)
 
-        Don't normalize pressure vector by area
-        F_p = np.sum(fn[tNei[i]], 0)
-        Then, try
-        m.inflate(1, 0.1, 0.5, 150)
-
-        Try this sequence:
+        Try this sequence on Suzanne:
         m.inflate(0.2, 0.1, 0.05, 300)
         m.inflate(0.02, 0.1, 0.01, 300)
         m.inflate(0.05, 0.1, 0.01, 300)
         m.inflate(0.1, 0.1, 0.01, 300)
         m.inflate(0.15, 0.1, 0.02, 600)
+
+        Don't normalize pressure vector by area:
+        F_p = np.sum(fn[tNei[i]], 0)
+        Then, try
+        m.inflate(1, 0.1, 0.5, 150)
         """
         newV = self.v
         f = self.f
