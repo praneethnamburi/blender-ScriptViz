@@ -1,4 +1,4 @@
-// connect to firebase
+// connect to the firestore database
 const admin = require('firebase-admin');
 var serviceAccount = require('./_auth/mkturkNode-sandbox-ce2c5-locqz-cbd9fe14f8.json');
 admin.initializeApp({
