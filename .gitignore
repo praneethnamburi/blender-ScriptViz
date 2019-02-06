@@ -4,3 +4,4 @@ __pycache__/
 .vscode/blPython.code-workspace
 .vscode/.ropeproject/
 _auth/
+node_modules/
