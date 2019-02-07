@@ -35,3 +35,7 @@ arrow==0.13.0
 
 # plotting
 matplotlib, mpld3
+
+# interactive python within vscode
+ipython==7.2.0
+jupyter==1.0.0
