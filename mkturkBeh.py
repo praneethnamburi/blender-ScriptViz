@@ -20,10 +20,14 @@ print(len(tmp1.keys()))
 
 #%%
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 import numpy as np
 
-x = np.linspace(0, 20, 100)
-plt.plot(x, np.sin(x))
-plt.show() 
-
+α = np.linspace(0, 20, 100)
+h = plt.figure(figsize=(16, 10))
+nRows = 2
+nCols = 2
+allAx = h.subplots(nRows, nCols)
+for imCount in range(nRows*nCols):
+    rowCount = imCount // nCols
+    colCount = imCount % nCols
+    hIm = allAx[rowCount][colCount].plot(α, np.sin(α))
