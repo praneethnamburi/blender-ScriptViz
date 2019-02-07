@@ -21,7 +21,7 @@ ptvsd==4.2.2
 Flask==1.0.2
 requests==2.21.0
 
-# cloud database
+# cloud database - using javascript instead
 firebase-admin==2.15.1 # installed about 16 packages
     cachecontrol-0.12.5 cachetools-3.1.0 firebase-admin-2.15.1
     google-api-core-1.7.0 google-auth-1.6.2 google-cloud-core-0.29.1
@@ -30,5 +30,8 @@ firebase-admin==2.15.1 # installed about 16 packages
     grpcio-1.18.0 msgpack-0.6.1 protobuf-3.6.1 pyasn1-0.4.5
     pyasn1-modules-0.2.4 rsa-4.0
 
-# manage dates (for firestore queries):
+# manage dates (for firestore queries): (uninstalled)
 arrow==0.13.0
+
+# plotting
+matplotlib, mpld3
