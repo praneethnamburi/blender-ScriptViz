@@ -10,3 +10,6 @@ Make a neural network model that learns by 'looking' at 3d objects - one aspect 
 Use meshroom to bring objects into marmoset world
 Talk to Elias about organizing assets for marmoset world
 Inter-process communication
+
+Make a plotting class to make 2d plots
+Refactor demos as unit tests for the bpn module!

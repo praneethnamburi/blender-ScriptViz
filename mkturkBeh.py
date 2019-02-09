@@ -9,14 +9,21 @@ import subprocess
 import numpy as np
 
 agent = 'Sausage'
+docTypes = ['task', 'images']
 startDate = '20190201'
 endDate = '20190205'
-outFile = f'./_temp/{agent}{startDate}to{endDate}.json'
+outFiles = []
+behAll = {}
+for docType in docTypes:
+    outFile = f'./_temp/{agent}_{docType}_{startDate}to{endDate}.json'
+    outFiles.append('outFile')
 
-# get the data from firestore if there is no cached copy
-if not os.path.exists(os.path.realpath(outFile)):
-    subprocess.run(f'node mkturkBeh_getData.js -a {agent} -s {startDate} -e {endDate} -o {outFile} --no-print')
-behAll = json.loads(open(outFile).read()) # download behavior
+    # get the data from firestore if there is no cached copy
+    if not os.path.exists(os.path.realpath(outFile)):
+        proc = subprocess.run(f'node mkturkBeh_getData.js -a {agent} -t {docType} -s {startDate} -e {endDate} -o {outFile}', encoding='utf-8', stdout=subprocess.PIPE) # --no-print to suppress output
+        if proc.returncode != 0:
+            raise RuntimeError('Data download failed!')
+    behAll[docType] = json.loads(open(outFile).read()) # download behavior
 
 class behSession:
     """
@@ -115,14 +122,18 @@ class behSession:
         """Mean Response time across valid trials."""
         return np.mean(self.rts[self.validTrials])
 
+beh = [behSession(file, behAll['task'][file]) for file in behAll['task']]
+beh = [k for k in beh if k.nTrials > 10]
 
-beh = [behSession(file, behAll[file]) for file in behAll]
+#%%
+os.path.exists(os.path.realpath(outFile))
+
 
 #%%
 import matplotlib.pyplot as plt
 
 h = plt.figure(figsize=(16, 10))
-nRows = 4
+nRows = 3
 nCols = 2
 allAx = h.subplots(nRows, nCols, sharey=False, sharex=True)
 for sessionCount in range(np.size(beh)):
@@ -131,6 +142,7 @@ for sessionCount in range(np.size(beh)):
     #hIm = allAx[rowCount][colCount].plot(np.sort(beh[sessionCount].rts_valid))
     hIm = allAx[rowCount][colCount].hist(beh[sessionCount].rts_valid, bins=np.linspace(0, 2000, 40), density=True)
     allAx[rowCount][colCount].set_title(beh[sessionCount].fName)
+    plt.xlabel('Time ' + beh[0].timeUnits)
     
 plt.xlim(0, 2000)
 h.suptitle('Response times')

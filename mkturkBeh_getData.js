@@ -9,6 +9,7 @@ var db = admin.firestore();
 //parse input arguments
 var v = require('commander')
   .option('-a, --agent [value]', 'Name of the agent', 'Sausage')
+  .option('-t, --doc-type [value]', 'task or images', 'task')
   .option('-s, --start-date [value]', 'Start date yyyymmdd', '20190201')
   .option('-e, --end-date [value]', 'End date yyyymmdd', '20190205')
   .option('-o, --output [value]', 'Name of the output file', './temp.json')
@@ -27,7 +28,7 @@ function parseDate(thisDate){
 //set up database query
 var query = db.collection('data')
   .where('Agent', '==', v.agent)
-  .where('Doctype', '==', 'task')
+  .where('Doctype', '==', v.docType)
   .where('CurrentDateValue', '>=', parseDate(v.startDate))
   .where('CurrentDateValue', '<=', parseDate(v.endDate))
 
