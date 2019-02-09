@@ -24,13 +24,14 @@ for docType in docTypes:
         if proc.returncode != 0:
             raise RuntimeError('Data download failed!')
     behAll[docType] = json.loads(open(outFile).read()) # download behavior
+    # TODO: Do an extra assertion here
 
 class behSession:
     """
     Encapsulate one session of mkturk behavior data.
     
-    :param fName: File name of mkturk behavior
-    :param b: json import of that file
+    :param b: json import of the _task file
+    :param bi: json import of the corresponding _images file
         load behavior using:
             b = json.loads(open(fName).read())
         If you're using firestore and downloaded a series of behavioral
@@ -43,17 +44,26 @@ class behSession:
         https://github.com/dicarlolab/mkturk/tree/master/public
     TODO: If only the file name is given, then get it from the database directly
     TODO: Tag trials - response
+    TODO: Time unit management
     """
     # pylint: disable=no-member
-    def __init__(self, fName, b):
-        self.fName = fName
+    def __init__(self, b, bi):
+        # The common attribues should have the same values
+        commonAttr = list(set(b.keys()).intersection(set(bi.keys())) - set(['Doctype']))
+        for attr in commonAttr:
+            assert b[attr] == bi[attr]
+
+        b = {**b, **bi}
         for attr in b:
-            if isinstance(b[attr], list):
+            if attr == 'Doctype':
+                continue
+            elif isinstance(b[attr], list):
                 setattr(self, attr, np.array(b[attr])) # lists to numpy arrays
             elif isinstance(b[attr], dict) and len(list(b[attr].keys())[0]) == 1:
                 setattr(self, attr, np.array([np.array(k) for k in b[attr].values()]).T) # 2d numpy arrays
             else:
                 setattr(self, attr, b[attr])
+        
         self._timeUnits = 'ms'
         self._tmul = 1.0
 
@@ -103,9 +113,17 @@ class behSession:
         return self.Response != -1
 
     @property
+    def correctTrials(self):
+        """
+        Trials where the monkey chose the correct item. 
+        Excludes invalid trials because CorrectItem can only be 0 or 1.
+        """
+        return self.Response == self.CorrectItem
+
+    @property
     def accuracy(self):
         """Accuracy within session across valid trials."""
-        return np.mean(self.Response[self.validTrials] == self.CorrectItem[self.validTrials])
+        return np.mean(self.correctTrials)
 
     @property
     def rts(self):
@@ -122,11 +140,11 @@ class behSession:
         """Mean Response time across valid trials."""
         return np.mean(self.rts[self.validTrials])
 
-beh = [behSession(file, behAll['task'][file]) for file in behAll['task']]
+beh = [behSession(behAll['task'][file_t], behAll['images'][file_i]) for file_t, file_i in zip(behAll['task'], behAll['images'])]
 beh = [k for k in beh if k.nTrials > 10]
 
 #%%
-os.path.exists(os.path.realpath(outFile))
+
 
 
 #%%
@@ -140,8 +158,8 @@ for sessionCount in range(np.size(beh)):
     rowCount = sessionCount // nCols
     colCount = sessionCount % nCols
     #hIm = allAx[rowCount][colCount].plot(np.sort(beh[sessionCount].rts_valid))
-    hIm = allAx[rowCount][colCount].hist(beh[sessionCount].rts_valid, bins=np.linspace(0, 2000, 40), density=True)
-    allAx[rowCount][colCount].set_title(beh[sessionCount].fName)
+    hIm = allAx[rowCount][colCount].hist(beh[sessionCount].rts[np.logical_and(beh[sessionCount].correctTrials, beh[sessionCount].CorrectItem == 0)], bins=np.linspace(0, 2000, 40), density=True)
+    allAx[rowCount][colCount].set_title(beh[sessionCount].Taskdoc)
     plt.xlabel('Time ' + beh[0].timeUnits)
     
 plt.xlim(0, 2000)
