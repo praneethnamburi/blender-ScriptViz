@@ -39,3 +39,6 @@ matplotlib, mpld3
 # interactive python within vscode
 ipython==7.2.0
 jupyter==1.0.0
+
+# Interacting with dropbox
+dropbox==9.3.0

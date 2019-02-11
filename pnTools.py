@@ -1,8 +1,15 @@
+"""
+Praneeth's tools for making life easy while coding in python.
+"""
+
+import datetime
 import errno
 import functools
 import importlib
 import inspect
+import json
 import os
+import pickle
 import sys
 import subprocess
 from timeit import default_timer as timer
@@ -136,26 +143,41 @@ def pkgList():
     return pkgs, pkgNames, pkgVers
 
 def pkgPath(pkgNames=None):
+    """Return path to installed packages."""
     if not pkgNames:
         _, pkgNames, _ = pkgList()
     elif isinstance(pkgNames, str):
         pkgNames = [pkgNames]
+    
+    currPkgDir = []
+    failedPackages = []
+    for pkgName in pkgNames:
+        print(pkgName)
+        if pkgName == 'ipython':
+            pkgName = 'IPython'
+        elif pkgName == 'ipython-genutils':
+            pkgName = str(pkgName).lower().replace('-', '_')
+        elif pkgName in ['pywinpty', 'pyzmq', 'terminado']:
+            continue
+        else:
+            pkgName = str(pkgName).lower().replace('-', '_').replace('python_', '').replace('_websupport', '')
+        try:
+            currPkgDir.append(importlib.import_module(pkgName).__file__)
+        except UserWarning:
+            failedPackages.append(pkgName)
 
-    currPkgDir = [importlib.import_module(str(pkgName)\
-                        .lower()\
-                        .replace('-', '_')\
-                        .replace('python_', '')\
-                        .replace('_websupport', '')\
-                    ).__file__ for pkgName in pkgNames]
+    print('Failed for: ', failedPackages)    
     return currPkgDir
 
 ## introspection
 def functionInputs(func):
+    """Get the input variable names and default values to a function."""
     inputVarNames = [str(k) for k in inspect.signature(func).parameters.keys()]
     defaultValues = [inspect.signature(func).parameters[k].default for k in [str(k) for k in inspect.signature(func).parameters.keys()]]
     return inputVarNames, defaultValues
 
 def getmembers(mod, includeSubModules=True):
+    """Return members of a module."""
     members = {}
     for name, data in inspect.getmembers(mod):
         if name.startswith('__') or (inspect.ismodule(data) and not includeSubModules):
@@ -164,4 +186,38 @@ def getmembers(mod, includeSubModules=True):
     return members
 
 def printDict(myDict):
+    """Print a dictionary in the command line."""
     [print(k, ':', myDict[k]) for k in myDict]
+
+## Dropbox
+def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imagebags/objectome', savName=None, cachePath='./_temp'):
+    """
+    Download metadata recursively from all entries in a dropbox folder.
+    Save the metadata in the temporary cache of the project. 
+    Return the metadata entries. For mkturk images, use these entries
+    with the class mkturkImg.
+    """
+    
+    if not savName:
+        savName = f"{cachePath}/{dbxPath[1:].replace('/', '_')}.dbxmeta"
+
+    if not os.path.exists(savName):
+        print("Downloading metadata from dropbox path: ", dbxPath)
+        import dropbox
+        dbx = dropbox.Dropbox(json.loads(open(dbxAuth).read())['DBX_MKTURK_TOKEN'])
+        allFiles = dbx.files_list_folder(dbxPath, recursive=True)
+        entries = allFiles.entries
+        while allFiles.has_more:
+            allFiles = dbx.files_list_folder_continue(allFiles.cursor)
+            entries = entries + allFiles.entries
+
+        dlTime = datetime.datetime.now().isoformat()
+        with open(savName, 'wb') as f:
+            pickle.dump([entries, dlTime], f)
+        print("Picked metadata at: ", savName)
+    else:
+        print("Reading from temporary cache: ", savName)
+        with open(savName, 'rb') as f:
+            entries, dlTime = pickle.load(f)
+
+    return entries, dlTime
