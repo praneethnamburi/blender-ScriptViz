@@ -1,5 +1,11 @@
 """
 Analyze mkturk behavior data.
+
+Assumptions:
+ - All images in the image database are in the imgroot (imagebags) folder
+ - There can be multiple copies of that image
+ - Image database (created in this file) assigns image copies to different objects
+ - Unique image level ID is given by mkturkHash property of the image object
 """
 #%%
 #pylint: disable=fixme
@@ -15,9 +21,24 @@ import numpy as np
 
 import pnTools as my
 
+PATH_LEVELS = ['dbxroot', 'imgroot', 'dataset', 'noun', 'mesh', 'variation']
+TF_NAMES = ['ty', 'tz', 'rxy', 'rxz', 'ryz', 'scale']
+DBX_AUTH = './_auth/mkturk_dropbox.json'
+DBX_PATH_IMGDB = '/mkturkfiles/imagebags/objectome'
+CACHE_PATH = './_temp'
+
 def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=None, cachePath='./_temp'):
-    """Fetch data from firestore/local cache."""
-    _behAll = {}
+    """
+    Fetch data from firestore/local cache.
+    
+    :param agent: Name of the agent
+    :param startDate: yyyymmdd
+    :param endDate: yyyymmdd
+    :param docTypes: list. possible values are ['task', 'images'] <default>, ['task'], or ['images']
+    :param cachePath: Path to local cache. Directory must exist.
+    :returns: Returns a list of dictionaries
+    """
+    _behDl = {}
     outFiles = []
     if not docTypes:
         docTypes = ['task', 'images']
@@ -25,22 +46,34 @@ def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=No
         outFile = f'{cachePath}/{agent}_{docType}_{startDate}to{endDate}.json'
         outFiles.append('outFile')
 
-        # get the data from firestore if there is no cached copy
+        # download data from firestore to the local cache if there is no cached copy
         if not os.path.exists(os.path.realpath(outFile)):
             proc = subprocess.run(f'node mkturkBeh_getData.js -a {agent} -t {docType} -s {startDate} -e {endDate} -o {outFile}', encoding='utf-8', stdout=subprocess.PIPE) # --no-print to suppress output
             if proc.returncode != 0:
                 raise RuntimeError('Data download failed!')
         
         # read from local cache
-        _behAll[docType] = json.loads(open(outFile).read())
-        # TODO: Do an extra assertion here to match task and image files
+        _behDl[docType] = json.loads(open(outFile).read())
+
+    _behAll = []
+    if 'task' in docTypes and 'images' in docTypes:
+        for file_t, file_i in zip(_behDl['task'], _behDl['images']):
+            b, bi = _behDl['task'][file_t], _behDl['images'][file_i]
+            commonAttr = list(set(b.keys()).intersection(set(bi.keys())) - set(['Doctype']))
+            for attr in commonAttr:
+                assert b[attr] == bi[attr]
+            _behAll.append({**b, **bi})
+    elif len(docTypes) == 1:
+        for file_ti in _behDl[docTypes[0]]:
+            b = _behDl[docTypes[0]][file_ti]
+            _behAll.append({**b})
     return _behAll, outFiles
 
 class behSession:
     """
-    Encapsulate one session of mkturk behavior data.
+    Encapsulate one session of mkturk behavior data from firestore.
     
-    :param b: json import of the _task file
+    :param b: dictionary
     :param bi: json import of the corresponding _images file
         load behavior using:
             b = json.loads(open(fName).read())
@@ -52,18 +85,14 @@ class behSession:
         
     List of variables and their description:
         https://github.com/dicarlolab/mkturk/tree/master/public
+
+    behSession.properties() is a useful method!
     TODO: If only the file name is given, then get it from the database directly
     TODO: Method to create trial objects
     TODO: Time unit management
     """
     # pylint: disable=no-member
-    def __init__(self, b, bi):
-        # The common attribues should have the same values
-        commonAttr = list(set(b.keys()).intersection(set(bi.keys())) - set(['Doctype']))
-        for attr in commonAttr:
-            assert b[attr] == bi[attr]
-
-        b = {**b, **bi}
+    def __init__(self, b):
         for attr in b:
             if attr == 'Doctype':
                 continue
@@ -154,16 +183,29 @@ class behSession:
         return np.mean(self.rts[self.validTrials])
 
     @property
-    def sampleObject_tfStr(self):
-        """Trial-wise transformation string for the sample object."""
-        tfStr = []
-        tfNames = ['ty', 'tz', 'rxy', 'rxz', 'ryz', 'scale']
+    def sampleObject_id_desc(self):
+        """
+        Trial-wise transformation string for the sample object.
+
+        Note:
+            dataset = SamplePathLevels[trialIdx, 2]
+            noun = SamplePathLevels[trialIdx, 3]
+            mesh = SamplePathLevels[trialIdx, 4]
+            variation = SamplePathLevels[trialIdx, 5]
+            TODO: change how this is computed based on whether the data is from firestore or dropbox. Currently only works for firestore.
+        """
+        SamplePathLevels = np.array([k.rstrip('/').lstrip('/').split('/') for k in self.ImageBagsSample])
+        trialIdx = self.SampleBagIdx[self.Sample]
+
+        id_desc = []
         for trialCount in range(self.nTrials):
             thisStr = ''
-            for tfName in tfNames:
+            for level in PATH_LEVELS[1:]: # skips dropbox root - all images should be in the imgroot (imagebags) folder
+                thisStr += '_' + SamplePathLevels[trialIdx[trialCount], PATH_LEVELS.index(level)]
+            for tfName in TF_NAMES:
                 thisStr += '_' + tfName.rstrip('cale')  + str(getattr(self, 'SampleObject'+tfName.capitalize())[trialCount])
-            tfStr.append(thisStr)
-        return tfStr
+            id_desc.append(thisStr)
+        return id_desc
 
 class mkturkImg:
     """
@@ -201,7 +243,7 @@ class mkturkImg:
     @property
     def pathLevels(self):
         """Meaning of each level in dropbox path."""
-        return ['dbxroot', 'imgroot', 'dataset', 'noun', 'mesh', 'variation']
+        return PATH_LEVELS
 
     @property
     def dbxProperties(self):
@@ -211,7 +253,7 @@ class mkturkImg:
     @property
     def transformNames(self):
         """Transforms performed on the object to make the 2d image."""
-        return ['ty', 'tz', 'rxy', 'rxz', 'ryz', 's']
+        return [k.rstrip('cale') for k in  TF_NAMES]
 
     @property
     def defaultTransform(self):
@@ -235,12 +277,12 @@ class mkturkImg:
     @property
     def tfStr(self):
         """Transformation string."""
-        return f'_ty{self.ty}_tz{self.tz}_rxy{self.rxy}_rxz{self.rxz}_ryz{self.ryz}_s{self.s}'
+        return f'ty{self.ty}_tz{self.tz}_rxy{self.rxy}_rxz{self.rxz}_ryz{self.ryz}_s{self.s}'
 
     @property
     def fname_rec(self):
         """Reconstructed file name of the mkturk image. Use the name or path_display attributes to get the file name."""
-        return f'{self.dataset}_{self.noun}_{self.mkturkHash}{self.tfStr}{self.ext}'
+        return f'{self.dataset}_{self.noun}_{self.mkturkHash}_{self.tfStr}{self.ext}'
 
     @property
     def id(self):
@@ -253,44 +295,64 @@ class mkturkImg:
 
     @property
     def id_desc(self):
-        """Descriptive identification string for the image."""
-        return f'{self.dataset}_{self.noun}{self.tfStr}'
+        """
+        Descriptive identification string for the image.
+        This should be unique to the file in objectome.
+        Verification:
+        Size of the number of png files in your database:
+            allImgs = [mkturkImg(entry) for entry in imgMeta if '.png' in entry.name]
+        should be equal to:
+            np.shape(np.unique([entry.id_desc for entry in allImgs]))
+        or,
+            imgDb = {entry.id_desc:entry for entry in allImgs}
+            np.shape(list(imgDb.keys()))
+        """
+        return f'_{self.imgroot}_{self.dataset}_{self.noun}_{self.mesh}_{self.variation}_{self.tfStr}'
 
+#%% Create the image database
+imgMeta, _ = my.dbxmeta(dbxAuth=DBX_AUTH, dbxPath=DBX_PATH_IMGDB, cachePath=CACHE_PATH)
+allImgs = [mkturkImg(entry) for entry in imgMeta if '.png' in entry.name]
+imgDb = {entry.id_desc:entry for entry in allImgs}
+assert np.shape(list(imgDb.keys())) == np.shape(allImgs) # fails if mkturkImg.id_desc is not unique for all images!
 
-behAll, _ = fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task', 'images'], cachePath='./_temp')
-beh = [behSession(behAll['task'][file_t], behAll['images'][file_i]) for file_t, file_i in zip(behAll['task'], behAll['images'])]
+#%% Fetch behavior sessions from firestore only
+behAll, _ = fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task', 'images'], cachePath=CACHE_PATH)
+beh = [behSession(_file) for _file in behAll]
 beh = [k for k in beh if k.nTrials > 10]
 
-imgMeta, _ = my.dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imagebags/objectome', cachePath='./_temp')
-allImgs = [mkturkImg(entry) for entry in imgMeta if '.png' in entry.name]
-imgDb = {}
-for entry in allImgs:
-    # overwrites duplicates. use this only for the image and properties, not for the path.
-    imgDb[entry.id] = entry
+#%% Fetch behavior sessions from firestore and dropbox
+import dropbox
+dbx = dropbox.Dropbox(json.loads(open(DBX_AUTH).read())['DBX_MKTURK_TOKEN'])
+
+behAll, _ = fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task'], cachePath=CACHE_PATH)
+behDbx = [json.loads(dbx.files_download(_file['DataFileName'])[1].content) for _file in behAll]
+behDbx = [behSession({k: v for filepart in file for k, v in filepart.items()}) for file in behDbx]
 
 #%%
-desc2hash = {}
-for entry in allImgs:
-    desc2hash[entry.id_desc] = entry.mkturkHash
+behDbx[0].sampleObject_id_desc
 
-tfStr_all = np.array([k.fname_rec for k in allImgs])
-objHash = [desc2hash[k] for k in beh[1].sampleObject_tfStr]
-np.shape(objHash)
+
 
 #%%
-np.shape(np.unique(np.array([img.id for img in allImgs])))
-np.shape(list(desc2hash.keys()))
-#%%
-[beh[1].SampleObjects, beh[1].SampleBagNames, beh[1].SampleImageSetDir]
-beh[1].properties()
+behSess = beh[1]
+trialCount = 0
 
-beh[1].ImageBagsSample
-# noun = beh[1].SampleNouns[beh[1].SampleBagIdx[beh[1].Sample]]
-# dataset = beh[1].SampleImageSetDir.rstrip('/').split('/')[-1]
+h_PN = [imgDb[k].id[:7] for k in behSess.sampleObject_id_desc]
+h_EI = behSess.SampleHashesPrefix
+
+print('PN points to:', vars([imgDb[k] for k in imgDb if h_PN[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
+print('EI points to:', vars([imgDb[k] for k in imgDb if h_EI[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
+behSess.ImageBagsSample[behSess.SampleBagIdx[behSess.Sample[trialCount]]]
+
+behSess.properties()
+# behSess.SampleHashesPrefix[trialCount]
 
 #%%
-sampleBags = beh[1].ImageBagsSample[beh[1].SampleBagIdx[beh[1].Sample]]
-np.shape(np.array([k.rstrip('/').split('/')[1:] for k in sampleBags]))
+behDbx = json.loads(open('./_temp/tempSausage.txt').read())
+behDbx = {**behDbx[0], **behDbx[1], **behDbx[2], **behDbx[3], **behDbx[4]}
+behDbx['Ordered_Samplebag_Filenames'][behDbx['Sample'][0]]
+#%%
+['displayEnvironment', 'presentedStimuli', 'experimentalParams', 'params text file', 'TRIAL']
 
 
 #%%
@@ -320,6 +382,8 @@ hashFreq['019fc5e03e97be0877eea98f7e53bf8cd5615fe0']
 dupEntry = [k for k in allImgs if k.mkturkHash == '019fc5e03e97be0877eea98f7e53bf8cd5615fe0']
 [k.fpath for k in dupEntry]
 
+#%%
+beh[1].SampleHashesPrefix
 #%%
 import matplotlib.pyplot as plt
 
