@@ -14,6 +14,8 @@ import sys
 import subprocess
 from timeit import default_timer as timer
 
+from . import classmethods as cm
+
 ## General utilities - Decorators
 class Tracker:
     """
