@@ -309,11 +309,89 @@ class mkturkImg:
         """
         return f'_{self.imgroot}_{self.dataset}_{self.noun}_{self.mesh}_{self.variation}_{self.tfStr}'
 
-#%% Create the image database
-imgMeta, _ = my.dbxmeta(dbxAuth=DBX_AUTH, dbxPath=DBX_PATH_IMGDB, cachePath=CACHE_PATH)
-allImgs = [mkturkImg(entry) for entry in imgMeta if '.png' in entry.name]
-imgDb = {entry.id_desc:entry for entry in allImgs}
-assert np.shape(list(imgDb.keys())) == np.shape(allImgs) # fails if mkturkImg.id_desc is not unique for all images!
+
+class imgDb:
+    """Create the image database."""
+    def __init__(self):
+        imgMeta, _ = my.dbxmeta(dbxAuth=DBX_AUTH, dbxPath=DBX_PATH_IMGDB, cachePath=CACHE_PATH)
+        allImgs = [mkturkImg(entry) for entry in imgMeta if '.png' in entry.name]
+        self.imgDb = {entry.id_desc:entry for entry in allImgs}
+        assert np.shape(list(self.imgDb.keys())) == np.shape(allImgs) # fails if mkturkImg.id_desc is not unique for all images!
+    def __call__(self):
+        return self.imgDb
+
+#%%
+del myVar
+
+@property
+def myVar():
+    return self
+
+@myVar.setter
+def myVar(val):
+    myVar = val
+
+myVar = 20
+type(myVar)
+
+#%%
+class dummyClass(object):
+    nInst = 0
+    _all = []
+    def __new__(cls, *args, **kwargs):
+        print("new")
+        cls.nInst += 1
+        return super().__new__(cls)
+    def __init__(self):
+        self.__class__._all.append(self)
+        self.id = self.__class__.nInst # instance count of this object
+        print("init")
+    def __call__(self):
+        print("call")
+    
+    @classmethod
+    def delete(cls, obj):
+        cls.nInst -= 1
+        cls._all.remove(obj)
+        del(obj)
+
+    def __del__(self):
+        print('inside the __del__ function')
+    
+    @classmethod
+    def __getitem__(cls, key):
+        if key == 'all':
+            key = '_all'
+        return getattr(cls, key)
+
+tmp1 = dummyClass()
+tmp2 = dummyClass()
+tmp3 = dummyClass()
+
+
+
+#%% Understand difference betweel class and def
+def dummy():
+    pass
+
+class dummyCls():
+    pass
+
+list(set(dir(dummyCls)) - set(dir(dummy)))
+
+#%% decorate classes
+
+
+
+
+#%%
+print(dummyClass._all)
+#%%
+dummyClass._all
+#%%
+def trackInstances(cls):
+    cls.nInst = 0
+    cls.__del__
 
 #%% Fetch behavior sessions from firestore only
 behAll, _ = fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task', 'images'], cachePath=CACHE_PATH)
@@ -331,21 +409,15 @@ behDbx = [behSession({k: v for filepart in file for k, v in filepart.items()}) f
 #%%
 behDbx[0].sampleObject_id_desc
 
-
-
 #%%
 behSess = beh[1]
 trialCount = 0
 
 h_PN = [imgDb[k].id[:7] for k in behSess.sampleObject_id_desc]
-h_EI = behSess.SampleHashesPrefix
+h_EI = behSess.SampleHashesPrefix[behSess.Sample]
 
 print('PN points to:', vars([imgDb[k] for k in imgDb if h_PN[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
 print('EI points to:', vars([imgDb[k] for k in imgDb if h_EI[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
-behSess.ImageBagsSample[behSess.SampleBagIdx[behSess.Sample[trialCount]]]
-
-behSess.properties()
-# behSess.SampleHashesPrefix[trialCount]
 
 #%%
 behDbx = json.loads(open('./_temp/tempSausage.txt').read())
