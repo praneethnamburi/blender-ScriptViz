@@ -15,6 +15,48 @@ import subprocess
 from timeit import default_timer as timer
 
 ## General utilities - Decorators
+class Tracker:
+    """
+    Keep track of all instances of objects created by a class
+    clsToTrack. Decorator.
+
+    :param clsToTrack: keep track of objects created by this class
+    :returns: a tracker object
+
+    For operations that span across all objects created by a clsToTrack,
+    you can simply create a groupOperations class without __new__,
+    __init__ or __call__ functions, and decorate clsToDecorate with that
+    class. See tests for an example.
+    """
+    tracked = []
+    def __new__(cls, clsToTrack):
+        cls.tracked.append(clsToTrack)
+        return object.__new__(cls)
+    def __init__(self, clsToTrack):
+        self.clsToTrack = clsToTrack
+        functools.update_wrapper(self, clsToTrack)
+        self._nInst = 0
+        self._all = []
+    def __call__(self, *args, **kwargs):
+        funcOut = self.clsToTrack(*args, **kwargs)
+        self._nInst += 1
+        self._all.append(funcOut)
+        return funcOut
+    def __delitem__(self, item):
+        """
+        Stop tracking item.
+        item is an instance of clsToTrack
+        """
+        self._all.remove(item)
+        self._nInst = len(self._all)
+    def dictAccess(self, key='id'):
+        """
+        Give access to the object based on key. If keys (id) of
+        different objects are the same, then only the last reference
+        will be preserved.
+        """
+        return {getattr(k, key):k for k in self._all}
+
 class OnDisk:
     """
     Raise error if function output not on disk. Decorator.
@@ -26,12 +68,10 @@ class OnDisk:
     def __init__(self, func):
         self.func = func
         functools.update_wrapper(self, func)
-    
     def __call__(self, *args, **kwargs):
         thisDirFiles = self.func(*args, **kwargs)
         self.checkFiles(thisDirFiles)
         return thisDirFiles
-    
     def checkFiles(self, thisFileList):
         if isinstance(thisFileList, str):
             thisFileList = [thisFileList]
@@ -39,7 +79,6 @@ class OnDisk:
             if not os.path.exists(dirFile):
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), dirFile)
 
-# General utilities - Decorators - output modifiers
 class BaseNames:
     """
     Return file names given full paths.

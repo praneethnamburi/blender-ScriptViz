@@ -575,3 +575,42 @@ problem and you want to make all access explicit, then add
 Therefore, break apart the bpn.py module ONLY if they need to be
 imported and accessed separately! Not simply because there are too many
 lines in that piece of code
+
+## Difference between __new__() and __init__()
+
+When using a class as a decorator,
+
+```python
+class myClass:
+    def __new__(thisClass, decorateThis):
+        # takes a class and returns an instance of that class
+        # thisClass is myClass class
+        # you can make an instance of this class using:
+        # you can make class attributes here. Remember that these
+        #  will get affected every time myClass is invoked!!
+        # This is very dangerous!
+        classInstance = object.__new__(thisClass)
+        return classInstance
+    def __init__(classInstance, decorateThis):
+        classInstance.decorateThis = decorateThis
+    def __call__(classInstance, *args, **kwargs):
+        plainObj = classInstance.decorateThis
+
+class plainClass:
+    pass
+
+decoratedClass = myClass(plainClass)
+```
+
+myClass.__new__ AND myClass.__init__ are called after this statement.
+__new__ is called first, and returns an instance of myClass (who is it
+returning to?). Its first input is special: it is the class myClass, and
+the inputs that follow are the inputs supplied when calling myClass. In
+this case, plainClass. __init__ is called after this. It takes the newly
+created instance of myClass, along with the inputs, in this case,
+plainClass. If plainClass takes inputs as well, the put them in
+parenteses after the call. For example, decoratedClass =
+myClass(plainClass)(plainInput1, plainInput2). myClass(plainClass)
+returns an instance of myClass. This object can be called! This is done
+using the magic method __call__. To retain the behavior of plainClass
+create a plainClass object, and return that.
