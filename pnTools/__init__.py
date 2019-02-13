@@ -36,6 +36,7 @@ class AddMethods:
         self.methodList = methodList
     def __call__(self, func):
         functools.update_wrapper(self, func)
+        @functools.wraps(func)
         def wrapperFunc(*args, **kwargs):
             for method in self.methodList:
                 setattr(func, method.__name__, method)
@@ -46,7 +47,16 @@ class AddMethods:
 class Tracker:
     """
     Keep track of all instances of objects created by a class
-    clsToTrack. Decorator.
+    clsToTrack. Decorator. 
+
+    Meant to convert clsToTrack into a Tracker object with properties
+    _all, n, and methods dictAccess
+
+    TODO:list 
+    1. Make a query function 
+    2. keeping track of all tracked classes is controversial because all
+       the tracked objects (formerly classes) know what other classes
+       are being tracked. (see cls._tracked)
 
     :param clsToTrack: keep track of objects created by this class
     :returns: a tracker object
@@ -56,18 +66,16 @@ class Tracker:
     __init__ or __call__ functions, and decorate clsToDecorate with that
     class. See tests for an example.
     """
-    tracked = []
+    _tracked = [] # all the classes being tracked
     def __new__(cls, clsToTrack):
-        cls.tracked.append(clsToTrack)
+        cls._tracked.append(clsToTrack)
         return object.__new__(cls)
     def __init__(self, clsToTrack):
         self.clsToTrack = clsToTrack
         functools.update_wrapper(self, clsToTrack)
-        self._nInst = 0
         self._all = []
     def __call__(self, *args, **kwargs):
         funcOut = self.clsToTrack(*args, **kwargs)
-        self._nInst += 1
         self._all.append(funcOut)
         return funcOut
     def __delitem__(self, item):
@@ -76,7 +84,6 @@ class Tracker:
         item is an instance of clsToTrack
         """
         self._all.remove(item)
-        self._nInst = len(self._all)
     def dictAccess(self, key='id'):
         """
         Give access to the object based on key. If keys (id) of
@@ -84,6 +91,10 @@ class Tracker:
         will be preserved.
         """
         return {getattr(k, key):k for k in self._all}
+    @property
+    def n(self):
+        """Return the number of instances being tracked."""
+        return len(self._all)
 
 class OnDisk:
     """
@@ -100,7 +111,7 @@ class OnDisk:
         thisDirFiles = self.func(*args, **kwargs)
         self.checkFiles(thisDirFiles)
         return thisDirFiles
-    def checkFiles(self, thisFileList):
+    def checkFiles(self, thisFileList): # TODO: make this a static method?
         if isinstance(thisFileList, str):
             thisFileList = [thisFileList]
         for dirFile in thisFileList:
