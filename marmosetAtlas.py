@@ -8,7 +8,7 @@ import os
 if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
     sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-import pnTools as my
+import pntools as my
 import bpn
 from bpn import bpy
 

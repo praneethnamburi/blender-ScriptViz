@@ -17,6 +17,32 @@ from timeit import default_timer as timer
 from . import classmethods as cm
 
 ## General utilities - Decorators
+
+class AddMethods:
+    """
+    Add methods to a class. Decorator.
+    
+    Usage:
+        @AddMethods([pntools.cm.properties])
+        class myClass:
+            def foo(self):
+                print("bar")
+        
+        a = myClass()
+        a.foo() # prints bar
+        a.properties() # lists foo and properties
+    """
+    def __init__(self, methodList):
+        self.methodList = methodList
+    def __call__(self, func):
+        functools.update_wrapper(self, func)
+        def wrapperFunc(*args, **kwargs):
+            for method in self.methodList:
+                setattr(func, method.__name__, method)
+            funcOut = func(*args, **kwargs)
+            return funcOut
+        return wrapperFunc
+
 class Tracker:
     """
     Keep track of all instances of objects created by a class

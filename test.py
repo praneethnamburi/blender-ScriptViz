@@ -1,21 +1,8 @@
 import functools
-import pnTools as my
-
-class addMethods:
-    """"""
-    def __init__(self, methodList):
-        self.methodList = methodList
-    def __call__(self, func):
-        functools.update_wrapper(self, func)
-        def wrapperFunc(*args, **kwargs):
-            for method in self.methodList:
-                setattr(func, method.__name__, method)
-            funcOut = func(*args, **kwargs)
-            return funcOut
-        return wrapperFunc
+import pntools as my
 
 @my.Tracker
-@addMethods([my.cm.properties])
+@my.AddMethods([my.cm.properties])
 class behavior:
     def __init__(self, agent, accuracy):
         self.agent = agent

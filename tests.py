@@ -1,12 +1,12 @@
 import functools
 import numpy as np
-import pnTools as my
+import pntools as my
 
 def testTracker():
     """
     Also demonstrates how to use the tracker
     Expected output:
-        Testing pnTools.Tracker:
+        Testing pntools.Tracker:
         []
         [<class '__main__.testTracker.<locals>.testClass'>]
         [<class '__main__.testTracker.<locals>.testClass'>, <class '__main__.testTracker.<locals>.testClass2'>]
@@ -14,8 +14,8 @@ def testTracker():
         []
         2
         12
-        <pnTools.Tracker object at 0x0000022C51F41710> <class '__main__.testTracker.<locals>.testClass'>
-        <pnTools.Tracker object at 0x0000022C51F9CEB8> <class '__main__.testTracker.<locals>.testClass2'>
+        <pntools.Tracker object at 0x0000022C51F41710> <class '__main__.testTracker.<locals>.testClass'>
+        <pntools.Tracker object at 0x0000022C51F9CEB8> <class '__main__.testTracker.<locals>.testClass2'>
         [101, 102, 103]
         monkey1 accuracy:  0.9  monkey2 accuracy:  0.7
         mean, std of accuracy:  (0.8, 0.10000000000000003)
@@ -25,7 +25,7 @@ def testTracker():
     Note that the memory locations will be different in your printout.
     """
     #pylint: disable=protected-access, no-member
-    print('Testing pnTools.Tracker:')
+    print('Testing pntools.Tracker:')
     print(my.Tracker.tracked)
 
     @my.Tracker

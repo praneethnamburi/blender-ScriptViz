@@ -80,7 +80,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 if THIS_DIR not in sys.path:
     sys.path.append(THIS_DIR)
 
-import pnTools as my
+import pntools as my
 
 def writeBlenderStartupFile(fName_full):
     """

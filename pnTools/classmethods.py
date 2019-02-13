@@ -1,3 +1,7 @@
+"""
+Methods that can be added to classes.
+"""
+
 import numpy as np
 
 def properties(self):

@@ -19,7 +19,7 @@ import numpy as np
 # if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
 #     sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
-import pnTools as my
+import pntools as my
 
 PATH_LEVELS = ['dbxroot', 'imgroot', 'dataset', 'noun', 'mesh', 'variation']
 TF_NAMES = ['ty', 'tz', 'rxy', 'rxz', 'ryz', 'scale']

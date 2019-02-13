@@ -56,11 +56,11 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
     sys.path.append('__bpnModifyFilePath__')
 
 import bpn
-import pnTools as my
+import pntools as my
 import marmosetAtlas as atl # pylint: disable=W0611
 
 def reloadAll():
-    """Reloads bpn and my (pnTools)"""
+    """Reloads bpn and my (pntools)"""
     exec('bpn = reload(bpn); my = reload(my)') # pylint: disable=W0122
 
 # delete convenience variables that are polluting the namespace!
