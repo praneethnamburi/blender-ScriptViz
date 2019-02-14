@@ -99,7 +99,7 @@ class Tracker:
         """Return the number of instances being tracked."""
         return len(self._all)
 
-    def query(self, queryStr='(agent == sausage or agent == waffles)', parseFlag=True):
+    def query(self, queryStr="agent == 'sausage' and accuracy > 0.7", keys=None):
         if not queryStr:
             return self._all
 
@@ -111,13 +111,19 @@ class Tracker:
                     queryStr = queryStr.replace(queryUnit, 'k.'+queryUnit)
 
             queryStr = queryStr.replace(' in ', ' in k.')
-            print(queryStr)
             return queryStr
-        
-        if parseFlag:
-            queryStr = parseQuery(queryStr)
 
-        objList = eval("[k for k in self._all if " + queryStr + "]")
+        if keys is None:
+            queryStr = parseQuery(queryStr)
+        else:
+            for key in keys:
+                queryStr = queryStr.replace(key, 'k.'+key)
+
+        try:
+            objList = eval("[k for k in self._all if " + queryStr + "]")
+        except:
+            print('Query failed.')
+            print(queryStr)
         return objList
 
 class OnDisk:
@@ -135,7 +141,8 @@ class OnDisk:
         thisDirFiles = self.func(*args, **kwargs)
         self.checkFiles(thisDirFiles)
         return thisDirFiles
-    def checkFiles(self, thisFileList): # TODO: make this a static method?
+    @staticmethod
+    def checkFiles(thisFileList):
         if isinstance(thisFileList, str):
             thisFileList = [thisFileList]
         for dirFile in thisFileList:
