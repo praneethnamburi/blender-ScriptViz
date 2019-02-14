@@ -1,5 +1,34 @@
 """
 Praneeth's tools for making life easy while coding in python.
+
+Modules:
+    classmethods: Methods that can be added to classes using pntools.AddMethods.
+        properties: Print all the properties in this class.
+
+Decorators: 
+    **Tracker: Provide database-like access accross all objects created by a class. 
+    AddMethods: Add methods to a class.
+    Time: Prints execution time when a function is decorated.
+    -OnDisk: Ensure function output is on disk. 
+    -BaseNames: Return only file names (if function outputs full paths) 
+
+Classes:
+
+Functions: 
+    ospath: Find a file on your computer. Return full path.
+    locateCommand: Locate an executable on your computer. Useful to
+        ensure correct executable is being used.
+    --getFileName_full: Return full file name and ensure file on disk
+
+    pkgList: List packages. Uses pip freeze.
+    pkgPath: List path to a [package list]. Fails for several packages.
+
+    functionInputs: Input variable names and default values of a function.
+    getmembers: Members of a module.
+    printDict: Print a dictionary to the command line.
+
+I/O:
+    dbxmeta: Download metadata recursively from a dropbox folder into a pickled file
 """
 
 import datetime
@@ -54,8 +83,7 @@ class Tracker:
     _all, n, and methods dictAccess
 
     TODO:list 
-    1. Document query function
-    2. keeping track of all tracked classes is controversial because all
+    1. keeping track of all tracked classes is controversial because all
        the tracked objects (formerly classes) know what other classes
        are being tracked. (see cls._tracked)
 
@@ -130,7 +158,7 @@ class Tracker:
                 queryStr = queryStr.replace(key, 'k.'+key)
 
         try:
-            objList = eval("[k for k in self._all if " + queryStr + "]")
+            objList = eval("[k for k in self._all if " + queryStr + "]") #pylint:disable=eval-used
         except Warning:
             print('Query failed.')
             print(queryStr)
@@ -153,6 +181,7 @@ class OnDisk:
         return thisDirFiles
     @staticmethod
     def checkFiles(thisFileList):
+        """Raise error if any file in thisFileList not on disk."""
         if isinstance(thisFileList, str):
             thisFileList = [thisFileList]
         for dirFile in thisFileList:
@@ -197,6 +226,7 @@ class Time:
 ## General utilities - Functions
 @OnDisk
 def getFileName_full(fPath, fName):
+    """Full file name given the path and the name. Ensure file on disk."""
     fullName = os.path.join(os.path.normpath(fPath), fName)
     return fullName
 
@@ -221,7 +251,7 @@ def ospath(thingToFind, errContent=None):
 
 def locateCommand(thingToFind, requireStr=None):
     """
-    Locate an executable in on your computer.
+    Locate an executable on your computer.
 
     :param thingToFind: string name of the executable (e.g. python)
     :param requireStr: require path to thingToFind to have a certain string
@@ -306,7 +336,7 @@ def getmembers(mod, includeSubModules=True):
 
 def printDict(myDict):
     """Print a dictionary in the command line."""
-    [print(k, ':', myDict[k]) for k in myDict]
+    [print(k, ':', myDict[k]) for k in myDict] #pylint: disable=expression-not-assigned
 
 ## Dropbox
 def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imagebags/objectome', savName=None, cachePath='./_temp'):

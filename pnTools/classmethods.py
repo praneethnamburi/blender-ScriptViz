@@ -1,5 +1,5 @@
 """
-Methods that can be added to classes.
+Methods that can be added to classes using pntools.AddMethods.
 """
 
 import numpy as np

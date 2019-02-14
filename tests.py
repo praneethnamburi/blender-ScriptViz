@@ -1,4 +1,7 @@
-import functools
+"""
+Run tests on pntools
+"""
+
 import numpy as np
 import pntools as my
 
@@ -10,23 +13,24 @@ def testTracker():
         []
         [<class '__main__.testTracker.<locals>.testClass'>]
         [<class '__main__.testTracker.<locals>.testClass'>, <class '__main__.testTracker.<locals>.testClass2'>]
-        [<list of two testClass objects>]
+        [<__main__.testTracker.<locals>.testClass object at 0x00000226323621D0>, <__main__.testTracker.<locals>.testClass object at 0x0000022632362208>]
         []
         2
         12
-        <pntools.Tracker object at 0x0000022C51F41710> <class '__main__.testTracker.<locals>.testClass'>
-        <pntools.Tracker object at 0x0000022C51F9CEB8> <class '__main__.testTracker.<locals>.testClass2'>
+        <pntools.Tracker object at 0x000002263234D240> <class '__main__.testTracker.<locals>.testClass'>
+        <pntools.Tracker object at 0x0000022632362198> <class '__main__.testTracker.<locals>.testClass2'>
         [101, 102, 103]
-        monkey1 accuracy:  0.9  monkey2 accuracy:  0.7
-        mean, std of accuracy:  (0.8, 0.10000000000000003)
+        sausage accuracy:  0.8  waffles accuracy:  0.7
+        mean, std of accuracy:  (0.7333333333333334, 0.047140452079103216)
         sausage is the best Monkey!
         0.8
         barb
-    Note that the memory locations will be different in your printout.
+        0.015269871000000101
+    Note that the memory locations and execution time (last number) will be different in your printout.
     """
     #pylint: disable=protected-access, no-member
     print('Testing pntools.Tracker:')
-    print(my.Tracker.tracked)
+    print(my.Tracker._tracked)
 
     @my.Tracker
     class testClass:
@@ -40,18 +44,18 @@ def testTracker():
     del testClass[tmp1] #pylint: disable=unsupported-delete-operation
     del tmp1
 
-    print(my.Tracker.tracked)
+    print(my.Tracker._tracked)
 
     @my.Tracker
     class testClass2:
         def __init__(self, myAttr):
             self.attr2 = myAttr
 
-    print(my.Tracker.tracked)
+    print(my.Tracker._tracked)
     
     print(testClass._all) 
     print(testClass2._all)
-    print(testClass._nInst)
+    print(testClass.n)
     print(tmp2.attr)
     
     # test if wrapper was updated
@@ -106,11 +110,14 @@ def testTrackerQuery():
     """
     Debug and monitor the res variable to check if results are as expected.
     Expected output:
+        Testing pntools.Tracker.query and pntools.AddMethods
         ('accuracy', <class 'float'>, ())
         ('agent', <class 'str'>, ())
-        ('behMethod', <class 'method'>, ())
         ('properties', <class 'method'>, ())
         ('weight', <class 'int'>, ())
+        testTrackerQuery finished.
+        0.00497705599999998
+    # Note that the last number (execution time) can be different.
     """
     print('Testing pntools.Tracker.query and pntools.AddMethods')
 
@@ -139,5 +146,5 @@ def testTrackerQuery():
     print('testTrackerQuery finished.')
 
 if __name__ == '__main__':
-    testTracker()
-    testTrackerQuery()
+    my.Time(testTracker)()
+    my.Time(testTrackerQuery)()

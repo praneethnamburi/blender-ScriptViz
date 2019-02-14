@@ -128,12 +128,15 @@ def plotDNA():
     h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
     return [h1, h2], [m1, m2] # objList, mshList
 
-def plot(x, y, z=0):
-    mshName = 'autoMshName'
+def plot(x, y, z=0, mshName='autoMshName'):
+    if mshName == 'autoMshName':
+        objName = 'autoObjName'
+    else:
+        objName = mshName
     # create a mesh
     msh = genPlotMsh(mshName, x, y, z)
     # instantiate an object
-    obj = genObj(msh)
+    obj = genObj(msh, objName)
     return obj, msh
 
 def genPlotMsh(mshName, xVals, yVals, zVals=None):
