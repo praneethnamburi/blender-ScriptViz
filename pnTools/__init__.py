@@ -9,6 +9,7 @@ import importlib
 import inspect
 import json
 import os
+import re
 import pickle
 import sys
 import subprocess
@@ -53,7 +54,7 @@ class Tracker:
     _all, n, and methods dictAccess
 
     TODO:list 
-    1. Make a query function 
+    1. Document query function
     2. keeping track of all tracked classes is controversial because all
        the tracked objects (formerly classes) know what other classes
        are being tracked. (see cls._tracked)
@@ -84,6 +85,7 @@ class Tracker:
         item is an instance of clsToTrack
         """
         self._all.remove(item)
+
     def dictAccess(self, key='id'):
         """
         Give access to the object based on key. If keys (id) of
@@ -91,10 +93,32 @@ class Tracker:
         will be preserved.
         """
         return {getattr(k, key):k for k in self._all}
+
     @property
     def n(self):
         """Return the number of instances being tracked."""
         return len(self._all)
+
+    def query(self, queryStr='(agent == sausage or agent == waffles)', parseFlag=True):
+        if not queryStr:
+            return self._all
+
+        def parseQuery(queryStr):
+            queryUnits = re.split(r'and|or', queryStr)
+            queryUnits = [queryUnit.lstrip(' ').lstrip('(').lstrip(' ') for queryUnit in queryUnits]
+            for queryUnit in queryUnits:
+                if ' in ' not in queryUnit:
+                    queryStr = queryStr.replace(queryUnit, 'k.'+queryUnit)
+
+            queryStr = queryStr.replace(' in ', ' in k.')
+            print(queryStr)
+            return queryStr
+        
+        if parseFlag:
+            queryStr = parseQuery(queryStr)
+
+        objList = eval("[k for k in self._all if " + queryStr + "]")
+        return objList
 
 class OnDisk:
     """

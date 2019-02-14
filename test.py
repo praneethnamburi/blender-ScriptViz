@@ -14,3 +14,6 @@ class behavior:
 sausageBeh = behavior('sausage', 0.80)
 wafflesBeh = behavior('waffles', 0.70)
 barbBeh = behavior('barb', 0.70)
+
+tmp1 = behavior.query("(agent == 'barb' and 'ar' in agent or agent == 'sausage')")
+a = 1
