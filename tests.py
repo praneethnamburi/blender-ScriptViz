@@ -101,7 +101,43 @@ def testTracker():
     behavior.sophieSays()
     print(behavior.dictAccess('agent')['sausage'].accuracy) # what is sausage's accuracy?
     print(behavior.dictAccess('accuracy')[0.7].agent) # who had an accuracy of 0.7?
-    a = 1
+
+def testTrackerQuery():
+    """
+    Debug and monitor the res variable to check if results are as expected.
+    Expected output:
+        ('accuracy', <class 'float'>, ())
+        ('agent', <class 'str'>, ())
+        ('behMethod', <class 'method'>, ())
+        ('properties', <class 'method'>, ())
+        ('weight', <class 'int'>, ())
+    """
+    print('Testing pntools.Tracker.query and pntools.AddMethods')
+
+    @my.Tracker
+    @my.AddMethods([my.cm.properties])
+    class behavior:
+        def __init__(self, agent, accuracy, weight):
+            self.agent = agent
+            self.accuracy = accuracy
+            self.weight = weight
+
+    behavior('sausage', 0.80, 312)
+    behavior('waffles', 0.70, 350)
+    behavior('barb', 0.70, 367)
+    behavior('rafiki', 0.3, 392)
+    behavior('setta', 0.4, 337)
+    behavior('aj', 0.6, 401)
+
+    # pylint: disable=no-member #pylint won't catch all functionality added through decorators
+    res = behavior.query("(agent == 'barb' and 'ar' in agent or agent == 'sausage')")
+
+    # for complicated queries with methods (e.g. len), either use keys, or prefix k. to all the keys
+    res = behavior.query("len(agent) > 4  and accuracy >= 0.3", keys=['agent', 'accuracy'])
+    res[0].properties() # testing my.AddMethods
+    res = behavior.query("len(k.agent) > 4 and k.accuracy >= 0.3", keys=[])
+    print('testTrackerQuery finished.')
 
 if __name__ == '__main__':
     testTracker()
+    testTrackerQuery()

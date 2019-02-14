@@ -100,6 +100,16 @@ class Tracker:
         return len(self._all)
 
     def query(self, queryStr="agent == 'sausage' and accuracy > 0.7", keys=None):
+        """
+        Filter all tracked objects based on object fields (keys).
+        
+        :param queryStr: list-comprehension style filter string
+        :param keys: list of object keys used in the query
+        :returns: a subset of tracked objects that satisfy query criteria
+        :raises Warning: prints processed query string if the query fails
+
+        Refer to tests for examples and notes on how to use.
+        """
         if not queryStr:
             return self._all
 
@@ -121,7 +131,7 @@ class Tracker:
 
         try:
             objList = eval("[k for k in self._all if " + queryStr + "]")
-        except:
+        except Warning:
             print('Query failed.')
             print(queryStr)
         return objList
