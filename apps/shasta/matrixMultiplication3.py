@@ -3,12 +3,12 @@ import pickle
 import sys
 import numpy as np
 
+PATH_TO_ADD = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
+if PATH_TO_ADD not in sys.path:
+    sys.path.append(PATH_TO_ADD)
+
 import bpn # pylint: disable=unused-import
 
-if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-
-# add modules here
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor_location[0] = -100
 

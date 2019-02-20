@@ -1,2 +1,0 @@
-"""Sandbox. Not involving blender."""
-#%%

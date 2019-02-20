@@ -2,7 +2,14 @@
 Run tests on pntools
 """
 
+import os
+import sys
 import numpy as np
+
+PATH_TO_ADD = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+if PATH_TO_ADD not in sys.path:
+    sys.path.append(PATH_TO_ADD)
+
 import pntools as my
 
 def testTracker():

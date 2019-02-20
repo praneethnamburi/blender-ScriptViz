@@ -44,7 +44,8 @@ import sys
 import subprocess
 from timeit import default_timer as timer
 
-from . import classmethods as cm
+if __package__ is not None:
+    from . import classmethods as cm
 
 ## General utilities - Decorators
 
