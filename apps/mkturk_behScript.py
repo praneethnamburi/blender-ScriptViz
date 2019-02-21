@@ -1,38 +1,24 @@
+#pylint:disable=no-member
 #%%
-import json
 import os
 import sys
 import numpy as np
+import matplotlib.pyplot as plt
 
-PATH_TO_ADD = os.path.realpath('.')
+PATH_TO_ADD = os.path.realpath('..') # development root
 if PATH_TO_ADD not in sys.path:
     sys.path.append(PATH_TO_ADD)
+os.chdir(PATH_TO_ADD)
 
 import mkturk as mk
-import pntools as my
-
-from importlib import reload
 
 #%%
-behAll, _ = mk.fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task', 'images'], cachePath=mk.CACHE_PATH)
+mk.session.clean()
+mk.fetch(agent='Sausage', startDate='20190201', endDate='20190205', returnDict=False)
+beh = mk.session.query('nTrials > 10')
 
 #%%
-[type(k) for k in behAll]
-#%% Fetch behavior sessions from firestore only
-beh = [mk.session(_file) for _file in behAll]
-beh = [k for k in beh if k.nTrials > 10]
-
-#%% Fetch behavior sessions from firestore and dropbox
-import dropbox
-dbx = dropbox.Dropbox(json.loads(open(mk.DBX_AUTH).read())['DBX_MKTURK_TOKEN'])
-
-behDbx = [json.loads(dbx.files_download(_file['DataFileName'])[1].content) for _file in behAll]
-behDbx = [mk.session({k: v for filepart in file for k, v in filepart.items()}) for file in behDbx]
-
-#%%
-behDbx[0].sampleObject_id_desc
-
-#%%
+imgDb = mk.img.dictAccess('id_desc')
 behSess = beh[1]
 trialCount = 0
 
@@ -43,18 +29,7 @@ print('PN points to:', vars([imgDb[k] for k in imgDb if h_PN[trialCount] in imgD
 print('EI points to:', vars([imgDb[k] for k in imgDb if h_EI[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
 
 #%%
-['displayEnvironment', 'presentedStimuli', 'experimentalParams', 'params text file', 'TRIAL']
-
-#%%
-beh[0].properties()
-vars(beh[0])
-np.shape(beh[0].SampleHashesPrefix)
-#%%
-np.unique(beh[1].Test[:, 1])
-np.where(beh[5].SampleObjectTy == 0)
-
-#%%
-allHash = [im.mkturkHash for im in mkturkImg.all_]
+allHash = [im.mkturkHash for im in mk.img.all_]
 uniqueHash = np.unique(allHash)
 hashFreq = {}
 for entry in uniqueHash:
@@ -67,8 +42,6 @@ hashFreq = np.array(list(hashFreq.values()))
 np.unique(hashFreq)
 
 #%%
-import matplotlib.pyplot as plt
-
 h = plt.figure(figsize=(16, 10))
 nRows = 3
 nCols = 2

@@ -115,13 +115,23 @@ class Tracker:
         """
         self.all_.remove(item)
 
-    def dictAccess(self, key='id'):
+    def dictAccess(self, key='id', val=None):
         """
-        Give access to the object based on key. If keys (id) of
-        different objects are the same, then only the last reference
-        will be preserved.
+        Give access to the object based on key. 
+        
+        Note:
+        If keys (id) of different objects are the same, then only the
+        last reference will be preserved.
+
+        :param key: Property of the object being tracked (to be used as the key).
+        :param val: Property of the object being tracked (to be used as the value).
+                    When set to None, val is set to the object itself.
+        :returns: A dictionary of property pairs for all objects in key(property1):val(property2)
         """
-        return {getattr(k, key):k for k in self.all_}
+        if not val:
+            return {getattr(k, key):k for k in self.all_}
+        
+        return {getattr(k, key):getattr(k, val) for k in self.all_}
 
     @property
     def n(self):
@@ -164,6 +174,10 @@ class Tracker:
             print('Query failed.')
             print(queryStr)
         return objList
+
+    def clean(self):
+        """Forget the objects tracked so far."""
+        self.all_ = []
 
 class OnDisk:
     """

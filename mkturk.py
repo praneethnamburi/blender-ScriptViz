@@ -8,68 +8,98 @@ Assumptions:
  - Unique image level ID is given by mkturkHash property of the image object
 """
 
+import datetime
 import json
 import os
+import pickle
 import re
 import subprocess
 import sys
 import numpy as np
 
-PATH_TO_ADD = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
-if PATH_TO_ADD not in sys.path:
-    sys.path.append(PATH_TO_ADD)
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
 
 import pntools as my
 
 PATH_LEVELS = ['dbxroot', 'imgroot', 'dataset', 'noun', 'mesh', 'variation'] # mkturk resource organization
 TF_NAMES = ['ty', 'tz', 'rxy', 'rxz', 'ryz', 'scale'] # transform names
-DBX_AUTH = './_auth/mkturk_dropbox.json' # path to dropbox authentication file
+DBX_AUTH = os.path.join(DEV_ROOT, '_auth/mkturk_dropbox.json') # path to dropbox authentication file
+CACHE_PATH = os.path.join(DEV_ROOT, '_temp')
 DBX_PATH_IMGDB = '/mkturkfiles/imagebags/objectome' # path to the image databse
-CACHE_PATH = './_temp'
 
 #pylint:disable=no-member
 
-def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=None, cachePath='./_temp'):
+def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=None, cachePath=CACHE_PATH, dbxdl=True, returnDict=True):
     """
-    Fetch data from firestore/local cache.
+    Fetch data from firestore and dropbox.
     
     :param agent: Name of the agent
     :param startDate: yyyymmdd
     :param endDate: yyyymmdd
     :param docTypes: list. possible values are ['task', 'images'] <default>, ['task'], or ['images']
     :param cachePath: Path to local cache. Directory must exist.
-    :returns: Returns a list of dictionaries, one for each firestore file.
+    :param dbxdl: bool. Download text files in the query from dropbox if set to true.
+    :param returnDict: bool. Return a list of dictionaries if set to true, or return a list of mkturk.session objects if set to false
+    :returns: Returns a list of dictionaries/mkturk.session objects, one for each firestore file.
     """
-    _behDl = {}
+    behDl = {}
     outFiles = []
     if not docTypes:
         docTypes = ['task', 'images']
     for docType in docTypes:
         outFile = f'{cachePath}/{agent}_{docType}_{startDate}to{endDate}.json'
-        outFiles.append('outFile')
+        outFiles.append(outFile)
 
         # download data from firestore to the local cache if there is no cached copy
         if not os.path.exists(os.path.realpath(outFile)):
-            proc = subprocess.run(f'node mkturkBeh_getData.js -a {agent} -t {docType} -s {startDate} -e {endDate} -o {outFile}', encoding='utf-8', stdout=subprocess.PIPE) # --no-print to suppress output
+            proc = subprocess.run(f'node mkturk_getData.js -a {agent} -t {docType} -s {startDate} -e {endDate} -o {outFile}', encoding='utf-8', stdout=subprocess.PIPE) # --no-print to suppress output
             if proc.returncode != 0:
                 raise RuntimeError('Data download failed!')
         
         # read from local cache
-        _behDl[docType] = json.loads(open(outFile).read())
+        behDl[docType] = json.loads(open(outFile).read())
 
-    _behAll = []
+    behFire = []
     if 'task' in docTypes and 'images' in docTypes:
-        for file_t, file_i in zip(_behDl['task'], _behDl['images']):
-            b, bi = _behDl['task'][file_t], _behDl['images'][file_i]
+        for file_t, file_i in zip(behDl['task'], behDl['images']):
+            b, bi = behDl['task'][file_t], behDl['images'][file_i]
             commonAttr = list(set(b.keys()).intersection(set(bi.keys())) - set(['Doctype']))
             for attr in commonAttr:
                 assert b[attr] == bi[attr]
-            _behAll.append({**b, **bi})
+            behFire.append({**b, **bi})
     elif len(docTypes) == 1:
-        for file_ti in _behDl[docTypes[0]]:
-            b = _behDl[docTypes[0]][file_ti]
-            _behAll.append({**b})
-    return _behAll, outFiles
+        for file_ti in behDl[docTypes[0]]:
+            b = behDl[docTypes[0]][file_ti]
+            behFire.append({**b})
+
+    if not dbxdl:
+        if returnDict:
+            return behFire
+        else:
+            return [session(k) for k in behFire]
+
+    # download from dropbox only if docTypes has both 'task' and 'images'?
+    outFile = f'{cachePath}/{agent}_{startDate}to{endDate}.dbxdl'
+    dlTime = datetime.datetime.now().isoformat()
+    outFiles.append(outFile)
+    if not os.path.exists(os.path.realpath(outFile)):
+        import dropbox
+        dbx = dropbox.Dropbox(json.loads(open(DBX_AUTH).read())['DBX_MKTURK_TOKEN'])
+        behDbx = [json.loads(dbx.files_download(file_['DataFileName'])[1].content) for file_ in behFire]
+        # combine data from firestore and dropbox
+        beh = [{k: v for filepart in [fireFile]+dbxFile for k, v in filepart.items()} for fireFile, dbxFile in zip(behFire, behDbx)]
+        with open(outFile, 'wb') as f:
+            pickle.dump([beh, dlTime], f)
+        print("Saved query data at: ", outFile)
+
+    with open(outFile, 'rb') as f:
+        beh, dlTime = pickle.load(f)
+    if returnDict:
+        return beh
+    else:
+        return [session(k) for k in beh]
 
 class SessionGroupOps(my.Tracker):
     """
