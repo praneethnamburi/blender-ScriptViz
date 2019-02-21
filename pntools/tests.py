@@ -60,8 +60,8 @@ def testTracker():
 
     print(my.Tracker._tracked)
     
-    print(testClass._all) 
-    print(testClass2._all)
+    print(testClass.all_) 
+    print(testClass2.all_)
     print(testClass.n)
     print(tmp2.attr)
     
@@ -76,7 +76,7 @@ def testTracker():
     class extendedTracker(my.Tracker):
         """"""
         def extMethod(self):
-            print([k.attr for k in self._all])
+            print([k.attr for k in self.all_])
     
     @extendedTracker
     class extClass: 
@@ -91,10 +91,10 @@ def testTracker():
     class behaviorMetrics(my.Tracker):
         @property
         def accuracy(self):
-            allAcc = [k.accuracy for k in self._all]
+            allAcc = [k.accuracy for k in self.all_]
             return (np.mean(allAcc), np.std(allAcc))
         def sophieSays(self):
-            bestAgent = self._all[np.argmax([k.accuracy for k in self._all])].agent
+            bestAgent = self.all_[np.argmax([k.accuracy for k in self.all_])].agent
             print(bestAgent, 'is the best Monkey!')
 
     @behaviorMetrics

@@ -7,25 +7,27 @@ Assumptions:
  - Image database (created in this file) assigns image copies to different objects
  - Unique image level ID is given by mkturkHash property of the image object
 """
-#%%
-#pylint: disable=fixme
+
 import json
 import os
 import re
 import subprocess
+import sys
 import numpy as np
 
-# import sys
-# if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
-#     sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+PATH_TO_ADD = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
+if PATH_TO_ADD not in sys.path:
+    sys.path.append(PATH_TO_ADD)
 
 import pntools as my
 
-PATH_LEVELS = ['dbxroot', 'imgroot', 'dataset', 'noun', 'mesh', 'variation']
-TF_NAMES = ['ty', 'tz', 'rxy', 'rxz', 'ryz', 'scale']
-DBX_AUTH = './_auth/mkturk_dropbox.json'
-DBX_PATH_IMGDB = '/mkturkfiles/imagebags/objectome'
+PATH_LEVELS = ['dbxroot', 'imgroot', 'dataset', 'noun', 'mesh', 'variation'] # mkturk resource organization
+TF_NAMES = ['ty', 'tz', 'rxy', 'rxz', 'ryz', 'scale'] # transform names
+DBX_AUTH = './_auth/mkturk_dropbox.json' # path to dropbox authentication file
+DBX_PATH_IMGDB = '/mkturkfiles/imagebags/objectome' # path to the image databse
 CACHE_PATH = './_temp'
+
+#pylint:disable=no-member
 
 def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=None, cachePath='./_temp'):
     """
@@ -36,7 +38,7 @@ def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=No
     :param endDate: yyyymmdd
     :param docTypes: list. possible values are ['task', 'images'] <default>, ['task'], or ['images']
     :param cachePath: Path to local cache. Directory must exist.
-    :returns: Returns a list of dictionaries
+    :returns: Returns a list of dictionaries, one for each firestore file.
     """
     _behDl = {}
     outFiles = []
@@ -69,7 +71,19 @@ def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=No
             _behAll.append({**b})
     return _behAll, outFiles
 
-class behSession:
+class SessionGroupOps(my.Tracker):
+    """
+    Operations to be performed across sessions.
+    Meant to decorate the class session.
+
+    merge [take multiple session objects and turn it into one]
+    merge_days
+    """
+    pass
+
+@SessionGroupOps
+@my.AddMethods([my.cm.properties])
+class session:
     """
     Encapsulate one session of mkturk behavior data from firestore.
     
@@ -78,20 +92,18 @@ class behSession:
         load behavior using:
             b = json.loads(open(fName).read())
         If you're using firestore and downloaded a series of behavioral
-        files into one json object, then you can make a list of behSession
+        files into one json object, then you can make a list of session
         objects using:
-            beh = [behSession(file, behAll[file]) for file in behAll]
+            beh = [session(file, behAll[file]) for file in behAll]
         Note that time is in ms
         
     List of variables and their description:
         https://github.com/dicarlolab/mkturk/tree/master/public
 
-    behSession.properties() is a useful method!
     TODO: If only the file name is given, then get it from the database directly
     TODO: Method to create trial objects
     TODO: Time unit management
     """
-    # pylint: disable=no-member
     def __init__(self, b):
         for attr in b:
             if attr == 'Doctype':
@@ -110,11 +122,6 @@ class behSession:
         self.fixExtraTrial()
         self.refTime = self.StartTime[0] # use this as start of the task?        
  
-    def properties(self):
-        """Print all the properties in this class."""
-        #pylint:disable=expression-not-assigned
-        [print((k, type(getattr(self, k)), np.shape(getattr(self, k)))) for k in dir(self) if '_' not in k and 'method' not in k]
-
     def fixExtraTrial(self):
         """
         mkturk adds an extra entry to variables set up before the trial is finished.
@@ -207,7 +214,8 @@ class behSession:
             id_desc.append(thisStr)
         return id_desc
 
-class mkturkImg:
+@my.AddMethods([my.cm.properties])
+class img:
     """
     Encapsulate an image stimulus.
     
@@ -309,94 +317,23 @@ class mkturkImg:
         """
         return f'_{self.imgroot}_{self.dataset}_{self.noun}_{self.mesh}_{self.variation}_{self.tfStr}'
 
-
-class imgDb:
-    """Create the image database."""
-    def __init__(self):
-        imgMeta, _ = my.dbxmeta(dbxAuth=DBX_AUTH, dbxPath=DBX_PATH_IMGDB, cachePath=CACHE_PATH)
-        allImgs = [mkturkImg(entry) for entry in imgMeta if '.png' in entry.name]
-        self.imgDb = {entry.id_desc:entry for entry in allImgs}
-        assert np.shape(list(self.imgDb.keys())) == np.shape(allImgs) # fails if mkturkImg.id_desc is not unique for all images!
-    def __call__(self):
-        return self.imgDb
-
-#%% Fetch behavior sessions from firestore only
-behAll, _ = fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task', 'images'], cachePath=CACHE_PATH)
-beh = [behSession(_file) for _file in behAll]
-beh = [k for k in beh if k.nTrials > 10]
-
-#%% Fetch behavior sessions from firestore and dropbox
-import dropbox
-dbx = dropbox.Dropbox(json.loads(open(DBX_AUTH).read())['DBX_MKTURK_TOKEN'])
-
-behAll, _ = fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=['task'], cachePath=CACHE_PATH)
-behDbx = [json.loads(dbx.files_download(_file['DataFileName'])[1].content) for _file in behAll]
-behDbx = [behSession({k: v for filepart in file for k, v in filepart.items()}) for file in behDbx]
-
-#%%
-behDbx[0].sampleObject_id_desc
-
-#%%
-behSess = beh[1]
-trialCount = 0
-
-h_PN = [imgDb[k].id[:7] for k in behSess.sampleObject_id_desc]
-h_EI = behSess.SampleHashesPrefix[behSess.Sample]
-
-print('PN points to:', vars([imgDb[k] for k in imgDb if h_PN[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
-print('EI points to:', vars([imgDb[k] for k in imgDb if h_EI[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
-
-#%%
-behDbx = json.loads(open('./_temp/tempSausage.txt').read())
-behDbx = {**behDbx[0], **behDbx[1], **behDbx[2], **behDbx[3], **behDbx[4]}
-behDbx['Ordered_Samplebag_Filenames'][behDbx['Sample'][0]]
-#%%
-['displayEnvironment', 'presentedStimuli', 'experimentalParams', 'params text file', 'TRIAL']
-
-
-#%%
-tmp1 = allImgs[0]
-beh[0].properties()
-vars(beh[0])
-np.shape(beh[0].SampleHashesPrefix)
-#%%
-np.unique(beh[1].Test[:, 1])
-np.where(beh[5].SampleObjectTy == 0)
-
-#%%
-allHash = [im.mkturkHash for im in allImgs]
-uniqueHash = np.unique(allHash)
-hashFreq = {}
-for entry in uniqueHash:
-    hashFreq[entry] = 0
-
-for entry in allHash:
-    hashFreq[entry] += 1
-
-hashFreq = np.array(list(hashFreq.values()))
-np.unique(hashFreq)
-
-#%%
-hashFreq['019fc5e03e97be0877eea98f7e53bf8cd5615fe0']
-dupEntry = [k for k in allImgs if k.mkturkHash == '019fc5e03e97be0877eea98f7e53bf8cd5615fe0']
-[k.fpath for k in dupEntry]
-
-#%%
-beh[1].SampleHashesPrefix
-#%%
-import matplotlib.pyplot as plt
-
-h = plt.figure(figsize=(16, 10))
-nRows = 3
-nCols = 2
-allAx = h.subplots(nRows, nCols, sharey=False, sharex=True)
-for sessionCount in range(np.size(beh)):
-    rowCount = sessionCount // nCols
-    colCount = sessionCount % nCols
-    #hIm = allAx[rowCount][colCount].plot(np.sort(beh[sessionCount].rts_valid))
-    hIm = allAx[rowCount][colCount].hist(beh[sessionCount].rts[np.logical_and(beh[sessionCount].correctTrials, beh[sessionCount].CorrectItem == 0)], bins=np.linspace(0, 2000, 40), density=True)
-    allAx[rowCount][colCount].set_title(beh[sessionCount].Taskdoc)
-    plt.xlabel('Time ' + beh[0].timeUnits)
+class ImgGroupOps(my.Tracker):
+    """
+    Group operations on mkturk image objects.
+    """
+    def __init__(self, clsToTrack):
+        """Meta data of all images."""
+        super().__init__(clsToTrack)
+        self.load()
     
-plt.xlim(0, 2000)
-h.suptitle('Response times')
+    def load(self):
+        """
+        Creates objects from all .png files in the DBX_PATH_IMGDB folder.
+        """
+        imgMeta, _ = my.dbxmeta(dbxAuth=DBX_AUTH, dbxPath=DBX_PATH_IMGDB, cachePath=CACHE_PATH)
+        self.all_ = [img(entry) for entry in imgMeta if '.png' in entry.name]
+        imgDb = {entry.id_desc:entry for entry in self.all_}
+        # fails if mkturk.img.id_desc is not unique for all images!
+        assert np.shape(list(imgDb.keys())) == np.shape(self.all_)
+
+img = ImgGroupOps(img)

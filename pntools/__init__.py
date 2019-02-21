@@ -103,17 +103,17 @@ class Tracker:
     def __init__(self, clsToTrack):
         self.clsToTrack = clsToTrack
         functools.update_wrapper(self, clsToTrack)
-        self._all = []
+        self.all_ = []
     def __call__(self, *args, **kwargs):
         funcOut = self.clsToTrack(*args, **kwargs)
-        self._all.append(funcOut)
+        self.all_.append(funcOut)
         return funcOut
     def __delitem__(self, item):
         """
         Stop tracking item.
         item is an instance of clsToTrack
         """
-        self._all.remove(item)
+        self.all_.remove(item)
 
     def dictAccess(self, key='id'):
         """
@@ -121,12 +121,12 @@ class Tracker:
         different objects are the same, then only the last reference
         will be preserved.
         """
-        return {getattr(k, key):k for k in self._all}
+        return {getattr(k, key):k for k in self.all_}
 
     @property
     def n(self):
         """Return the number of instances being tracked."""
-        return len(self._all)
+        return len(self.all_)
 
     def query(self, queryStr="agent == 'sausage' and accuracy > 0.7", keys=None):
         """
@@ -140,7 +140,7 @@ class Tracker:
         Refer to tests for examples and notes on how to use.
         """
         if not queryStr:
-            return self._all
+            return self.all_
 
         def parseQuery(queryStr):
             queryUnits = re.split(r'and|or', queryStr)
@@ -159,7 +159,7 @@ class Tracker:
                 queryStr = queryStr.replace(key, 'k.'+key)
 
         try:
-            objList = eval("[k for k in self._all if " + queryStr + "]") #pylint:disable=eval-used
+            objList = eval("[k for k in self.all_ if " + queryStr + "]") #pylint:disable=eval-used
         except Warning:
             print('Query failed.')
             print(queryStr)
