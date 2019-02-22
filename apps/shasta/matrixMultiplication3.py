@@ -3,9 +3,9 @@ import pickle
 import sys
 import numpy as np
 
-PATH_TO_ADD = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
-if PATH_TO_ADD not in sys.path:
-    sys.path.append(PATH_TO_ADD)
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
 
 import bpn # pylint: disable=unused-import
 

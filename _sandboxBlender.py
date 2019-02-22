@@ -1,23 +1,19 @@
 """
 This is a sandbox. Develop code here!
 """
-# Don't touch this
+#-----------------
 import os
 import sys
-import bpn # pylint: unused-import
+import numpy as np
 
-if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
 
-# add modules here
+import bpn # pylint: disable=unused-import
+
 bpy = bpn.bpy
+bpy.data.scenes['Scene'].cursor_location[0] = -100
 
-def main():
-    """Actual development happens here"""
-    bpy.ops.mesh.primitive_monkey_add()
-    bpy.ops.object.modifier_add(type='TRIANGULATE')
-    m = bpn.msh(bpy.data.meshes[0])
-    m.inflate()
-
-if __name__ == '__main__' or __name__ == '<run_path>':
-    main()
+# bpn.reset_blender()
+#-----------------

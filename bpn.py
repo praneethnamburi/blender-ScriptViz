@@ -1,6 +1,7 @@
 """
 Praneeth'a blender python module
 """
+import errno
 import os
 import functools
 import sys
@@ -107,71 +108,6 @@ class ModeSet:
             return funcOut
         return wrapperFunc
 
-### Demo functions that demonstrate some ways to use this API
-# Animating DNA
-def demo_animateDNA():
-    objList, _ = plotDNA()
-    animateObj_whole(objList, np.arange(0, 101, 20))
-# meshDance
-# brainExplosion
-
-## Blender usefulness exercise #1 - Plotting
-# Plotting two strands of DNA
-def plotDNA():
-    """
-    Plot DNA. Demonstrates how to plot in Blender.
-    Use: objList, mshList = bpn.pn_plotDNA()
-    """
-    x = np.linspace(0, 2.0*np.pi, 100)
-    y = lambda x, offset: np.sin(x+offset)
-    h1, m1 = plot(y(x, np.pi/2), y(x, 0), x)
-    h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
-    return [h1, h2], [m1, m2] # objList, mshList
-
-def plot(x, y, z=0, mshName='autoMshName'):
-    if mshName == 'autoMshName':
-        objName = 'autoObjName'
-    else:
-        objName = mshName
-    # create a mesh
-    msh = genPlotMsh(mshName, x, y, z)
-    # instantiate an object
-    obj = genObj(msh, objName)
-    return obj, msh
-
-def genPlotMsh(mshName, xVals, yVals, zVals=None):
-    """Generates a mesh for plotting."""
-    n = np.size(xVals)
-    if zVals is None:
-        zVals = np.zeros(n)
-    msh = bpy.data.meshes.new(mshName)
-    msh.vertices.add(n)
-    msh.edges.add(n-1)
-    for i in range(n):
-        msh.vertices[i].co = (xVals[i], yVals[i], zVals[i])
-        if i < n-1:
-            msh.edges[i].vertices = (i, i+1)
-    return msh
-
-def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0)):
-    """Generates an object fraom a mesh and attaches it to the current scene."""
-    obj = bpy.data.objects.new(name, msh)
-    # put that object in the scene
-    obj.location = mathutils.Vector(location)
-    bpy.context.scene.collection.objects.link(obj)
-    return obj
-
-## Blender usefulness exercise #2 - animation
-# Animate the two strands of DNA
-def animateObj_whole(objList, frameList): # skeleton to transform the entire object
-    scn = bpy.context.scene # assuming there is only one scene
-    scn.frame_end = frameList[-1]+1 # assuming frameList is monotonically increasing
-    for frameNum in frameList:
-        scn.frame_set(frameNum+1) # because keyframes are 1-indexed in Blender
-        for obj in objList:
-            obj.rotation_euler = mathutils.Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
-            obj.keyframe_insert(data_path='rotation_euler', index=-1)
-
 class msh:
     """
     Numpy-like access to blender meshes.
@@ -188,6 +124,18 @@ class msh:
 
         nV - number of vertices
         nF - number of faces
+        nE - number of edges
+
+        center - center of the mesh (property object)
+
+        delete - remove a mesh from the blender scene
+        undo - msh.v to values before last modification
+        reset - msh.v to values on object creation
+
+        inflate - inflate msh.v towards a sphere
+
+        fnv - slow. faces containing vertex i (msh.f, vertex index i) -> face neighbors of i
+        vnv - slow. vertices connected to vertex i (msh.e, vertex index i) -> vertex neighbors of i
         
     Note: Use this only with triangular meshes
     """
@@ -261,7 +209,7 @@ class msh:
         return np.shape(self.e)[0]
 
     @v.setter
-    @ModeSet(targetMode='OBJECT')
+    # @ModeSet(targetMode='OBJECT') # causing problems - perhaps deselect everything before doing this
     def v(self, thisCoords):
         """
         Set vertex positions of a mesh using a numpy array of size nVertices x 3.
@@ -340,6 +288,113 @@ class msh:
         """Vertex neighbors of vertex i.
         Vertex indices attached to vertex i, given edges e."""
         return [np.setdiff1d(k, i)[0] for k in e if i in k]
+
+### Input-output functions
+@ReportDelta
+def loadSTL(files, collection=None):
+    """
+    Load STL files from disk into a blender scene.
+    
+    :param files: list. Full file paths.
+    :param collection: str. Blender collection name to load the STL into.
+    :returns: report of scene change
+    """
+    if isinstance(files, str):
+        files = [files]
+    for f in files:
+        if not os.path.exists(f):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
+        bpy.ops.import_mesh.stl(filepath=f)
+
+### Window management
+def reset_blender():
+    """
+    Reset the current scene programatically.
+
+    Script adapted from:
+    https://developer.blender.org/T47418
+    """
+    # bpy.ops.wm.read_factory_settings()
+
+    for scene in bpy.data.scenes:
+        for obj in scene.objects:
+            try:
+                scene.objects.unlink(obj)
+            except:
+                pass
+
+    # only worry about data in the startup scene
+    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes):
+        for id_data in bpy_data_iter:
+            try:
+                bpy_data_iter.remove(id_data)
+            except:
+                pass
+
+### Demo functions that demonstrate some ways to use this API
+# Animating DNA
+def demo_animateDNA():
+    objList, _ = plotDNA()
+    animateObj_whole(objList, np.arange(0, 101, 20))
+# meshDance
+# brainExplosion
+
+## Blender usefulness exercise #1 - Plotting
+# Plotting two strands of DNA
+def plotDNA():
+    """
+    Plot DNA. Demonstrates how to plot in Blender.
+    Use: objList, mshList = bpn.pn_plotDNA()
+    """
+    x = np.linspace(0, 2.0*np.pi, 100)
+    y = lambda x, offset: np.sin(x+offset)
+    h1, m1 = plot(y(x, np.pi/2), y(x, 0), x)
+    h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
+    return [h1, h2], [m1, m2] # objList, mshList
+
+def plot(x, y, z=0, mshName='autoMshName'):
+    if mshName == 'autoMshName':
+        objName = 'autoObjName'
+    else:
+        objName = mshName
+    # create a mesh
+    msh = genPlotMsh(mshName, x, y, z)
+    # instantiate an object
+    obj = genObj(msh, objName)
+    return obj, msh
+
+def genPlotMsh(mshName, xVals, yVals, zVals=None):
+    """Generates a mesh for plotting."""
+    n = np.size(xVals)
+    if zVals is None:
+        zVals = np.zeros(n)
+    msh = bpy.data.meshes.new(mshName)
+    msh.vertices.add(n)
+    msh.edges.add(n-1)
+    for i in range(n):
+        msh.vertices[i].co = (xVals[i], yVals[i], zVals[i])
+        if i < n-1:
+            msh.edges[i].vertices = (i, i+1)
+    return msh
+
+def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0)):
+    """Generates an object fraom a mesh and attaches it to the current scene."""
+    obj = bpy.data.objects.new(name, msh)
+    # put that object in the scene
+    obj.location = mathutils.Vector(location)
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+## Blender usefulness exercise #2 - animation
+# Animate the two strands of DNA
+def animateObj_whole(objList, frameList): # skeleton to transform the entire object
+    scn = bpy.context.scene # assuming there is only one scene
+    scn.frame_end = frameList[-1]+1 # assuming frameList is monotonically increasing
+    for frameNum in frameList:
+        scn.frame_set(frameNum+1) # because keyframes are 1-indexed in Blender
+        for obj in objList:
+            obj.rotation_euler = mathutils.Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
+            obj.keyframe_insert(data_path='rotation_euler', index=-1)
 
 def getObj(obj):
     """Return an object given its name."""

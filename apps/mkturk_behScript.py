@@ -1,14 +1,17 @@
 #pylint:disable=no-member
+
 #%%
 import os
+os.chdir('C:\\Workspace\\blenderPython\\apps') # location of this file
+#%%
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-PATH_TO_ADD = os.path.realpath('..') # development root
-if PATH_TO_ADD not in sys.path:
-    sys.path.append(PATH_TO_ADD)
-os.chdir(PATH_TO_ADD)
+DEV_ROOT = os.path.realpath('..') # development root
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
+os.chdir(DEV_ROOT)
 
 import mkturk as mk
 
@@ -17,6 +20,8 @@ mk.session.clean()
 mk.fetch(agent='Sausage', startDate='20190201', endDate='20190205', returnDict=False)
 beh = mk.session.query('nTrials > 10')
 
+#%%
+np.shape(beh)
 #%%
 imgDb = mk.img.dictAccess('id_desc')
 behSess = beh[1]
