@@ -336,8 +336,11 @@ def pkgPath(pkgNames=None):
 ## introspection
 def functionInputs(func):
     """Get the input variable names and default values to a function."""
-    inputVarNames = [str(k) for k in inspect.signature(func).parameters.keys()]
-    defaultValues = [inspect.signature(func).parameters[k].default for k in [str(k) for k in inspect.signature(func).parameters.keys()]]
+    inputVarNames = []
+    defaultValues = []
+    if callable(func):
+        inputVarNames = [str(k) for k in inspect.signature(func).parameters.keys()]
+        defaultValues = [inspect.signature(func).parameters[k].default for k in [str(k) for k in inspect.signature(func).parameters.keys()]]
     return inputVarNames, defaultValues
 
 def getmembers(mod, includeSubModules=True):

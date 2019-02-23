@@ -16,18 +16,22 @@ bpn = reload(bpn)
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor_location[0] = -100
 
-# bpn.reset_blender()
-# import numpy as np
+bpn.reset_blender()
+import numpy as np
 
-# # load the original eyebar mesh from Gilbert Menon 2019
-# nosecone_path = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\pn\NoseConeGM2019.stl")
-# out1 = bpn.loadSTL(nosecone_path)
+# load the original eyebar mesh from Gilbert Menon 2019
+nosecone_path = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\pn\NoseConeGM2019.stl")
+out1 = bpn.loadSTL(nosecone_path)
 
-# ncObj = out1['objects'][0]
-# m = bpn.msh(out1['meshes'][0])
+ncObj = out1['objects'][0]
+m = bpn.msh(out1['meshes'][0])
 
-# ncObj.name = 'NoseCone'
-# m.bpyMsh.name = 'NoseCone'
+ncObj.name = 'NoseCone'
+m.bpyMsh.name = 'NoseCone'
+
+bpn.shade('WIREFRAME')
+
+print(dir(bpy))
 
 # p_xlim = (23, 31)
 # p_ylim = (54, 62)
@@ -36,15 +40,15 @@ bpy.data.scenes['Scene'].cursor_location[0] = -100
 # # mods go in here
 # m.v = coords
 
-my_areas = bpy.data.screens['Layout'].areas
-my_shading = 'WIREFRAME'  # 'WIREFRAME' 'SOLID' 'MATERIAL' 'RENDERED'
+# my_areas = bpy.data.screens['Layout'].areas
+# my_shading = 'WIREFRAME'  # 'WIREFRAME' 'SOLID' 'MATERIAL' 'RENDERED'
 
-for area in my_areas:
-    # print(dir(area))
-    for space in area.spaces:
-        print(area.type, space.type)
-        if space.type == 'VIEW_3D' and area.type == 'VIEW_3D':
-            space.shading.type = my_shading
+# for area in my_areas:
+#     # print(dir(area))
+#     for space in area.spaces:
+#         print(area.type, space.type)
+#         if space.type == 'VIEW_3D' and area.type == 'VIEW_3D':
+#             space.shading.type = my_shading
 
 # import bmesh
 # m = bpn.msh('NoseCone')

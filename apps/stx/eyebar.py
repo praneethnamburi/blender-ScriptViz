@@ -1,4 +1,8 @@
-"""Eye bar modifications for the marmoset stereotax."""
+"""
+Eye bar modifications for the marmoset stereotax.
+
+Loads the STL file into blender and moves the vertices around.
+"""
 
 import os
 import sys
@@ -16,49 +20,43 @@ bpn.reset_blender()
 
 import numpy as np
 
-# load the original eyebar mesh from Gilbert Menon 2019
-eyebar_path = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\Gilbert Menon 2019\EyeBar.STL")
-m = bpn.msh(bpn.loadSTL(eyebar_path)['meshes'][0])
+LOAD_PATH = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\Gilbert Menon 2019\EyeBar.STL")
+SAVE_PATH = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\pn\EyeBarGM2019.STL")
 
-height_frac = 0.70 # modulate the height of the eyebar by this fraction
-inc_length = 10 # mm increase the length (keep the hole out of this)
+from importlib import reload
+bpn = reload(bpn)
+
+# load the original eyebar mesh from Gilbert Menon 2019
+m = bpn.msh(bpn.loadSTL(LOAD_PATH)['meshes'][0])
+coords = m.v
+
+width_frac = 0.70 # (min, max) -> (2/3, 1)
+height_frac = 0.65 # modulate the height of the eyebar by this fraction
+inc_length = 12 # mm increase the length (keep the hole out of this)
 inc_hole = 5 # mm increase the hole by this amount
 
-coords = m.v
-# squish along y
-sel = coords[:, 1] > 3
-coords[sel, 1] = coords[sel, 1]*height_frac
-# stretch along x (without the hole)
-selX = coords[:, 0] > 20
-coords[selX, 0] = coords[selX, 0] + inc_length
-# increase the hole
-selX = np.logical_and(coords[:, 0] > 10, coords[:, 0] < 20)
-coords[selX, 0] = coords[selX, 0] + inc_hole
+x = 0 # length
+y = 1 # height
+z = 2 # width
+
+# center along width, then squish
+width_center = np.mean([np.min(coords[:, z]), np.max(coords[:, z])])
+coords[:, z] = coords[:, z] - width_center
+selGrooveNeg = coords[:, x] < 33 # excluding the eye groove
+coords[selGrooveNeg, z] = coords[selGrooveNeg, z]*width_frac
+
+# squish the height
+sel = coords[:, y] > 3
+coords[sel, y] = coords[sel, y]*height_frac
+
+# inccrease the length (without the hole)
+selX = coords[:, x] > 20
+coords[selX, x] = coords[selX, x] + inc_length
+
+# increase the hole length
+selX = np.logical_and(coords[:, x] > 10, coords[:, x] < 20)
+coords[selX, x] = coords[selX, x] + inc_hole
+
 m.v = coords
 
-
-# addonPath = os.path.realpath(r'C:\blender\2.80.0\2.80\scripts\addons')
-# if addonPath not in sys.path:
-#     sys.path.append(addonPath)
-# from io_mesh_stl.stl_utils import read_stl
-
-# objName = bpy.path.display_name(os.path.basename(path))
-# tris, tri_nors, pts = stl_utils.read_stl(path)
-# tri_nors = tri_nors if self.use_facet_normal else None
-# blender_utils.create_and_link_mesh(objName, tris, tri_nors, pts, global_matrix)
-
-# TODO: Put this in bpn (make meshes from stl, find meshes from blender workspace, create meshes from faces and vertices)
-# # How to make a mesh using vertices and triangles
-# tris, tri_nors, pts = read_stl(eyebar_path)
-# def makeMesh(name, v, f):
-#     mesh = bpy.data.meshes.new(name)
-#     mesh.from_pydata(v, [], f)
-#     mesh.update()
-
-#     obj = bpy.data.objects.new(name, mesh)
-#     bpy.context.collection.objects.link(obj)
-#     bpy.context.view_layer.objects.active = obj
-#     obj.select_set(True)
-#     return mesh
-
-# mBpy = makeMesh('eyeBar', pts, tris)
+m.export(SAVE_PATH)

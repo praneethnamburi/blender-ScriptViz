@@ -10,8 +10,17 @@ import numpy as np
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-if os.path.dirname(os.path.realpath(__file__)) not in sys.path:
-    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
+
+BLENDER_ADDON_PATH = os.path.realpath(r'C:\blender\2.80.0\2.80\scripts\addons')
+if BLENDER_ADDON_PATH not in sys.path:
+    sys.path.append(BLENDER_ADDON_PATH)
+
+CACHE_PATH = os.path.join(DEV_ROOT, '_temp')
+
+from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
@@ -136,19 +145,50 @@ class msh:
 
         fnv - slow. faces containing vertex i (msh.f, vertex index i) -> face neighbors of i
         vnv - slow. vertices connected to vertex i (msh.e, vertex index i) -> vertex neighbors of i
-        
+    
+    TODO: Add versatility to creation:
+    # make a mesh from python data
+    msh(name=name, v=vertices, f=faces)
+    msh(name, v, f)
+    msh(v, f, name='awesomeMesh')
+    msh(v, f)
+
+    # make a mesh from an STL file
+    msh(stlfile, 'awesomeMesh')
+    msh('awesomeMesh', stlfile)
+    msh(stlfile)
+    msh(stlfile, name='awesomeMesh')
+
+    # get a mesh from the blender environment
+    msh(blender mesh name)
+    msh(blender mesh object)
+    msh(blender obj name)
+
+    TODO: Methods:
+    m.objects - list of objects employing the current mesh. property
+    m.merge(list of meshes) # subsume a collection of meshes, assign vertex groups to keep track of originals
     Note: Use this only with triangular meshes
     """
-    def __init__(self, bpyMsh):
+    def __init__(self, *args, **kwargs):
         """
-        :param bpyMsh: (str, bpy.types.Mesh)
-                (str) name of a mesh loaded in blender
+        :param args: (str, bpy.types.Mesh, dict)
+                (str) name of a mesh loaded in blender (or object?)
                 (bpy.types.Mesh) the bpy mesh object
-                (str) is str matches 
+                (name:str, v:numpy array of nVx3, f:numpy array of nFx3)
+        :param kwargs:
+            name
         """
-        self.bpyMsh = chkType(bpyMsh, 'Mesh')
+        self.init_from_bpy(chkType(bpyMsh, 'Mesh'))
         self.vInit = self.v # for resetting
         self.vBkp = self.v  # for undoing (switching back and forth)
+    
+    def init_from_bpy(self, bpyMsh):
+        """
+        Initialize a bpn mesh from a bpy mesh.
+        This is here to increase input flexibility to bpn.msh's
+        __init__ while preserving code readability.
+        """
+        self.bpyMsh = bpyMsh
 
     @property
     def v(self):
@@ -289,6 +329,35 @@ class msh:
         Vertex indices attached to vertex i, given edges e."""
         return [np.setdiff1d(k, i)[0] for k in e if i in k]
 
+    def export(self, fName='currentOutput.STL', fPath=CACHE_PATH):
+        if fName.lower()[-4:] != '.stl':
+            print('File name should end with a .stl')
+            return
+
+        # if the full path is supplied as the first argument
+        if os.path.dirname(fName):
+            if os.path.exists(os.path.dirname(fName)):
+                fPath = os.path.dirname(fName)
+        fName = os.path.basename(fName)
+
+        v = [tuple(v.co) for v in self.bpyMsh.vertices]
+        f = [tuple(polygon.vertices[:]) for polygon in self.bpyMsh.polygons]
+
+        # generate faces for blender's write_stl function
+        # faces: iterable of tuple of 3 vertex, vertex is tuple of 3 coordinates as float
+        # faces = [f1: (v1:(p11, p12, p13), v2:(p21, p22, p23), v3:(p31, p32, p33)), f2:...]
+        faces = []
+        for face in f:
+            thisFace = []
+            for vPos in face:
+                thisFace.append(v[vPos])
+            faces.append(tuple(thisFace))
+        write_stl(filepath=os.path.join(fPath, fName), faces=faces, ascii=False)
+
+    def _loadstl(self, stlfile, collection=None):
+        return loadSTL([file])['meshes'][0]
+
+
 ### Input-output functions
 @ReportDelta
 def loadSTL(files, collection=None):
@@ -306,7 +375,13 @@ def loadSTL(files, collection=None):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
         bpy.ops.import_mesh.stl(filepath=f)
 
-### Window management
+### Manage blender resources
+def get(name):
+    pass # TODO: find prop by name, return a reference to that
+
+def rename(old_name, new_name):
+    pass # TODO: rename a prop
+
 def reset_blender():
     """
     Reset the current scene programatically.
@@ -330,6 +405,17 @@ def reset_blender():
                 bpy_data_iter.remove(id_data)
             except:
                 pass
+
+### Control appearance
+def shade(shading='WIREFRAME', area='Layout'):
+    """Set shading in the 3D viewport"""
+    my_areas = bpy.data.screens[area].areas
+    assert shading in ['WIREFRAME', 'SOLID', 'MATERIAL', 'RENDERED']
+
+    for area in my_areas:
+        for space in area.spaces:
+            if space.type == 'VIEW_3D' and area.type == 'VIEW_3D':
+                space.shading.type = shading
 
 ### Demo functions that demonstrate some ways to use this API
 # Animating DNA
