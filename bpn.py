@@ -169,7 +169,7 @@ class msh:
     m.merge(list of meshes) # subsume a collection of meshes, assign vertex groups to keep track of originals
     Note: Use this only with triangular meshes
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, bpyMsh):
         """
         :param args: (str, bpy.types.Mesh, dict)
                 (str) name of a mesh loaded in blender (or object?)
@@ -329,7 +329,10 @@ class msh:
         Vertex indices attached to vertex i, given edges e."""
         return [np.setdiff1d(k, i)[0] for k in e if i in k]
 
-    def export(self, fName='currentOutput.STL', fPath=CACHE_PATH):
+    def export(self, fName=None, fPath=CACHE_PATH):
+        if fName == None:
+            fName = self.bpyMsh.name + '.stl'
+
         if fName.lower()[-4:] != '.stl':
             print('File name should end with a .stl')
             return
