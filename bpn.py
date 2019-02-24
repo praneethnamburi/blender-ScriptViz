@@ -22,6 +22,8 @@ CACHE_PATH = os.path.join(DEV_ROOT, '_temp')
 
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
+PROP_FIELDS = [k for k in dir(bpy.data) if 'bpy_prop_collection' in str(type(getattr(bpy.data, k)))]
+
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
 BPN_DIR = str(os.path.dirname(os.path.realpath(__file__)))
@@ -49,7 +51,7 @@ class ReportDelta:
         functools.update_wrapper(self, func) # to preserve original signatures
 
         # find all the things to monitor
-        self.monFieldNames = [k for k in dir(bpy.data) if 'bpy_prop_collection' in str(type(getattr(bpy.data, k)))]
+        self.monFieldNames = PROP_FIELDS
 
         # initialize generated report
         self.deltaReport = {
@@ -61,13 +63,13 @@ class ReportDelta:
 
     def __call__(self, *args, **kwargs):
         # get the 'before' state
-        propsBefore = self.getProps()
+        propsBefore = props().__dict__
 
         # evaluate the function that is going to change blender data, and stash its output
         self.deltaReport['funcOut'] = self.func(*args, **kwargs)
 
         # get the 'after' state
-        propsAfter = self.getProps()
+        propsAfter = props().__dict__
 
         # find all the new things
         for fieldName in self.monFieldNames:
@@ -81,12 +83,17 @@ class ReportDelta:
         # if an object is modified, then arrange meshes and groups according to the object order?
         return self.deltaReport
 
-    def getProps(self):
-        """Dictionary of bpy.data objects"""
-        props = {}
-        for fieldName in self.monFieldNames:
-            props[fieldName] = set(getattr(bpy.data, fieldName)) #[k.name for k in getattr(bpy.data, fieldName)]
-        return props
+    # def getProps():
+    #     """
+    #     References to all props loaded into blender.
+        
+    #     :returns: Dictionary of prop instances in bpy.data
+    #     """
+    #     propDict = {}
+    #     for fieldName in PROP_FIELDS:
+    #         propDict[fieldName] = set(getattr(bpy.data, fieldName))
+    #     return propDict
+
 
 class ModeSet:
     """
@@ -379,11 +386,78 @@ def loadSTL(files, collection=None):
         bpy.ops.import_mesh.stl(filepath=f)
 
 ### Manage blender resources
-def get(name):
-    pass # TODO: find prop by name, return a reference to that
+class props:
+    """
+    Snapshot of prop collections in blender's data.
 
-def rename(old_name, new_name):
-    pass # TODO: rename a prop
+    This is an easy way to get references to all props when you're
+    working in blender.
+
+    Construction:
+        :param inp_dict: dict. Meant for internal use by operators.
+
+    Usage:
+        props() -> new props object. Access everything with props().__dict__
+        props(inpDict) -> turn a dictionary into props object. Used by
+            add and subtract. User shouldn't need to worry about this.
+        a = props()
+        # make changes to the scene
+        b = props()
+        (b-a)() -> call prop objects to return a dictionary reporting only the changes!
+        diff1 = b-a
+        # add another mesh to the scene
+        c = props()
+        diff2 = c-b
+        diff2 | diff1 -> object summarizing all changes
+        (b-a).names() -> dictionary of names of changes
+    
+    Dev note:
+        Don't add any properties to this object. Keep it limited to PROP_FIELDS.
+        TODO: Change to slots?
+    """
+    def __init__(self, inp_dict=None):
+        if not inp_dict:
+            self.__dict__ = {p : set(getattr(bpy.data, p)) for p in PROP_FIELDS}
+        else:
+            self.__dict__ = inp_dict
+    def __or__(self, other): # union
+        self.clean()
+        return props({p:self.__dict__[p].union(other.__dict__[p]) for p in PROP_FIELDS})
+    def __and__(self, other): # intersection
+        self.clean()
+        return props({p:self.__dict__[p].intersection(other.__dict__[p]) for p in PROP_FIELDS})
+    def __sub__(self, other): # setdiff
+        self.clean()
+        return props({p:self.__dict__[p] - other.__dict__[p] for p in PROP_FIELDS})
+    def __xor__(self, other): # exclusive or
+        return (self | other) - (self & other)
+    def __call__(self, names=None):
+        """Dictionary of lists of objects, skip empty collections."""
+        self.clean()
+        if isinstance(names, str):
+            names = [names]
+        if not names:
+            return {p:list(propset) for p, propset in self.__dict__.items() if propset != set()}
+        else: # list of names
+            res = {}
+            for p, propset in self.__dict__.items():
+                if propset != set():
+                    res[p] = [prop for prop in propset if prop.name in names]
+            return {p:proplist for p, proplist in res.items() if proplist}
+    def clean(self):
+        """Remove invalid objects (i.e., deleted from blender)."""
+        self.__dict__ = {p : {k for k in self.__dict__[p] if 'invalid' not in  str(k)} for p in PROP_FIELDS}
+    def get(self, name=''):
+        assert isinstance(name, str)
+        return [k[0] for k in self(name).values()]
+    def names(self, discard_empty=True):
+        """Return only the names, and not references to objects."""
+        self.clean()
+        allNames = {p: {k.name for k in self.__dict__[p]} for p in PROP_FIELDS}
+        if discard_empty:
+            return {k:v for k, v in allNames.items() if v}
+        else:
+            return allNames
 
 def reset_blender():
     """
@@ -393,14 +467,12 @@ def reset_blender():
     https://developer.blender.org/T47418
     """
     # bpy.ops.wm.read_factory_settings()
-
     for scene in bpy.data.scenes:
         for obj in scene.objects:
             try:
                 scene.objects.unlink(obj)
             except:
                 pass
-
     # only worry about data in the startup scene
     for bpy_data_iter in (bpy.data.objects, bpy.data.meshes):
         for id_data in bpy_data_iter:
