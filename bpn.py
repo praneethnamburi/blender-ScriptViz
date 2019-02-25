@@ -14,11 +14,23 @@ DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
-BLENDER_ADDON_PATH = os.path.realpath(r'C:\blender\2.80.0\2.80\scripts\addons')
-if BLENDER_ADDON_PATH not in sys.path:
-    sys.path.append(BLENDER_ADDON_PATH)
+import pntools as pn
 
-CACHE_PATH = os.path.join(DEV_ROOT, '_temp')
+PATH = {}
+PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
+PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
+PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '../..'))
+PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
+PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
+PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
+PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
+PATH['bpn'] = os.path.dirname(os.path.realpath(__file__))
+
+for path in PATH.values():
+    if path not in sys.path:
+        sys.path.append(path)
+
+PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
 
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
@@ -26,8 +38,7 @@ PROP_FIELDS = [k for k in dir(bpy.data) if 'bpy_prop_collection' in str(type(get
 
 ### adding whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
-BPN_DIR = str(os.path.dirname(os.path.realpath(__file__)))
-bpy.loadStr = ''.join([line for line in open(os.path.join(BPN_DIR, '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', BPN_DIR.replace('\\', '\\\\'))
+bpy.loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
 
 ### Blender functions
 ## Decorators for blender
@@ -336,8 +347,9 @@ class msh:
         Vertex indices attached to vertex i, given edges e."""
         return [np.setdiff1d(k, i)[0] for k in e if i in k]
 
-    def export(self, fName=None, fPath=CACHE_PATH):
-        if fName == None:
+    def export(self, fName=None, fPath=PATH['cache']):
+        """Export a msh instance into an stl file."""
+        if fName is None:
             fName = self.bpyMsh.name + '.stl'
 
         if fName.lower()[-4:] != '.stl':
@@ -410,6 +422,15 @@ class props:
         diff2 = c-b
         diff2 | diff1 -> object summarizing all changes
         (b-a).names() -> dictionary of names of changes
+        b('Cube') -> Find all props named 'Cube', returns 
+                    dict of {prop type: list of props with name}
+                    {'meshes': [bpy.data.meshes['Cube']], 'objects': [bpy.data.objects['Cube']]}
+        b.get('Cube') -> Find all props named 'Cube', returns 
+                    list of props with 'Cube' in their name, irrespective of prop type
+                    [bpy.data.meshes['Cube'], bpy.data.objects['Cube']]
+        props().get('Cube') -> calling this way, as opposed to b.get('Cube') 
+                    doesn't seem to have any difference in performance. So, make
+                    props objects only to store states.
     
     Dev note:
         Don't add any properties to this object. Keep it limited to PROP_FIELDS.
@@ -448,6 +469,7 @@ class props:
         """Remove invalid objects (i.e., deleted from blender)."""
         self.__dict__ = {p : {k for k in self.__dict__[p] if 'invalid' not in  str(k)} for p in PROP_FIELDS}
     def get(self, name=''):
+        """Get an object by its name."""
         assert isinstance(name, str)
         return [k[0] for k in self(name).values()]
     def names(self, discard_empty=True):
@@ -474,7 +496,8 @@ def reset_blender():
             except:
                 pass
     # only worry about data in the startup scene
-    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes):
+    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes, bpy.data.collections):
+        # may not work for collections - blender bug
         for id_data in bpy_data_iter:
             try:
                 bpy_data_iter.remove(id_data)

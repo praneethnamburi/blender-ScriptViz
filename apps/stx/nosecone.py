@@ -50,6 +50,16 @@ print(dir(bpy))
 #         if space.type == 'VIEW_3D' and area.type == 'VIEW_3D':
 #             space.shading.type = my_shading
 
+# for window in bpy.context.window_manager.windows:
+#     screen = window.screen
+
+#     for area in screen.areas:
+#         for space in area.spaces:
+#             if space.type == 'VIEW_3D' and area.type == 'VIEW_3D':
+#                 override = {'window': window, 'screen': screen, 'space': space, 'area': area}
+#                 bpy.ops.object.mode_set(mode='OBJECT', window=window, screen=screen, space=space, area=area)
+#                 break
+
 # import bmesh
 # m = bpn.msh('NoseCone')
 # bpy.ops.object.mode_set(mode='EDIT')

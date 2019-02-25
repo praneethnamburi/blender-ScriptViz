@@ -264,7 +264,7 @@ def ospath(thingToFind, errContent=None):
         print('Did not find ', errContent)
         return ''
 
-def locateCommand(thingToFind, requireStr=None):
+def locateCommand(thingToFind, requireStr=None, verbose=True):
     """
     Locate an executable on your computer.
 
@@ -283,7 +283,8 @@ def locateCommand(thingToFind, requireStr=None):
         print('Terminal cannot find ', thingToFind)
         return ''
     else:
-        print('Terminal found: ', thingPath)
+        if verbose:
+            print('Terminal found: ', thingPath)
         if requireStr is not None:
             if requireStr not in thingPath:
                 print('Path to ' + thingToFind + ' does not have ' + requireStr + ' in it!')
