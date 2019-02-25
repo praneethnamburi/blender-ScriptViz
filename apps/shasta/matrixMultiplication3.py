@@ -1,3 +1,5 @@
+"""Demonstrate matrix multiplication on points forming 3d objects using blender."""
+
 import os
 import pickle
 import sys
@@ -13,10 +15,10 @@ bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor_location[0] = -100
 
 try:
-    msh = bpn.msh('Suzanne')
+    msh = bpn.Msh('Suzanne')
 except:
     bpn.addPrimitive(pType='monkey', location=(0.0, 0.0, 0.0))
-    msh = bpn.msh('Suzanne')
+    msh = bpn.Msh('Suzanne')
 
 # reset suzanne
 with open('./_temp/suzanneCoords.pkl', 'rb') as f:

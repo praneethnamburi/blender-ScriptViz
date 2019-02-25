@@ -1,3 +1,5 @@
+"""Demonstrate matrix multiplication on points forming 2d objects using blender."""
+
 import os
 import sys
 import numpy as np
@@ -12,10 +14,10 @@ bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor_location[0] = -100
 
 try:
-    msh = bpn.msh('Plane')
+    msh = bpn.Msh('Plane')
 except:
     bpn.addPrimitive(pType='plane', location=(0.0, 0.0, 0.0))
-    msh = bpn.msh('Plane')
+    msh = bpn.Msh('Plane')
 
 msh.v = np.array([\
     [-1, -1, 0],\

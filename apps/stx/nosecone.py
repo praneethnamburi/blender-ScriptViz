@@ -24,7 +24,7 @@ nosecone_path = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset ster
 out1 = bpn.loadSTL(nosecone_path)
 
 ncObj = out1['objects'][0]
-m = bpn.msh(out1['meshes'][0])
+m = bpn.Msh(out1['meshes'][0])
 
 ncObj.name = 'NoseCone'
 m.bpyMsh.name = 'NoseCone'
@@ -61,7 +61,7 @@ print(dir(bpy))
 #                 break
 
 # import bmesh
-# m = bpn.msh('NoseCone')
+# m = bpn.Msh('NoseCone')
 # bpy.ops.object.mode_set(mode='EDIT')
 # bm = bmesh.from_edit_mesh(m.bpyMsh)
 # verts = [v for v in bm.verts if v.co[2] > 20]

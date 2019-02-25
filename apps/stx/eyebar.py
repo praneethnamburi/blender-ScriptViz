@@ -2,6 +2,9 @@
 Eye bar modifications for the marmoset stereotax.
 
 Loads the STL file into blender and moves the vertices around.
+
+Usage:
+    blender --background --python apps/stx/eyebar.py
 """
 
 import os
@@ -27,7 +30,7 @@ from importlib import reload
 bpn = reload(bpn)
 
 # load the original eyebar mesh from Gilbert Menon 2019
-m = bpn.msh(bpn.loadSTL(LOAD_PATH)['meshes'][0])
+m = bpn.Msh(bpn.loadSTL(LOAD_PATH)['meshes'][0])
 coords = m.v
 
 width_frac = 0.70 # (min, max) -> (2/3, 1)

@@ -555,21 +555,21 @@ bpn2 by importing bpn. BUT, you can nonetheless say import bpn.bpn1, or
 from bpn import bpn1
 
 IF you have a statement in __init__.py that imports one thing, e.g.,
-from .bpn1 import msh
+from .bpn1 import Msh
 THEN, when you import bpn, you can access bpn.bpn1, in addition to just
-gaining access to msh. Therefore, you have access to bpn.bpn1.msh, AND
-bpn.msh and I'm thinking that a module is accessible once you import
+gaining access to Msh. Therefore, you have access to bpn.bpn1.Msh, AND
+bpn.Msh and I'm thinking that a module is accessible once you import
 anything from it! This happens only when an importer gets imported.
 
 For example,
-IF `__init__.py` has `from .bpn1 import msh`,
-AND bpn1.py has two methods, `msh` and `otherMsh`,
+IF `__init__.py` has `from .bpn1 import Msh`,
+AND bpn1.py has two methods, `Msh` and `otherMsh`,
 THEN within `__init__.py`, you don't have access to `bpn1` directly,
 and therfore you're cut off from `otherMsh`,
 BUT when you go into another file and `import bpn as b`,
-you will have access to `b.bpn1.msh` AND `b.bpn1.otherMsh`. If this is a
+you will have access to `b.bpn1.Msh` AND `b.bpn1.otherMsh`. If this is a
 problem and you want to make all access explicit, then add
-`__all__ = ['msh']` to `__init__.py` AND you'll be forced to say
+`__all__ = ['Msh']` to `__init__.py` AND you'll be forced to say
 `from bpn import *`, which defeats the purpose of being explicit anyway.
 
 Therefore, break apart the bpn.py module ONLY if they need to be

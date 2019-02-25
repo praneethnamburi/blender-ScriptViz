@@ -8,6 +8,7 @@ import sys
 import numpy as np
 
 import bpy #pylint: disable=import-error
+import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
@@ -74,13 +75,13 @@ class ReportDelta:
 
     def __call__(self, *args, **kwargs):
         # get the 'before' state
-        propsBefore = props().__dict__
+        propsBefore = Props().__dict__
 
         # evaluate the function that is going to change blender data, and stash its output
         self.deltaReport['funcOut'] = self.func(*args, **kwargs)
 
         # get the 'after' state
-        propsAfter = props().__dict__
+        propsAfter = Props().__dict__
 
         # find all the new things
         for fieldName in self.monFieldNames:
@@ -96,7 +97,7 @@ class ReportDelta:
 
     # def getProps():
     #     """
-    #     References to all props loaded into blender.
+    #     References to all Props loaded into blender.
         
     #     :returns: Dictionary of prop instances in bpy.data
     #     """
@@ -135,7 +136,7 @@ class ModeSet:
             return funcOut
         return wrapperFunc
 
-class msh:
+class Msh:
     """
     Numpy-like access to blender meshes.
 
@@ -156,31 +157,31 @@ class msh:
         center - center of the mesh (property object)
 
         delete - remove a mesh from the blender scene
-        undo - msh.v to values before last modification
-        reset - msh.v to values on object creation
+        undo - Msh().v to values before last modification
+        reset - Msh().v to values on object creation
 
-        inflate - inflate msh.v towards a sphere
+        inflate - inflate Msh().v towards a sphere
 
-        fnv - slow. faces containing vertex i (msh.f, vertex index i) -> face neighbors of i
-        vnv - slow. vertices connected to vertex i (msh.e, vertex index i) -> vertex neighbors of i
+        fnv - slow. faces containing vertex i (Msh().f, vertex index i) -> face neighbors of i
+        vnv - slow. vertices connected to vertex i (Msh().e, vertex index i) -> vertex neighbors of i
     
     TODO: Add versatility to creation:
     # make a mesh from python data
-    msh(name=name, v=vertices, f=faces)
-    msh(name, v, f)
-    msh(v, f, name='awesomeMesh')
-    msh(v, f)
+    Msh(name=name, v=vertices, f=faces)
+    Msh(name, v, f)
+    Msh(v, f, name='awesomeMesh')
+    Msh(v, f)
 
     # make a mesh from an STL file
-    msh(stlfile, 'awesomeMesh')
-    msh('awesomeMesh', stlfile)
-    msh(stlfile)
-    msh(stlfile, name='awesomeMesh')
+    Msh(stlfile, 'awesomeMesh')
+    Msh('awesomeMesh', stlfile)
+    Msh(stlfile)
+    Msh(stlfile, name='awesomeMesh')
 
     # get a mesh from the blender environment
-    msh(blender mesh name)
-    msh(blender mesh object)
-    msh(blender obj name)
+    Msh(blender mesh name)
+    Msh(blender mesh object)
+    Msh(blender obj name)
 
     TODO: Methods:
     m.objects - list of objects employing the current mesh. property
@@ -203,7 +204,7 @@ class msh:
     def init_from_bpy(self, bpyMsh):
         """
         Initialize a bpn mesh from a bpy mesh.
-        This is here to increase input flexibility to bpn.msh's
+        This is here to increase input flexibility to bpn.Msh's
         __init__ while preserving code readability.
         """
         self.bpyMsh = bpyMsh
@@ -348,7 +349,7 @@ class msh:
         return [np.setdiff1d(k, i)[0] for k in e if i in k]
 
     def export(self, fName=None, fPath=PATH['cache']):
-        """Export a msh instance into an stl file."""
+        """Export a Msh instance into an stl file."""
         if fName is None:
             fName = self.bpyMsh.name + '.stl'
 
@@ -379,6 +380,38 @@ class msh:
     def _loadstl(self, stlfile, collection=None):
         return loadSTL([file])['meshes'][0]
 
+class Draw:
+    """Turtle-like access to bmesh functions."""
+    def __init__(self, name_msh='autoMshName', name_obj='autoObjName', name_coll='Collection', name_scene='Scene'):
+        self.name_msh = name_msh
+        self.name_obj = name_obj
+        self.name_coll = name_coll
+        self.bm = bmesh.new()
+    def __neg__(self):
+        bpyMsh = bpy.data.meshes.new(self.name_msh)
+        self.bm.to_mesh(bpyMsh)
+        self.bm.free()
+        show(bpyMsh, name_obj='autoObjName', name_coll='Collection', name_scene='Scene')
+
+def show(bpyMsh, name_obj='autoObjName', name_coll='Collection', name_scene='Scene'):
+    """
+    Add mesh to a collection in the current scene.
+    
+    :param bpyMsh: blender mesh 
+        TODO: Add support for Msh class
+    :param name_obj: Name of the object
+    :param name_coll: Name of the collection. Put object in this collection. New one is made if it's not present.
+    :returns: this is a description of what is returned
+    """
+    obj = bpy.data.objects.new(name_obj, bpyMsh)
+    if name_scene not in [k.name for k in bpy.data.scenes]:
+        # doesn't make a new scene!
+        name_scene = bpy.context.scene.name
+    if name_coll not in [k.name for k in bpy.data.collections]:
+        myColl = bpy.data.collections.new(name_coll)
+        bpy.context.scene.collection.children.link(myColl)
+        del myColl
+    bpy.data.collections[name_coll].objects.link(obj)
 
 ### Input-output functions
 @ReportDelta
@@ -398,39 +431,39 @@ def loadSTL(files, collection=None):
         bpy.ops.import_mesh.stl(filepath=f)
 
 ### Manage blender resources
-class props:
+class Props:
     """
     Snapshot of prop collections in blender's data.
 
-    This is an easy way to get references to all props when you're
+    This is an easy way to get references to all Props when you're
     working in blender.
 
     Construction:
         :param inp_dict: dict. Meant for internal use by operators.
 
     Usage:
-        props() -> new props object. Access everything with props().__dict__
-        props(inpDict) -> turn a dictionary into props object. Used by
+        Props() -> new Props object. Access everything with Props().__dict__
+        Props(inpDict) -> turn a dictionary into Props object. Used by
             add and subtract. User shouldn't need to worry about this.
-        a = props()
+        a = Props()
         # make changes to the scene
-        b = props()
+        b = Props()
         (b-a)() -> call prop objects to return a dictionary reporting only the changes!
         diff1 = b-a
         # add another mesh to the scene
-        c = props()
+        c = Props()
         diff2 = c-b
         diff2 | diff1 -> object summarizing all changes
         (b-a).names() -> dictionary of names of changes
-        b('Cube') -> Find all props named 'Cube', returns 
-                    dict of {prop type: list of props with name}
+        b('Cube') -> Find all Props named 'Cube', returns 
+                    dict of {prop type: list of Props with name}
                     {'meshes': [bpy.data.meshes['Cube']], 'objects': [bpy.data.objects['Cube']]}
-        b.get('Cube') -> Find all props named 'Cube', returns 
-                    list of props with 'Cube' in their name, irrespective of prop type
+        b.get('Cube') -> Find all Props named 'Cube', returns 
+                    list of Props with 'Cube' in their name, irrespective of prop type
                     [bpy.data.meshes['Cube'], bpy.data.objects['Cube']]
-        props().get('Cube') -> calling this way, as opposed to b.get('Cube') 
+        Props().get('Cube') -> calling this way, as opposed to b.get('Cube') 
                     doesn't seem to have any difference in performance. So, make
-                    props objects only to store states.
+                    Props objects only to store states.
     
     Dev note:
         Don't add any properties to this object. Keep it limited to PROP_FIELDS.
@@ -443,13 +476,13 @@ class props:
             self.__dict__ = inp_dict
     def __or__(self, other): # union
         self.clean()
-        return props({p:self.__dict__[p].union(other.__dict__[p]) for p in PROP_FIELDS})
+        return Props({p:self.__dict__[p].union(other.__dict__[p]) for p in PROP_FIELDS})
     def __and__(self, other): # intersection
         self.clean()
-        return props({p:self.__dict__[p].intersection(other.__dict__[p]) for p in PROP_FIELDS})
+        return Props({p:self.__dict__[p].intersection(other.__dict__[p]) for p in PROP_FIELDS})
     def __sub__(self, other): # setdiff
         self.clean()
-        return props({p:self.__dict__[p] - other.__dict__[p] for p in PROP_FIELDS})
+        return Props({p:self.__dict__[p] - other.__dict__[p] for p in PROP_FIELDS})
     def __xor__(self, other): # exclusive or
         return (self | other) - (self & other)
     def __call__(self, names=None):

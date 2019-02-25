@@ -14,66 +14,66 @@ def dummyFunc(*args, **kwargs):
         else: # check for the keyword argument values
             if False not in [k in b for k in ['name', 'v', 'f']]:
                 pass # make mesh from python data
-                # msh(name=name, v=vertices, f=faces)
+                # Msh(name=name, v=vertices, f=faces)
             else:
                 raise ValueError("Acceptable keywords: (name, v, f)")
     if args and not kwargs:
         if len(args) == 3 and isinstance(args[0], str):
             pass # make mesh from python data assuming args[0] is name, args[1] is v and args[2] is f
-            # msh(name, v, f)
+            # Msh(name, v, f)
         elif len(args) == 2:
             if isinstance(args[0], str) and isinstance(args[1], str):
                 if args[0].lower()[-4:] == '.stl':
-                    pass # msh(stlfile, 'awesomeMesh')
+                    pass # Msh(stlfile, 'awesomeMesh')
                 elif args[0].lower()[-4:] == '.stl':
-                    pass # msh('awesomeMesh', stlfile)
+                    pass # Msh('awesomeMesh', stlfile)
                 else:
                     raise ValueError("Two string args. One of them must be the name of an stl file.")
             else:
-                pass # msh(v, f)
+                pass # Msh(v, f)
         elif len(args) == 1:
             if isinstance(args[0], str):
                 if args[0].lower()[-4:] == '.stl':
                     pass # load the STL file with the mesh name being the loaded file name
-                    # msh(stlfile)
+                    # Msh(stlfile)
                 else:
                     pass # name of a mesh in blender
-                    # msh(blender mesh name)
+                    # Msh(blender mesh name)
                     # check if the string is the name of a mesh in blender
             elif isinstance(args[0], bpy.types.Mesh):
-                pass # msh(blender mesh object)
+                pass # Msh(blender mesh object)
             elif isinstance(args[0], bpy.types.Object):
-                pass # msh(blender obj name) # make sure it is an object containing only one mesh
+                pass # Msh(blender obj name) # make sure it is an object containing only one mesh
             else:
                 raise ValueError("One arg detected. It must be a string, a blender mesh, or a blender object")
         else:
             raise TypeError("Wrong number of input arguments.")
     if args and kwargs:
         if len(args) == 1 and isinstance(args[0], str) and len(kwargs) == 1 and 'name' in kwargs:
-            pass # msh(stlfile, name='awesomeMesh')
+            pass # Msh(stlfile, name='awesomeMesh')
         elif len(args) == 2 and len(kwargs) == 1 and 'name' in kwargs:
-            pass # msh(v, f, name='awesomeMesh')
+            pass # Msh(v, f, name='awesomeMesh')
         else:
             raise TypeError("Wrong number of input arguments")
 
 # Goal of the dispatcher is to return a blender object!
 
     # make a mesh from an STL file
-    # msh(stlfile, 'awesomeMesh')       -> loadSTL([stlFile]), rename mesh to awesomeMesh
-    # msh('awesomeMesh', stlfile)       -> loadSTL([stlFile]), rename mesh to awesomeMesh
-    # msh(stlfile)                      -> loadSTL([stlFile])
-    # msh(stlfile, name='awesomeMesh')  -> loadSTL([stlFile]), rename mesh to awesomeMesh
+    # Msh(stlfile, 'awesomeMesh')       -> loadSTL([stlFile]), rename mesh to awesomeMesh
+    # Msh('awesomeMesh', stlfile)       -> loadSTL([stlFile]), rename mesh to awesomeMesh
+    # Msh(stlfile)                      -> loadSTL([stlFile])
+    # Msh(stlfile, name='awesomeMesh')  -> loadSTL([stlFile]), rename mesh to awesomeMesh
 
     # # make a mesh from python data
-    # msh(name=name, v=vertices, f=faces) -> makeMesh(name, v, f)
-    # msh(name, v, f)                     -> makeMesh(name, v, f)
-    # msh(v, f, name='awesomeMesh')       -> makeMesh(name, v, f)
-    # msh(v, f)                           -> makeMesh('autoMshName', v, f)
+    # Msh(name=name, v=vertices, f=faces) -> makeMesh(name, v, f)
+    # Msh(name, v, f)                     -> makeMesh(name, v, f)
+    # Msh(v, f, name='awesomeMesh')       -> makeMesh(name, v, f)
+    # Msh(v, f)                           -> makeMesh('autoMshName', v, f)
 
     # # get a mesh from the blender environment
-    # msh(blender mesh name)   -> return mesh object
-    # msh(blender mesh object) -> do nothing
-    # msh(blender obj name)
+    # Msh(blender mesh name)   -> return mesh object
+    # Msh(blender mesh object) -> do nothing
+    # Msh(blender obj name)
 
 # addonPath = os.path.realpath(r'C:\blender\2.80.0\2.80\scripts\addons')
 # if addonPath not in sys.path:

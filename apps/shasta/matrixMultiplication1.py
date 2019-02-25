@@ -1,3 +1,5 @@
+"""Demonstrate matrix multiplication on points using blender."""
+
 import os
 import sys
 import numpy as np
@@ -32,9 +34,9 @@ verts = {'v1': v1, 'v2':v2}
 
 for vertName, vertPos in verts.items():
     try:
-        vMsh = bpn.msh(vertName)
+        vMsh = bpn.Msh(vertName)
         coords = vMsh.v
         vMsh.v = np.array([origin, vertPos])
     except:
         _, vMsh = bpn.plot([origin[0], vertPos[0]], [origin[1], vertPos[1]], [origin[2], vertPos[2]], vertName)
-        vMsh = bpn.msh(vertName)
+        vMsh = bpn.Msh(vertName)
