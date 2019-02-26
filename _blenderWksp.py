@@ -20,7 +20,7 @@ console.
 
 Usage:
 1. Launch blender from the terminal using:
->>> blender --python marmosetAtlas.py
+>>> blender --python marmoset_atlas.py
 2. Execute the following command in blender's python console:
 >>> exec(bpy.loadStr)
 
@@ -57,7 +57,7 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
 
 import bpn
 import pntools as my
-import marmosetAtlas as atl # pylint: disable=W0611
+import marmoset_atlas as atl # pylint: disable=W0611
 
 def reloadAll():
     """Reloads bpn and my (pntools)"""
