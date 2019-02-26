@@ -273,7 +273,7 @@ def locateCommand(thingToFind, requireStr=None, verbose=True):
     :returns: Full path (like realpath) to thingToFind if it exists
               Empty string if thing does not exist
     """
-    if sys.platform == 'linux':
+    if sys.platform == 'linux' or sys.platform == 'darwin':
         queryCmd = 'which'
     elif sys.platform == 'win32':
         queryCmd = 'where'
