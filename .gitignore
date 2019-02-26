@@ -1,6 +1,6 @@
 *.pyc
 __pycache__/
-.vscode/blPython.code-workspace
+*.code-workspace
 .vscode/.ropeproject/
 _auth/
 _temp/

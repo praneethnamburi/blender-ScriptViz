@@ -128,6 +128,7 @@ def main():
 
     print('Checking for the correct python:')
     pythonPath = my.locateCommand('python', 'blender')
+    pythonPath = my.locateCommand('python3.7m', 'blender') if not pythonPath else pythonPath
     if not pythonPath:
         return
 
@@ -146,7 +147,7 @@ def main():
             return
         pipInstallCmd = pythonPath + ' ' + getPipPath
         print(pipInstallCmd)
-        subprocess.run(pipInstallCmd)
+        os.system(pipInstallCmd)
 
     # Get list of installed packages
     currPkgs, currPkgNames, _ = my.pkgList()

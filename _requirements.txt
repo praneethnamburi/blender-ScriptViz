@@ -1,5 +1,7 @@
 alabaster==0.7.12
+appnope==0.1.0
 astroid==2.1.0
+attrs==18.2.0
 Babel==2.6.0
 backcall==0.1.0
 bleach==3.1.0
@@ -44,13 +46,16 @@ packaging==19.0
 pandas==0.24.0
 pandocfilters==1.4.2
 parso==0.3.3
+pexpect==4.6.0
 pickleshare==0.7.5
 prometheus-client==0.5.0
 prompt-toolkit==2.0.8
 ptvsd==4.2.2
+ptyprocess==0.6.0
 Pygments==2.3.1
 pylint==2.2.2
 pyparsing==2.3.1
+pyrsistent==0.14.11
 python-dateutil==2.7.5
 pytz==2018.9
 pywinpty==0.5.5
@@ -67,7 +72,7 @@ terminado==0.8.1
 testpath==0.4.2
 tornado==5.1.1
 traitlets==4.3.2
-urllib3==1.24.1
+urllib3==1.23
 wcwidth==0.1.7
 webencodings==0.5.1
 Werkzeug==0.14.1
