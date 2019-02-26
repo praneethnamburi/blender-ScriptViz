@@ -27,9 +27,8 @@ I will refer to this folder in the next steps as DEV_ROOT (this is actually ever
 
 ### Section 1. Blender basics
 
-- Console
-- Views
-- Data organization?
+- Window management: windows, screens, areas, spaces
+- Explore blender data organization in the console
 
 ### Section 2. Basics of developing in VSCode
 
@@ -45,27 +44,27 @@ Exercises:
 1. Open the pnTutorial project in VSCode
 2. Change the font size of text
 3. Attach F6 keyboard shortcut to the command blender.runScript
-4. Find the paths for blender, python, node and git executables (where/which)
+4. Snippets: Create a snippet for importing commonly used modules.
+5. Find the paths for blender, python, node and git executables (where/which)
     - Use the keyboard shortcut to toggle the terminal
-5. Attach shift+F6 to run the command 'python test1.py'
-6. Run blender from the terminal.
-7. Run blender using the blender extension.
-
-- Data visualization
-- Behavior analysis
-- Atlas loading and manipulation
+6. Attach shift+F6 to run the command python test1.py
+7. Run blender from the terminal.
+8. Run blender using the blender extension.
 
 ### Section 3. Workflow setup
 
-- Environment variables
-- Check paths: blender, python, node, git
-- Check tool
-- Managing python packages
+Exercise:
 
-### Section 4. Coding for blender 101
+- Install packages using the _requirementsCheck.py script
 
-### Section 5. Using the bpn module
+### Section 4. Coding in blender
 
-### Section 6. Functional programming in python
+Exercises:
 
-### Section 7. Using decorators to turn a class into a database of class instances
+1. (Msh) Add a cube to the scene. Double its size programatically.
+   - (Msh part 2) Matrix multiplication
+2. (Props) Console, then VSCode. Query the objects in the scene.
+3. (ReportDelta) Functional programming in python.
+4. Functional programming part 2 - Turn a class into a database of class instances.
+5. Load marmoset atlas meshes into blender.
+6. Visualize behavior data in blender.

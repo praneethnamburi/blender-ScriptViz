@@ -14,14 +14,22 @@ import bpn # pylint: disable=unused-import
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor_location[0] = -100
 
+COORD_FILE = os.path.join(DEV_ROOT, '_temp/suzanneCoords.pkl')
+
 try:
     msh = bpn.Msh('Suzanne')
 except:
     bpn.addPrimitive(pType='monkey', location=(0.0, 0.0, 0.0))
     msh = bpn.Msh('Suzanne')
 
+if not os.path.exists(COORD_FILE):
+    coords = msh.v
+    with open(COORD_FILE, 'wb') as f:
+        pickle.dump(coords, f)
+
 # reset suzanne
-with open('./_temp/suzanneCoords.pkl', 'rb') as f:
+# NOTE: If the file is not there, add suzanne manually and then run this script
+with open(COORD_FILE, 'rb') as f:
     coords = pickle.load(f)
 msh.v = coords
 
@@ -40,17 +48,8 @@ m1 = np.array([\
 
 newCoords = m1@coords
 
-targetMode = 'OBJECT'
-modeChangeFlag = False
-if not bpy.context.object.mode == targetMode:
-    current_mode = bpy.context.object.mode
-    modeChangeFlag = True
-    bpy.ops.object.mode_set(mode=targetMode)
-
+# make sure you're in object mode
 msh.v = newCoords.T
-
-if modeChangeFlag:
-    bpy.ops.object.mode_set(mode=current_mode)
 
 # coords = msh.v
 # for i, co in enumerate(coords):

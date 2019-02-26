@@ -1,5 +1,7 @@
 """Demonstrate matrix multiplication on points using blender."""
 
+# make sure you're in Object Mode in the 3D Viewport
+
 import os
 import sys
 import numpy as np
