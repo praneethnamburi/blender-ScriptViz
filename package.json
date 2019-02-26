@@ -1,0 +1,21 @@
+{
+  "name": "blenderPython",
+  "version": "1.0.0",
+  "description": "The goal of this project is to ease the process of 3D scientific data visualization.",
+  "main": "mkturk_getData.js",
+  "dependencies": {
+    "commander": "2.19.0",
+    "firebase-admin": "7.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "D:\\\\Dropbox (Personal)\\\\gitHosting\\\\blenderPython.git"
+  },
+  "keywords": [],
+  "author": "Praneeth Namburi <praneeth.namburi@gmail.com>",
+  "license": "MIT"
+}

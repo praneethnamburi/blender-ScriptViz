@@ -1,7 +1,6 @@
 # bpn
 
-The goal of this project is to ease the process of 3D scientific data
-visualization.
+The goal of this project is to ease the process of 3D scientific data visualization.
 
 We aim to achieve this by:
 

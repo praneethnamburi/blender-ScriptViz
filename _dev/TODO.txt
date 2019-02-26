@@ -8,8 +8,23 @@ bpn - animation tools
 Data analysis from fireplace data
 Make a neural network model that learns by 'looking' at 3d objects - one aspect of marmoset world
 Use meshroom to bring objects into marmoset world
-Talk to Elias about organizing assets for marmoset world
-Inter-process communication
+Inter-process communication: backburner
 
 Make a plotting class to make 2d plots
 Refactor demos as unit tests for the bpn module!
+
+Goals for March 2019:
+- Atlas functions
+    - Color brain regions
+    - Transform between gray-mid, gray, and white surfaces.
+    - Integrate Silva and Woodward atlases.
+    - Add annotations in 3D, and bring them to flat maps.
+    - Volume to surface projection.
+- Behavior
+    - Analysis: I1, I2, O1, O2 metrics
+    - Analysis: Compare across species
+    - Visualization
+- Stimulus design
+- Design
+    - Nosecone
+    - Automate eyebar using the Draw submodule.

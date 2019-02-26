@@ -68,3 +68,5 @@ Exercises:
 4. Functional programming part 2 - Turn a class into a database of class instances.
 5. Load marmoset atlas meshes into blender.
 6. Visualize behavior data in blender.
+   - Loading behavior data from firestore and dropbox
+   - Querying behavior data 
