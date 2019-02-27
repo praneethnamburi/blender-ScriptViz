@@ -54,9 +54,13 @@ def fetch(agent='Sausage', startDate='20190201', endDate='20190205', docTypes=No
 
         # download data from firestore to the local cache if there is no cached copy
         if not os.path.exists(os.path.realpath(outFile)):
-            proc = subprocess.run(f'node mkturk_getData.js -a {agent} -t {docType} -s {startDate} -e {endDate} -o {outFile}', encoding='utf-8', stdout=subprocess.PIPE) # --no-print to suppress output
-            if proc.returncode != 0:
-                raise RuntimeError('Data download failed!')
+            nodeCmd = f'node mkturk_getData.js -a {agent} -t {docType} -s {startDate} -e {endDate} -o {outFile}'
+            try:
+                proc = subprocess.run(nodeCmd, encoding='utf-8', stdout=subprocess.PIPE) # --no-print to suppress output
+                if proc.returncode != 0:
+                    raise RuntimeError('Data download failed!')
+            except:
+                os.system(nodeCmd)
         
         # read from local cache
         behDl[docType] = json.loads(open(outFile).read())

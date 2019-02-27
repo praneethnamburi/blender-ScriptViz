@@ -17,10 +17,10 @@ I will refer to this folder in the next steps as DEV_ROOT (this is actually ever
 
 ## Further instructions for OSX users
 
-1. Move blender.app into your home directory
+1. Move blender into your home directory
 2. cmd+shift+P -> Install 'code' command in PATH
 3. Go to the VSCode integrated terminal, and type code /etc/paths
-4. Add the blender executable (within the package) and python executable (within the blender.app package) to the top of this directory.
+4. Add the blender executable (within the package) and python executable (within the blender package) to the top of this directory.
 5. which blender and which python3.7m should point to the correct files inside your terminal
 6. Edit your settings JSON file
    - set python interpreter path
