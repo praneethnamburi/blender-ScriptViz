@@ -16,21 +16,58 @@ We aim to achieve this by:
 
 ## Installation instructions
 
-1. Download blender (in zip format)
-2. Make sure that the path string to the blender executable has the
+1. Download blender (get the 2.80 beta, and get the zip file, NOT a binary installer), or just follow this link: <https://builder.blender.org/download/>
+2. Unzip into ~/blender, OR C:\blender. OSX users:
+   - Create a folder "blender" in your home directory
+   - Move the Contents folder inside blender application into the "blender" folder
+4. Make sure that the path string to the blender executable has the
    string 'blender' in it
-3. Set paths to blender and packaged python executables in blender
+5. Set paths to blender and packaged python executables in blender
    - Check using terminal that when you do where/which blender and where/which python, you get the correct executables
-4. Install JacquesLucke's blender development extension for VSCode
-5. Git clone this repository
-6. Run python _requirementsCheck.py, which should:
+   OSX users:
+   - in VSCode: cmd+shift+P -> Install 'code' command in PATH
+   - Go to the VSCode integrated terminal, and type code /etc/paths
+   - Add the blender executable (within the package) and python executable (within the blender.app package) to the top of this directory.
+   - example: /Users/younah/blender/Contents/MacOS
+              /Users/younah/blender/Contents/Resources/2.80/python/bin
+   - which blender and which python3.7m should point to the correct files inside your terminal
+        - example: /Users/younah/blender/Contents/MacOS/blender
+                   /Users/younah/blender/Contents/Resources/2.80/python/bin/python3.7m
+6. Install JacquesLucke's blender development extension for VSCode
+7. Set up keyboard shortcuts and settings in VSCode
+8. Set blender executable path, environment path, in VSCode inside settings.JSON (or, in your *.code-workspace) folder
+9. Install nodejs (to interface with firebase)
+10. Git clone this repository
+   - either from Praneeth's dropbox githosting, or
+   - <https://github.com/issalab/praneethTutorial.git>
+11. Run python _requirementsCheck.py, which should:
    1. Check if blender, and the correct python executables are visible to the terminal
    2. Make a startup file in blender's startup directory (for customizing blender's workspace variables)
    3. Install pip inside blender if it doesn't exist
    4. Use _requirements.txt to download and install packages into blender
    5. Print a summary of these changes, and update the _requirements.txt file
-7. Setting up VSCode for blender python development
-8. Add-ons
+12. Setting up VSCode for blender python development
+13. Add-ons
+14. Edit your settings JSON file
+   - set python interpreter path
+   - set blender executable path (to the app or the executable inside the app?)
+   - example:
+    {
+        "python.pythonPath": "/Users/younah/blender/Contents/Resources/2.80/python/bin/python3.7m",
+        "git.autofetch": true,
+        "git.enableSmartCommit": true,
+        "blender.executables": [
+            {
+                "path": "/Users/younah/blender/Contents/MacOS/blender",
+                "name": "",
+                "isDebug": false
+            }
+        ]
+    }
+14. (optional?) Save your VSCode workspace
+15. In the terminal, type which python3.7m (double-checking!)
+16. If this is the python inside blender, then type python3.7m _requirementsCheck.py to install required packages into blender's python
+17. In VSCode's command palette, type Blender: start (automate using multi-command)
 
 ## Development workflow
 
