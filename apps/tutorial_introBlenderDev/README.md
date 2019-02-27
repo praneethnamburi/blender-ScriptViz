@@ -15,6 +15,21 @@ I will refer to this folder in the next steps as DEV_ROOT (this is actually ever
    - Download the authentication tokens (I will send them to you separately for security reasons) into a sub-folder called _auth inside DEV_ROOT.
    - Create an empty folder called _temp in DEV_ROOT
 
+## Further instructions for OSX users
+
+1. Move blender.app into your home directory
+2. cmd+shift+P -> Install 'code' command in PATH
+3. Go to the VSCode integrated terminal, and type code /etc/paths
+4. Add the blender executable (within the package) and python executable (within the blender.app package) to the top of this directory.
+5. which blender and which python3.7m should point to the correct files inside your terminal
+6. Edit your settings JSON file
+   - set python interpreter path
+   - set blender executable path (to the app or the executable inside the app?)
+7. (optional?) Save your VSCode workspace
+8. In the terminal, type which python3.7m (double-checking!)
+9. If this is the python inside blender, then type python3.7m _requirementsCheck.py to install required packages into blender's python
+10. In VSCode's command palette, type Blender: start
+
 ## We will aim to learn:
 
 1) Blender basics.
