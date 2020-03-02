@@ -71,14 +71,7 @@ def saveLocRot(collnames, frameSave, fname):
     for collName in collnames:
         for obj in bpy.data.collections[collName].all_objects:
             if obj.type == 'MESH':
-                if (np.round(obj.scale[0]) == 1.0 and collName == 'Foot_R'):
-                    loc = np.divide(np.array(obj.location), [100, 100, -100])
-                    loc = [loc[0], loc[2], loc[1]]
-                    rot = np.array(obj.rotation_euler)
-                    rot = [rot[0], -rot[2], rot[1]]
-                    x[obj.name] = [loc, rot]
-                else:
-                    x[obj.name] = [np.array(obj.location), np.array(obj.rotation_euler)]
+                x[obj.name] = [np.array(obj.location), np.array(obj.rotation_euler)]
 
     f = open(fname, "wb")
     pickle.dump(x, f)
