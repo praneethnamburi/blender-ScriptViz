@@ -84,10 +84,10 @@ def saveLocRot(collnames, frameSave, fname):
     pickle.dump(x, f)
     f.close()
 
-# bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\Nutations-1.blend", display_file_selector=False)
-collNames = ['Foot_R']
-for FRAME_SAVE in [120, 160]:
-    saveLocRot(collNames, FRAME_SAVE, "./apps/anatomy/Nutations_Frame" + str(FRAME_SAVE) +  ".pkl")
+# # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\Nutations-1.blend", display_file_selector=False)
+# collNames = ['Foot_R']
+# for FRAME_SAVE in [120, 160]:
+#     saveLocRot(collNames, FRAME_SAVE, "./apps/anatomy/Nutations_Frame" + str(FRAME_SAVE) +  ".pkl")
 
 # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem.blend", display_file_selector=False)
 # initBones()
@@ -98,7 +98,7 @@ targetFrame = FRAME_INRIGHT
 bpy.context.scene.frame_set(targetFrame)
 dct = pickle.load(open(fName, "rb"))
 print(dct)
-# for objName in dct.keys():
-#     bpy.data.objects[objName].location = mathutils.Vector(dct[objName][0])
-#     bpy.data.objects[objName].rotation_euler = mathutils.Vector(dct[objName][1])
-#     locRotKeyFrame(objName, frameNum=targetFrame)
+for objName in dct.keys():
+    bpy.data.objects[objName].location = mathutils.Vector(dct[objName][0])
+    bpy.data.objects[objName].rotation_euler = mathutils.Vector(dct[objName][1])
+    locRotKeyFrame(objName, frameNum=targetFrame)
