@@ -5,6 +5,7 @@ Support for nutations.
 import os
 import sys
 import numpy as np # pylint: disable=unused-import
+import pandas as pd 
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
 if DEV_ROOT not in sys.path:
@@ -57,41 +58,48 @@ def initBones():
             locRotKeyFrame(obj.name, FRAME_INRIGHT)
             locRotKeyFrame(obj.name, FRAME_OUTRIGHT)
 
-def saveLocRot(collnames, frameSave, fname):
+def saveLocRot(names, frameSave=[1], fname='temp.csv', mode='collection'):
     """
     Save location and rotation information of objects.
     Crated to save weight in and weight out nutational positions of bones.
     Generalizes to saving location and rotation information for any mesh objects.
 
     Inputs:
-        collnames: list, ['Foot_R', 'Leg_R', 'Spine']
+        names: list of names in the blender file, ['Foot_R', 'Leg_R', 'Spine']
+            each 'name' can be a blender collection, a parent object (empty), or the name of an object itself
+        frameSave: keyframe number in the blender scene to grab location and rotation information from
+        mode: 'collection' - all objects in collection
+            'children' - save location and rotation information of all child objects
     """
-    bpy.context.scene.frame_set(frameSave)
     x = {}
-    for collName in collnames:
-        for obj in bpy.data.collections[collName].all_objects:
-            if obj.type == 'MESH':
-                x[obj.name] = [np.array(obj.location), np.array(obj.rotation_euler)]
+    for frame in frameSave:
+        bpy.context.scene.frame_set(frame)
+        for name in names:
+            for obj in bpy.data.collections[name].all_objects:
+                if obj.type == 'MESH':
+                    x[obj.name] = [frame, np.array(obj.location), np.array(obj.rotation_euler)]
 
-    f = open(fname, "wb")
-    pickle.dump(x, f)
-    f.close()
+    p = pd.DataFrame.from_dict(x, orient='index', columns=['frame', 'location', 'rotation_euler'])
+    p.to_csv(fname)
+
+c = bpn.Props().getChildren('Foot_Bones_R')
+print(c)
 
 # # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\Nutations-1.blend", display_file_selector=False)
 # collNames = ['Foot_R']
 # for FRAME_SAVE in [120, 160]:
-#     saveLocRot(collNames, FRAME_SAVE, "./apps/anatomy/Nutations_Frame" + str(FRAME_SAVE) +  ".pkl")
+#     saveLocRot(collNames, [120, 160], "./apps/anatomy/Nutations.csv")
 
 # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem.blend", display_file_selector=False)
 # initBones()
 
-fName = "./apps/anatomy/Nutations_Frame160.pkl"
-targetFrame = FRAME_INRIGHT
+# fName = "./apps/anatomy/Nutations_Frame160.pkl"
+# targetFrame = FRAME_INRIGHT
 
-bpy.context.scene.frame_set(targetFrame)
-dct = pickle.load(open(fName, "rb"))
-print(dct)
-for objName in dct.keys():
-    bpy.data.objects[objName].location = mathutils.Vector(dct[objName][0])
-    bpy.data.objects[objName].rotation_euler = mathutils.Vector(dct[objName][1])
-    locRotKeyFrame(objName, frameNum=targetFrame)
+# bpy.context.scene.frame_set(targetFrame)
+# dct = pickle.load(open(fName, "rb"))
+# print(dct)
+# for objName in dct.keys():
+#     bpy.data.objects[objName].location = mathutils.Vector(dct[objName][0])
+#     bpy.data.objects[objName].rotation_euler = mathutils.Vector(dct[objName][1])
+#     locRotKeyFrame(objName, frameNum=targetFrame)

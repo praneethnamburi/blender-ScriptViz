@@ -513,6 +513,24 @@ class Props:
             return {k:v for k, v in allNames.items() if v}
         else:
             return allNames
+    def getChildren(self, objName):
+        """
+        Return children of a given object.
+        Note that this function will only return children at the bottom most level.
+        Example:
+            c = bpn.Props().getChildren('Foot_Bones_R')
+        """
+        if not self.get(objName):
+            return set() # return empty set if the object isn't found
+        children = set((self.get(objName)[0],))
+        iterFlag = True
+        while iterFlag:
+            iterFlag = False
+            for obj in children:
+                if obj.children: # if children exist, remove object, and put children into the set
+                    children = children.union(set(obj.children)) - set((obj,))
+                    iterFlag = True
+        return children
 
 def reset_blender():
     """
