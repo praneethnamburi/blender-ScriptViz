@@ -64,8 +64,12 @@ def initBones():
 # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem.blend", display_file_selector=False)
 # initBones()
 
+### Saving nutations to excel, and applying them in another blend file
+
+# # (load skeletalSystem.blend in blender)
 # fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
 # p2 = bpn.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
 
+# # (load skeletalSystem_originAtCenter_bkp02.blend)
 # fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
 # bpn.animate_simple(fname)

@@ -420,9 +420,9 @@ class new:
 
     # easy object creation
     @classmethod
-    def sphere(cls, objName='newObj', mshName='newMsh', collName='newColl'):
+    def sphere(cls, objName='newObj', mshName='newMsh', collName='newColl', u=16, v=8, r=0.5):
         col = cls.collection(collName)
-        msh = cls.msh_sphere(mshName)
+        msh = cls.msh_sphere(mshName, u=u, v=v, r=r)
         obj = cls.obj(msh, col, objName)
         return obj
 
@@ -633,7 +633,7 @@ def plotDNA():
     h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
     return [h1, h2], [m1, m2] # objList, mshList
 
-def plot(x, y, z=0, mshName='autoMshName'):
+def plot(x, y, z=0, mshName='autoMshName', collName='Collection'):
     if mshName == 'autoMshName':
         objName = 'autoObjName'
     else:
@@ -641,7 +641,7 @@ def plot(x, y, z=0, mshName='autoMshName'):
     # create a mesh
     msh = genPlotMsh(mshName, x, y, z)
     # instantiate an object
-    obj = genObj(msh, objName)
+    obj = genObj(msh, objName, collName=collName)
     return obj, msh
 
 def genPlotMsh(mshName, xVals, yVals, zVals=None):
@@ -658,12 +658,12 @@ def genPlotMsh(mshName, xVals, yVals, zVals=None):
             msh.edges[i].vertices = (i, i+1)
     return msh
 
-def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0)):
+def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0), collName='Collection'):
     """Generates an object fraom a mesh and attaches it to the current scene."""
     obj = bpy.data.objects.new(name, msh)
     # put that object in the scene
     obj.location = mathutils.Vector(location)
-    bpy.context.scene.collection.objects.link(obj)
+    bpy.data.collections[collName].objects.link(obj)
     return obj
 
 ## Blender usefulness exercise #2 - animation
@@ -725,7 +725,7 @@ def addPrimitive(pType='monkey', location=(1.0, 3.0, 5.0)):
         raise ValueError(f"{pType} is not a valid argument")
 
 ## Functions inspired by the anatomy project
-def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation'):
+def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=['object', 'keyframe', 'attribute', 'value']):
     """
     Get location and rotation information of mesh objects from the current blender scene.
     
@@ -773,12 +773,12 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
                 for attr in attrs:
                     p.append([obj.name, frame, attr, list(getattr(obj, attr))])
 
-    p = pd.DataFrame(p, columns=['object', 'keyframe', 'attribute', 'value'])
+    p = pd.DataFrame(p, columns=columns)
     if isinstance(fname, str):
         p.to_excel(fname, index=False, sheet_name=sheet_name)
     return p
 
-def animate_simple(anim_data):
+def animate_simple(anim_data, columns=['object', 'keyframe', 'attribute', 'value']):
     """
     Simple keyframe animation in blender. 
 
@@ -804,7 +804,7 @@ def animate_simple(anim_data):
 
     assert isinstance(anim_data, pd.DataFrame)
     for i in np.arange(0, len(anim_data)):
-        propList = Props().get(anim_data.iloc[i]['object'])
+        propList = Props().get(anim_data.iloc[i][columns[0]]) # columns[0] = 'object'
          
         if len(propList) > 1: # multiple props detected, only keep objects
             propList = [o for o in propList if isinstance(o, bpy.types.Object)]
@@ -815,9 +815,9 @@ def animate_simple(anim_data):
         assert len(propList) == 1 # there should really only be one object with that name
 
         obj = propList[0] 
-        frame = anim_data.iloc[i]['keyframe']
-        attr = anim_data.iloc[i]['attribute']
-        val = anim_data.iloc[i]['value']
+        frame = anim_data.iloc[i][columns[1]] # columns[1] = 'keyframe'
+        attr = anim_data.iloc[i][columns[2]]  # columns[2] = 'attribute'
+        val = anim_data.iloc[i][columns[3]]   # columns[3] = 'value'
         if isinstance(val, str):
             val = eval(val) # pylint: disable=eval-used
         bpy.context.scene.frame_set(frame)

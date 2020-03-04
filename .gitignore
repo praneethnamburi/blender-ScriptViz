@@ -5,3 +5,6 @@ __pycache__/
 _auth/
 _temp/
 node_modules/
+*.blend1
+*.fig
+*.png
