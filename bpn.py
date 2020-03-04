@@ -381,6 +381,51 @@ class Msh:
     def _loadstl(self, stlfile, collection=None):
         return loadSTL([stlfile])['meshes'][0]
 
+class new:
+    @staticmethod
+    def collection(collName='newColl'):
+        if collName in [c.name for c in bpy.data.collections]:
+            col = bpy.data.collections[collName]
+        else:
+            col = bpy.data.collections.new(collName)
+            bpy.context.scene.collection.children.link(col)
+        return col
+
+    @staticmethod
+    def obj(msh, col, objName='newObj'):
+        if isinstance(msh, str):
+            msh = bpy.data.meshes[msh]
+        if isinstance(col, str):
+            col = bpy.data.collections[col]
+
+        if objName in [o.name for o in bpy.data.objects]:
+            obj = bpy.data.objects[objName]
+        else:
+            obj = bpy.data.objects.new(objName, msh)
+            col.objects.link(obj)
+        return obj
+
+    # Meshes
+    @staticmethod
+    def msh_sphere(mshName='newMsh', u=16, v=8, r=0.5):
+        if mshName in [m.name for m in bpy.data.meshes]:
+            msh = bpy.data.meshes[mshName]
+        else:
+            msh = bpy.data.meshes.new(mshName)
+            bm = bmesh.new()
+            bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, diameter=r)
+            bm.to_mesh(msh)
+            bm.free()
+        return msh
+
+    # easy object creation
+    @classmethod
+    def sphere(cls, objName='newObj', mshName='newMsh', collName='newColl'):
+        col = cls.collection(collName)
+        msh = cls.msh_sphere(mshName)
+        obj = cls.obj(msh, col, objName)
+        return obj
+
 class Draw:
     """Turtle-like access to bmesh functions."""
     def __init__(self, name_msh='autoMshName', name_obj='autoObjName', name_coll='Collection', name_scene='Scene'):
