@@ -57,8 +57,38 @@ def initBones():
             locRotKeyFrame(obj.name, FRAME_INRIGHT)
             locRotKeyFrame(obj.name, FRAME_OUTRIGHT)
 
-p2 = bpn.locrot('Skeletal_Sys', [1, 100], 'temp.csv')
-print(p2)
+import bmesh
+
+collName = 'myColl'
+objName = 'Basic_Sphere'
+
+if collName in [c.name for c in bpy.data.collections]:
+    col = bpy.data.collections[collName]
+else:
+    col = bpy.data.collections.new(collName)
+    bpy.context.scene.collection.children.link(col)
+
+# Create an empty mesh and the object.
+mesh = bpy.data.meshes.new(objName)
+basic_sphere = bpy.data.objects.new(objName, mesh)
+
+# Add the object into the scene.
+col.objects.link(basic_sphere)
+# bpy.context.view_layer.objects.active = basic_sphere
+# basic_sphere.select_set(True)
+
+# Construct the bmesh sphere and assign it to the blender mesh.
+bm = bmesh.new()
+bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=8, diameter=0.5)
+bm.to_mesh(mesh)
+bm.free()
+
+
+# p2 = bpn.locrot('Skeletal_Sys', [1, 100], 'temp.csv')
+# print(p2)
+
+# bpy.data.objects[objName].keyframe_insert(data_path="location", frame=frameNum)
+# bpy.data.objects[objName].keyframe_insert(data_path="rotation_euler", frame=frameNum)
 
 # # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\Nutations-1.blend", display_file_selector=False)
 # collNames = ['Foot_R']
