@@ -6,6 +6,7 @@ import os
 import functools
 import sys
 import numpy as np
+import pandas as pd
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
@@ -378,7 +379,7 @@ class Msh:
         write_stl(filepath=os.path.join(fPath, fName), faces=faces, ascii=False)
 
     def _loadstl(self, stlfile, collection=None):
-        return loadSTL([file])['meshes'][0]
+        return loadSTL([stlfile])['meshes'][0]
 
 class Draw:
     """Turtle-like access to bmesh functions."""
@@ -677,3 +678,51 @@ def addPrimitive(pType='monkey', location=(1.0, 3.0, 5.0)):
         getattr(bpy.ops.mesh, funcName)(location=location)
     else:
         raise ValueError(f"{pType} is not a valid argument")
+
+## Functions inspired by the anatomy project
+def locrot(names, frameSave=1, fname=False):
+    """
+    Get location and rotation information of mesh objects from the current blender scene.
+    
+    Created to save weight in and weight out nutational positions of bones.
+    Generalizes to saving location and rotation information for any mesh objects.
+
+    Inputs:
+        names: list of names in the blender file, ['Foot_R', 'Leg_R', 'Spine']
+            each 'name' can be a blender collection, a parent object (empty), or the name of an object itself
+        frameSave: keyframe number in the blender scene to grab location and rotation information from
+        fname: target file name 'somefile.csv'
+    
+    Returns:
+        p: a pandas dataframe containing the name of the mesh, keyframe, location and rotation vectors
+        To save contents to a file, supply a string to fname variable
+    """
+    if isinstance(names, str):
+        names = [names] # convert to list if a string is passed
+    if isinstance(frameSave, int):
+        frameSave = [frameSave]
+
+    # make sure names has only valid things in it
+    names = [i for i in names if Props()(i)]
+
+    p = []
+    for frame in frameSave:
+        bpy.context.scene.frame_set(frame)
+        x = {}
+        for name in names:
+            thisProp = Props().get(name)[0]
+            if isinstance(thisProp, bpy.types.Collection):
+                all_objects = bpy.data.collections[name].all_objects
+            elif isinstance(thisProp, bpy.types.Object):
+                all_objects = Props().getChildren(name)
+
+            all_objects = [o for o in all_objects if o.type == 'MESH']
+            for obj in all_objects:
+                x[obj.name] = [frame, np.array(obj.location), np.array(obj.rotation_euler)]
+
+        p.append(pd.DataFrame.from_dict(x, orient='index', columns=['keyframe', 'location', 'rotation_euler']))
+
+    p = pd.concat(p)
+    if isinstance(fname, str):
+        p.to_csv(fname)
+    return p

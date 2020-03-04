@@ -33,7 +33,6 @@ FRAME_INRIGHT = 100
 FRAME_OUTRIGHT = 200
 
 import mathutils # pylint: disable=import-error
-import pickle
 
 def setOriginToCenter(objName):
     """Bring every bone's origin to center."""
@@ -58,32 +57,8 @@ def initBones():
             locRotKeyFrame(obj.name, FRAME_INRIGHT)
             locRotKeyFrame(obj.name, FRAME_OUTRIGHT)
 
-def saveLocRot(names, frameSave=[1], fname='temp.csv', mode='collection'):
-    """
-    Save location and rotation information of objects.
-    Crated to save weight in and weight out nutational positions of bones.
-    Generalizes to saving location and rotation information for any mesh objects.
-
-    Inputs:
-        names: list of names in the blender file, ['Foot_R', 'Leg_R', 'Spine']
-            each 'name' can be a blender collection, a parent object (empty), or the name of an object itself
-        frameSave: keyframe number in the blender scene to grab location and rotation information from
-        mode: 'collection' - all objects in collection
-            'children' - save location and rotation information of all child objects
-    """
-    x = {}
-    for frame in frameSave:
-        bpy.context.scene.frame_set(frame)
-        for name in names:
-            for obj in bpy.data.collections[name].all_objects:
-                if obj.type == 'MESH':
-                    x[obj.name] = [frame, np.array(obj.location), np.array(obj.rotation_euler)]
-
-    p = pd.DataFrame.from_dict(x, orient='index', columns=['frame', 'location', 'rotation_euler'])
-    p.to_csv(fname)
-
-c = bpn.Props().getChildren('Foot_Bones_R')
-print(c)
+p2 = bpn.locrot('Skeletal_Sys', [1, 100], 'temp.csv')
+print(p2)
 
 # # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\Nutations-1.blend", display_file_selector=False)
 # collNames = ['Foot_R']
