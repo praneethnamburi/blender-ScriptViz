@@ -725,7 +725,7 @@ def addPrimitive(pType='monkey', location=(1.0, 3.0, 5.0)):
         raise ValueError(f"{pType} is not a valid argument")
 
 ## Functions inspired by the anatomy project
-def locrot(names, frameSave=1, fname=False):
+def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation'):
     """
     Get location and rotation information of mesh objects from the current blender scene.
     
@@ -735,25 +735,32 @@ def locrot(names, frameSave=1, fname=False):
     Inputs:
         names: list of names in the blender file, ['Foot_R', 'Leg_R', 'Spine']
             each 'name' can be a blender collection, a parent object (empty), or the name of an object itself
-        frameSave: keyframe number in the blender scene to grab location and rotation information from
-        fname: target file name 'somefile.csv'
+        frames: keyframe numbers in the blender scene to grab location and rotation information from
+        attrs: list of attributes ['location', 'rotation_euler', 'scale']
+        fname: target file name 'somefile.xlsx'
     
     Returns:
         p: a pandas dataframe containing the name of the mesh, keyframe, location and rotation vectors
         To save contents to a file, supply a string to fname variable
+
+    Example:
+        (load skeletalSystem.blend in blender)
+        fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+        p2 = bpn.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
     """
     if isinstance(names, str):
         names = [names] # convert to list if a string is passed
-    if isinstance(frameSave, int):
-        frameSave = [frameSave]
+    if isinstance(frames, int):
+        frames = [frames]
+    if isinstance(attrs, str):
+        attrs = [attrs]
 
     # make sure names has only valid things in it
     names = [i for i in names if Props()(i)]
 
     p = []
-    for frame in frameSave:
+    for frame in frames:
         bpy.context.scene.frame_set(frame)
-        x = {}
         for name in names:
             thisProp = Props().get(name)[0]
             if isinstance(thisProp, bpy.types.Collection):
@@ -763,11 +770,56 @@ def locrot(names, frameSave=1, fname=False):
 
             all_objects = [o for o in all_objects if o.type == 'MESH']
             for obj in all_objects:
-                x[obj.name] = [frame, np.array(obj.location), np.array(obj.rotation_euler)]
+                for attr in attrs:
+                    p.append([obj.name, frame, attr, list(getattr(obj, attr))])
 
-        p.append(pd.DataFrame.from_dict(x, orient='index', columns=['keyframe', 'location', 'rotation_euler']))
-
-    p = pd.concat(p)
+    p = pd.DataFrame(p, columns=['object', 'keyframe', 'attribute', 'value'])
     if isinstance(fname, str):
-        p.to_csv(fname)
+        p.to_excel(fname, index=False, sheet_name=sheet_name)
     return p
+
+def animate_simple(anim_data):
+    """
+    Simple keyframe animation in blender. 
+
+    Input:
+        anim_data, a pandas data frame with four columns
+        Pandas data frame is typically read from an excel file with these four columns
+          - object <str> name of the object in blender
+          - keyframe <int> frame number
+          - attribute <str> attribute name, such as location, rotation_euler, scale
+          - value <list> 3-element list in the case of location, rotation_euler and scale
+
+    Result:
+        keyframe animation in the blend file
+    
+    Example:
+        (load skeletalSystem_originAtCenter_bkp02.blend)
+        fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+        bpn.animate_simple(fname)
+    """
+    if isinstance(anim_data, str):
+        if os.path.isfile(anim_data):
+            anim_data = pd.read_excel(anim_data, sheet_name='animation')
+
+    assert isinstance(anim_data, pd.DataFrame)
+    for i in np.arange(0, len(anim_data)):
+        propList = Props().get(anim_data.iloc[i]['object'])
+         
+        if len(propList) > 1: # multiple props detected, only keep objects
+            propList = [o for o in propList if isinstance(o, bpy.types.Object)]
+        
+        if not propList: # object doesn't exist in the scene, so skip
+            continue
+        
+        assert len(propList) == 1 # there should really only be one object with that name
+
+        obj = propList[0] 
+        frame = anim_data.iloc[i]['keyframe']
+        attr = anim_data.iloc[i]['attribute']
+        val = anim_data.iloc[i]['value']
+        if isinstance(val, str):
+            val = eval(val) # pylint: disable=eval-used
+        bpy.context.scene.frame_set(frame)
+        setattr(obj, attr, val)
+        obj.keyframe_insert(data_path=attr, frame=frame)

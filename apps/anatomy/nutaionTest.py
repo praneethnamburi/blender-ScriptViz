@@ -61,38 +61,11 @@ def initBones():
             locRotKeyFrame(obj.name, FRAME_INRIGHT)
             locRotKeyFrame(obj.name, FRAME_OUTRIGHT)
 
-collName = 'myColl'
-mshName = 'sph'
-objName = 'Basic_Sphere2'
-
-obj = bpn.new.sphere(objName, mshName, collName)
-
-frameID = [1, 50, 100]
-loc = [(1, 1, 1), (1, 2, 1), (2, 2, 1)]
-prop = 'location'
-for thisFrame, thisLoc in zip(frameID, loc):
-    bpy.context.scene.frame_set(thisFrame)
-    setattr(obj, prop, thisLoc)
-    obj.keyframe_insert(data_path=prop, frame=thisFrame)
-
-p2 = bpn.locrot('myColl', [1, 50, 100], 'temp.csv')
-print(p2)
-
-# # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\Nutations-1.blend", display_file_selector=False)
-# collNames = ['Foot_R']
-# for FRAME_SAVE in [120, 160]:
-#     saveLocRot(collNames, [120, 160], "./apps/anatomy/Nutations.csv")
-
 # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem.blend", display_file_selector=False)
 # initBones()
 
-# fName = "./apps/anatomy/Nutations_Frame160.pkl"
-# targetFrame = FRAME_INRIGHT
+# fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+# p2 = bpn.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
 
-# bpy.context.scene.frame_set(targetFrame)
-# dct = pickle.load(open(fName, "rb"))
-# print(dct)
-# for objName in dct.keys():
-#     bpy.data.objects[objName].location = mathutils.Vector(dct[objName][0])
-#     bpy.data.objects[objName].rotation_euler = mathutils.Vector(dct[objName][1])
-#     locRotKeyFrame(objName, frameNum=targetFrame)
+# fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+# bpn.animate_simple(fname)
