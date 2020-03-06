@@ -70,6 +70,6 @@ def initBones():
 # fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
 # p2 = bpn.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
 
-# # (load skeletalSystem_originAtCenter_bkp02.blend)
-# fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
-# bpn.animate_simple(fname)
+# (load skeletalSystem_originAtCenter_bkp02.blend)
+fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+bpn.animate_simple(fname)

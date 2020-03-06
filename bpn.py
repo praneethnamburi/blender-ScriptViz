@@ -1,5 +1,5 @@
 """
-Praneeth'a blender python module
+Praneeth's blender python module
 """
 import errno
 import os
@@ -49,7 +49,7 @@ class ReportDelta:
     This class is primarily meant to be used as a decorator.
     This decorator reports changes to blender data (prop collections) after the decorated function is executed.
     Within a script, you can use the decorator syntax, for example
-    @reportDeltaData
+    @reportDelta
     def demo_animateDNA():
         #animation code goes here
         pass
@@ -741,7 +741,7 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
     
     Returns:
         p: a pandas dataframe containing the name of the mesh, keyframe, location and rotation vectors
-        To save contents to a file, supply a string to fname variable
+        To save contents to an excel file, supply strings to fname, and sheet_name variables
 
     Example:
         (load skeletalSystem.blend in blender)
@@ -823,3 +823,14 @@ def animate_simple(anim_data, columns=['object', 'keyframe', 'attribute', 'value
         bpy.context.scene.frame_set(frame)
         setattr(obj, attr, val)
         obj.keyframe_insert(data_path=attr, frame=frame)
+
+def demo_animate_sphere():
+    obj = new.sphere(objName='sphere', mshName='sph', collName='myColl')
+    frameID = [1, 50, 100]
+    loc = [(1, 1, 1), (1, 2, 1), (2, 2, 1)]
+    attrs = ['location', 'rotation_euler', 'scale']
+    for thisFrame, thisLoc in zip(frameID, loc):
+        bpy.context.scene.frame_set(thisFrame)
+        for attr in attrs:
+            setattr(obj, attr, thisLoc)
+            obj.keyframe_insert(data_path=attr, frame=thisFrame)
