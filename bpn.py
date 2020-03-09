@@ -5,6 +5,7 @@ import errno
 import os
 import functools
 import sys
+import types
 import numpy as np
 import pandas as pd
 
@@ -189,61 +190,157 @@ class Msh:
     m.merge(list of meshes) # subsume a collection of meshes, assign vertex groups to keep track of originals
     Note: Use this only with triangular meshes
     """
-    def __init__(self, bpyMsh):
+    def __init__(self, **kwargs):
         """
-        :param args: (str, bpy.types.Mesh, dict)
-                (str) name of a mesh loaded in blender (or object?)
+        :param kwargs: (create mesh from vertices and faces, 2d array, or function)
+            msh_name='new_mesh'  
+                (str) name of the mesh loaded in blender
+                (str) name of an object loaded in blender (get the associated mesh)
                 (bpy.types.Mesh) the bpy mesh object
-                (name:str, v:numpy array of nVx3, f:numpy array of nFx3)
-        :param kwargs:
-            name
+            obj_name='new_obj' (str) name of the object to assign the mesh
+            coll_name='new_coll' (str) name of the collection to locate the object
+            name='thing' (str) both the mesh and the object will receive this name
+
+            create a mesh from a function:
+                xyfun (function with two float inputs and one float output)
+                    xyfun = lambda x, y: x*x+y*y
+                    A 2d matrix, z, gets created if a function is supplied
+
+            Create a mesh from 2d list or numpy array:
+                z (2d list or matrix to render in blender)
+                x (list) list or numpy array
+                    x = np.arange(-2, 2, 0.02)
+                y (list)
+                    y = np.arange(-2, 3, 0.2)
+
+            create mesh from vertices and faces:
+                v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
+                f (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
+
         """
-        self.init_from_bpy(chkType(bpyMsh, 'Mesh'))
+        if 'msh_name' not in kwargs:
+            msh_name = 'new_mesh'
+        else:
+            msh_name = kwargs.pop('msh_name')
+
+        if 'obj_name' not in kwargs:
+            obj_name = 'new_obj'
+        else:
+            obj_name = kwargs.pop('obj_name')
+
+        if 'name' in kwargs:
+            msh_name = kwargs['name']
+            obj_name = kwargs['name']
+
+        if 'coll_name' not in kwargs:
+            coll_name = 'new_coll'            
+        else:
+            coll_name = kwargs.pop('coll_name')
+        new.collection(coll_name) # create if it doesn't exist
+
+        if 'z' in kwargs or 'xyfun' in kwargs:
+            if 'x' not in kwargs:
+                if 'z' in kwargs:
+                    x = np.arange(0, np.shape(kwargs['z'])[0])
+                elif 'xyfun' in kwargs:
+                    x = np.arange(-2, 2, 0.1)
+            else:
+                x = kwargs.pop('x')
+            if 'y' not in kwargs:
+                if 'z' in kwargs:
+                    y = np.arange(0, np.shape(kwargs['z'])[1])
+                elif 'xyfun' in kwargs:
+                    y = np.arange(-2, 2, 0.1)
+            else:
+                y = kwargs.pop('y')
+
+        if 'xyfun' in kwargs:
+            xyfun = kwargs.pop('xyfun')
+            assert isinstance(xyfun, types.FunctionType)
+            assert xyfun.__code__.co_argcount == 2 # function has two input arguments
+            kwargs['z'] = np.array([[xyfun(xv, yv) for yv in y] for xv in x])
+
+        if 'z' in kwargs:
+            z = np.array(kwargs['z'])
+            nX = len(x)
+            nY = len(y)
+            assert nX == np.shape(z)[0]
+            assert nY == np.shape(z)[1]
+            # matrix to vertices and faces
+            kwargs['v'] = [(xv, yv, z[ix][iy]) for iy, yv in enumerate(y) for ix, xv in enumerate(x)]
+            kwargs['f'] = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
+
+        if 'v' in kwargs and 'f' in kwargs:
+            v = kwargs.pop('v')
+            f = kwargs.pop('f')
+
+        if 'v' in locals() and 'f' in locals():    
+            self.init_from_py(v, f, msh_name, obj_name, coll_name)
+
+        self.init_from_bpy(chkType(msh_name, 'Mesh'))
         self.vInit = self.v # for resetting
         self.vBkp = self.v  # for undoing (switching back and forth)
     
-    def init_from_bpy(self, bpyMsh):
+    def init_from_bpy(self, bpy_msh):
         """
         Initialize a bpn mesh from a bpy mesh.
         This is here to increase input flexibility to bpn.Msh's
         __init__ while preserving code readability.
         """
-        self.bpyMsh = bpyMsh
+        self.bpy_msh = bpy_msh
+
+    def init_from_py(self, v, f, msh_name, obj_name, coll_name):
+        """
+        Create a blender mesh from python data, assign it to an object, and put it in a collection.
+        :param v: (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
+            3D vertex locations
+        :param f: (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
+            Faces
+        :param obj_name: (str) name of the object to assign the mesh
+        :param coll_name: (str) name of the collection to locate the object
+        """
+        mesh = bpy.data.meshes.new(msh_name)
+        mesh.from_pydata(v, [], f)
+        mesh.update(calc_edges=True)
+        self.bpy_msh = mesh
+        
+        obj = bpy.data.objects.new(obj_name, mesh)
+        bpy.data.collections[coll_name].objects.link(obj)
 
     @property
     def v(self):
         """Coordinates of a mesh as an nVx3 numpy array."""
-        return np.array([v.co for v in self.bpyMsh.vertices])
+        return np.array([v.co for v in self.bpy_msh.vertices])
 
     @property
     def vn(self):
         """Vertex normals as an nVx3 numpy array."""
-        return np.array([v.normal[:] for v in self.bpyMsh.vertices])
+        return np.array([v.normal[:] for v in self.bpy_msh.vertices])
     
     @property
     def f(self):
         """Faces as an nFx3 numpy array."""
-        return np.array([polygon.vertices[:] for polygon in self.bpyMsh.polygons])
+        return np.array([polygon.vertices[:] for polygon in self.bpy_msh.polygons])
 
     @property
     def fn(self):
         """Face normals as an nFx3 numpy array."""
-        return np.array([polygon.normal[:] for polygon in self.bpyMsh.polygons])
+        return np.array([polygon.normal[:] for polygon in self.bpy_msh.polygons])
         
     @property
     def fa(self):
         """Area of faces as an nFx3 numpy array."""
-        return np.array([polygon.area for polygon in self.bpyMsh.polygons])
+        return np.array([polygon.area for polygon in self.bpy_msh.polygons])
     
     @property
     def fc(self):
         """Coordinates of face centers."""
-        return np.array([polygon.center for polygon in self.bpyMsh.polygons])
+        return np.array([polygon.center for polygon in self.bpy_msh.polygons])
 
     @property
     def e(self):
         """Vertex indices of edges."""
-        return np.array([edge.vertices[:] for edge in self.bpyMsh.edges])
+        return np.array([edge.vertices[:] for edge in self.bpy_msh.edges])
 
     @property
     def eL(self):
@@ -278,7 +375,7 @@ class Msh:
         change the mesh coordinates and switch it back.
         """
         self.vBkp = self.v # for undo
-        for vertexCount, vertex in enumerate(self.bpyMsh.vertices):
+        for vertexCount, vertex in enumerate(self.bpy_msh.vertices):
             vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
 
     @property
@@ -292,7 +389,7 @@ class Msh:
 
     def delete(self):
         """Remove the mesh and corresponding objects from blender."""
-        bpy.data.meshes.remove(self.bpyMsh, do_unlink=True)
+        bpy.data.meshes.remove(self.bpy_msh, do_unlink=True)
 
     def undo(self):
         """
@@ -352,7 +449,7 @@ class Msh:
     def export(self, fName=None, fPath=PATH['cache']):
         """Export a Msh instance into an stl file."""
         if fName is None:
-            fName = self.bpyMsh.name + '.stl'
+            fName = self.bpy_msh.name + '.stl'
 
         if fName.lower()[-4:] != '.stl':
             print('File name should end with a .stl')
@@ -364,8 +461,8 @@ class Msh:
                 fPath = os.path.dirname(fName)
         fName = os.path.basename(fName)
 
-        v = [tuple(v.co) for v in self.bpyMsh.vertices]
-        f = [tuple(polygon.vertices[:]) for polygon in self.bpyMsh.polygons]
+        v = [tuple(v.co) for v in self.bpy_msh.vertices]
+        f = [tuple(polygon.vertices[:]) for polygon in self.bpy_msh.polygons]
 
         # generate faces for blender's write_stl function
         # faces: iterable of tuple of 3 vertex, vertex is tuple of 3 coordinates as float
@@ -383,35 +480,35 @@ class Msh:
 
 class new:
     @staticmethod
-    def collection(collName='newColl'):
-        if collName in [c.name for c in bpy.data.collections]:
-            col = bpy.data.collections[collName]
+    def collection(coll_name='newColl'):
+        if coll_name in [c.name for c in bpy.data.collections]:
+            col = bpy.data.collections[coll_name]
         else:
-            col = bpy.data.collections.new(collName)
+            col = bpy.data.collections.new(coll_name)
             bpy.context.scene.collection.children.link(col)
         return col
 
     @staticmethod
-    def obj(msh, col, objName='newObj'):
+    def obj(msh, col, obj_name='newObj'):
         if isinstance(msh, str):
             msh = bpy.data.meshes[msh]
         if isinstance(col, str):
             col = bpy.data.collections[col]
 
-        if objName in [o.name for o in bpy.data.objects]:
-            obj = bpy.data.objects[objName]
+        if obj_name in [o.name for o in bpy.data.objects]:
+            obj = bpy.data.objects[obj_name]
         else:
-            obj = bpy.data.objects.new(objName, msh)
+            obj = bpy.data.objects.new(obj_name, msh)
             col.objects.link(obj)
         return obj
 
     # Meshes
     @staticmethod
-    def msh_sphere(mshName='newMsh', u=16, v=8, r=0.5):
-        if mshName in [m.name for m in bpy.data.meshes]:
-            msh = bpy.data.meshes[mshName]
+    def msh_sphere(msh_name='newMsh', u=16, v=8, r=0.5):
+        if msh_name in [m.name for m in bpy.data.meshes]:
+            msh = bpy.data.meshes[msh_name]
         else:
-            msh = bpy.data.meshes.new(mshName)
+            msh = bpy.data.meshes.new(msh_name)
             bm = bmesh.new()
             bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, diameter=r)
             bm.to_mesh(msh)
@@ -420,10 +517,10 @@ class new:
 
     # easy object creation
     @classmethod
-    def sphere(cls, objName='newObj', mshName='newMsh', collName='newColl', u=16, v=8, r=0.5):
-        col = cls.collection(collName)
-        msh = cls.msh_sphere(mshName, u=u, v=v, r=r)
-        obj = cls.obj(msh, col, objName)
+    def sphere(cls, obj_name='newObj', msh_name='newMsh', coll_name='newColl', u=16, v=8, r=0.5):
+        col = cls.collection(coll_name)
+        msh = cls.msh_sphere(msh_name, u=u, v=v, r=r)
+        obj = cls.obj(msh, col, obj_name)
         return obj
 
 class Draw:
@@ -559,16 +656,16 @@ class Props:
             return {k:v for k, v in allNames.items() if v}
         else:
             return allNames
-    def getChildren(self, objName):
+    def getChildren(self, obj_name):
         """
         Return children of a given object.
         Note that this function will only return children at the bottom most level.
         Example:
             c = bpn.Props().getChildren('Foot_Bones_R')
         """
-        if not self.get(objName):
+        if not self.get(obj_name):
             return set() # return empty set if the object isn't found
-        children = set((self.get(objName)[0],))
+        children = set((self.get(obj_name)[0],))
         iterFlag = True
         while iterFlag:
             iterFlag = False
@@ -633,37 +730,45 @@ def plotDNA():
     h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
     return [h1, h2], [m1, m2] # objList, mshList
 
-def plot(x, y, z=0, mshName='autoMshName', collName='Collection'):
-    if mshName == 'autoMshName':
-        objName = 'autoObjName'
+def plot(x, y, z=0, msh_name='autoMshName', coll_name='Collection'):
+    if msh_name == 'autoMshName':
+        obj_name = 'autoObjName'
     else:
-        objName = mshName
+        obj_name = msh_name
     # create a mesh
-    msh = genPlotMsh(mshName, x, y, z)
+    msh = genPlotMsh(msh_name, x, y, z)
     # instantiate an object
-    obj = genObj(msh, objName, collName=collName)
+    obj = genObj(msh, obj_name, coll_name=coll_name)
     return obj, msh
 
-def genPlotMsh(mshName, xVals, yVals, zVals=None):
+def genPlotMsh(msh_name, xVals, yVals, zVals=None):
     """Generates a mesh for plotting."""
     n = np.size(xVals)
     if zVals is None:
         zVals = np.zeros(n)
-    msh = bpy.data.meshes.new(mshName)
-    msh.vertices.add(n)
-    msh.edges.add(n-1)
-    for i in range(n):
-        msh.vertices[i].co = (xVals[i], yVals[i], zVals[i])
-        if i < n-1:
-            msh.edges[i].vertices = (i, i+1)
+    msh = bpy.data.meshes.new(msh_name)
+    
+    v = [(x, y, z) for x, y, z in zip(xVals, yVals, zVals)]
+    e = [(i, i+1) for i in np.arange(0, n-1)]
+    msh.from_pydata(v, e, [])
+    msh.update()
+
     return msh
 
-def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0), collName='Collection'):
+    # msh.vertices.add(n)
+    # msh.edges.add(n-1)
+    # for i in range(n):
+    #     msh.vertices[i].co = (xVals[i], yVals[i], zVals[i])
+    #     if i < n-1:
+    #         msh.edges[i].vertices = (i, i+1)
+    # return msh
+
+def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0), coll_name='Collection'):
     """Generates an object fraom a mesh and attaches it to the current scene."""
     obj = bpy.data.objects.new(name, msh)
     # put that object in the scene
     obj.location = mathutils.Vector(location)
-    bpy.data.collections[collName].objects.link(obj)
+    bpy.data.collections[coll_name].objects.link(obj)
     return obj
 
 ## Blender usefulness exercise #2 - animation
@@ -825,7 +930,7 @@ def animate_simple(anim_data, columns=['object', 'keyframe', 'attribute', 'value
         obj.keyframe_insert(data_path=attr, frame=frame)
 
 def demo_animate_sphere():
-    obj = new.sphere(objName='sphere', mshName='sph', collName='myColl')
+    obj = new.sphere(obj_name='sphere', msh_name='sph', coll_name='myColl')
     frameID = [1, 50, 100]
     loc = [(1, 1, 1), (1, 2, 1), (2, 2, 1)]
     attrs = ['location', 'rotation_euler', 'scale']

@@ -80,10 +80,10 @@ def dummyFunc(*args, **kwargs):
 #     sys.path.append(addonPath)
 # from io_mesh_stl.stl_utils import read_stl
 
-# objName = bpy.path.display_name(os.path.basename(path))
+# obj_name = bpy.path.display_name(os.path.basename(path))
 # tris, tri_nors, pts = stl_utils.read_stl(path)
 # tri_nors = tri_nors if self.use_facet_normal else None
-# blender_utils.create_and_link_mesh(objName, tris, tri_nors, pts, global_matrix)
+# blender_utils.create_and_link_mesh(obj_name, tris, tri_nors, pts, global_matrix)
 
 # TODO: Put this in bpn (make meshes from stl, find meshes from blender workspace, create meshes from faces and vertices)
 # # How to make a mesh using vertices and triangles

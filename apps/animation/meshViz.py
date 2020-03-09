@@ -21,21 +21,31 @@ bpy = bpn.bpy
 #     return lambda ix, iy: z[ix][iy]
 # zFunc = callable_matrix(z)
 
+def fun2mat(xyfun, x=[], y=[]):
+    """
+    This functionality is already in the bpn module.
+    It is here only to illustrate the versatility of bpn.Msh creation
+    """
+    assert isinstance(xyfun, types.FunctionType)
+    assert xyfun.__code__.co_argcount == 2 # function has two input arguments
+    if x is mat2mesh.__defaults__[0]: # default ranges
+        x = np.arange(-2, 2, 0.1)
+    if y is mat2mesh.__defaults__[1]:
+        y = np.arange(-2, 2, 0.1)
+    return np.array([[xyfun(xv, yv) for yv in y] for xv in x])
+
 def mat2mesh(z, x=[], y=[]):
     """
-    z is a 2-D numpy array, 2D list or an anonymous function of 2 input numbers and one output number
+    z is a 2-D numpy array or a 2D list
+    returns:
+        v list of vertices
+        f list of faces
+    This is here only for demonstration. It is already in bpn module.
     """
-    if isinstance(z, types.FunctionType):
-        if x is mat2mesh.__defaults__[0]: # default ranges
-            x = np.arange(-2, 2, 0.1)
-        if y is mat2mesh.__defaults__[1]:
-            y = np.arange(-2, 2, 0.1)
-        z = np.array([[z(xv, yv) for yv in y] for xv in x])
-    else: # expecting a numpy array or a 2d list
-        if x is mat2mesh.__defaults__[0]:
-            x = np.arange(0, np.shape(z)[0])
-        if y is mat2mesh.__defaults__[1]:
-            y = np.arange(0, np.shape(z)[1])
+    if x is mat2mesh.__defaults__[0]:
+        x = np.arange(0, np.shape(z)[0])
+    if y is mat2mesh.__defaults__[1]:
+        y = np.arange(0, np.shape(z)[1])
 
     nX = len(x)
     nY = len(y)
@@ -47,14 +57,24 @@ def mat2mesh(z, x=[], y=[]):
     f = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
     return v, f
 
-xyfun = lambda x, y: x*x+y*y
-v1, f1 = mat2mesh(xyfun, x=np.arange(-2, 2, 0.02), y=np.arange(-2, 3))
+fun = lambda x, y: x*x+y*y
+x1 = np.arange(-2, 2, 0.02)
+y1 = np.arange(-2, 3, 0.2)
+z1 = fun2mat(fun, x1, y1)
+v1, f1 = mat2mesh(z1, x=x1, y=y1)
 
-#create mesh and object
-mesh = bpy.data.meshes.new("wave")
-obj = bpy.data.objects.new("wave", mesh)
-bpy.data.collections['Collection'].objects.link(obj)
+# # demonstrate different ways of using bpn msh
+# m = bpn.Msh(v=v1, f=f1, obj_name='parabola1', coll_name='Collection')
+# m = bpn.Msh(v=v1, f=f1)
+# m = bpn.Msh(xyfun=fun)
+# m = bpn.Msh(z=z1) # not the parabola you're expecting
+# m = bpn.Msh(z=z1, x=x1, y=y1) # better
 
-#create mesh from python data
-mesh.from_pydata(v1, [], f1)
-mesh.update(calc_edges=True)
+# def xyifun(alpha):
+#     return lambda x, y: np.sqrt(alpha-np.abs(x))
+
+# for i in np.arange(1, 7):
+#     bpn.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], name='sqrt_1', coll_name='roof')
+#     bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], name='sqrt_2', coll_name='roof')
+
+bpn.plotDNA()

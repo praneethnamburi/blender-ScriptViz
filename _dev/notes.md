@@ -350,7 +350,7 @@ def ReportDelta(deltaType='meshes'):
 
 @ReportDelta(deltaType='objects')
 @ReportDelta(deltaType='meshes')
-def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName = 'Collection'):
+def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', coll_name = 'Collection'):
     fNames=getMeshNames(fPath, searchStr)
     for fName in fNames:
         bpy.ops.import_mesh.stl(filepath=getFileName_full(fPath, fName))

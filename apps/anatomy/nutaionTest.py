@@ -38,16 +38,16 @@ FRAME_OUTRIGHT = 200
 
 import mathutils # pylint: disable=import-error
 
-def setOriginToCenter(objName):
+def setOriginToCenter(obj_name):
     """Bring every bone's origin to center."""
-    new_origin = mathutils.Vector(bpn.Msh(bpy.data.objects[objName]).center)
-    bpy.data.objects[objName].data.transform(mathutils.Matrix.Translation(-new_origin))
-    bpy.data.objects[objName].matrix_world.translation += new_origin
+    new_origin = mathutils.Vector(bpn.Msh(bpy.data.objects[obj_name]).center)
+    bpy.data.objects[obj_name].data.transform(mathutils.Matrix.Translation(-new_origin))
+    bpy.data.objects[obj_name].matrix_world.translation += new_origin
 
-def locRotKeyFrame(objName, frameNum=1):
+def locRotKeyFrame(obj_name, frameNum=1):
     """Set location and rotation keyframes for a given object."""
-    bpy.data.objects[objName].keyframe_insert(data_path="location", frame=frameNum)
-    bpy.data.objects[objName].keyframe_insert(data_path="rotation_euler", frame=frameNum)
+    bpy.data.objects[obj_name].keyframe_insert(data_path="location", frame=frameNum)
+    bpy.data.objects[obj_name].keyframe_insert(data_path="rotation_euler", frame=frameNum)
 
 def initBones():
     """

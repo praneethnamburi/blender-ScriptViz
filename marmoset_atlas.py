@@ -32,7 +32,7 @@ def getMshNames(fPath=marmosetAtlasPath(), searchStr='*52*.stl'):
     return mshNames
 
 @bpn.ReportDelta
-def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', collName='Collection'):
+def loadSTL(fPath=marmosetAtlasPath(), searchStr='*smooth*.stl', coll_name='Collection'):
     """Import brain meshes into blender and report changes in output"""
     fNames = getMshNames(fPath, searchStr)
     for fName in fNames:
