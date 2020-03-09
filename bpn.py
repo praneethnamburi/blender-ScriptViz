@@ -201,7 +201,7 @@ class Msh:
             coll_name='new_coll' (str) name of the collection to locate the object
             name='thing' (str) both the mesh and the object will receive this name
 
-            create a mesh from a function:
+            Create a mesh from a function:
                 xyfun (function with two float inputs and one float output)
                     xyfun = lambda x, y: x*x+y*y
                     A 2d matrix, z, gets created if a function is supplied
@@ -212,11 +212,19 @@ class Msh:
                     x = np.arange(-2, 2, 0.02)
                 y (list)
                     y = np.arange(-2, 3, 0.2)
-
-            create mesh from vertices and faces:
+            
+            Create a mesh from vertices and faces:
                 v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
                 f (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
 
+            Create a 3d plot:
+                z (list) with n elements
+                x (list) with n elements
+                y (list) with n elements
+                
+            Create a 'line' from vertices and edges:
+                v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
+                e (lines connecting edges)
         """
         if 'msh_name' not in kwargs:
             msh_name = 'new_mesh'
@@ -245,14 +253,14 @@ class Msh:
                 elif 'xyfun' in kwargs:
                     x = np.arange(-2, 2, 0.1)
             else:
-                x = kwargs.pop('x')
+                x = kwargs['x']
             if 'y' not in kwargs:
                 if 'z' in kwargs:
                     y = np.arange(0, np.shape(kwargs['z'])[1])
                 elif 'xyfun' in kwargs:
                     y = np.arange(-2, 2, 0.1)
             else:
-                y = kwargs.pop('y')
+                y = kwargs['y']
 
         if 'xyfun' in kwargs:
             xyfun = kwargs.pop('xyfun')
@@ -262,50 +270,64 @@ class Msh:
 
         if 'z' in kwargs:
             z = np.array(kwargs['z'])
-            nX = len(x)
-            nY = len(y)
-            assert nX == np.shape(z)[0]
-            assert nY == np.shape(z)[1]
-            # matrix to vertices and faces
-            kwargs['v'] = [(xv, yv, z[ix][iy]) for iy, yv in enumerate(y) for ix, xv in enumerate(x)]
-            kwargs['f'] = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
+            if len(np.shape(z)) == 2: # 2D array, surface plot
+                nX = len(x)
+                nY = len(y)
+                assert nX == np.shape(z)[0]
+                assert nY == np.shape(z)[1]
+                # matrix to vertices and faces
+                kwargs['v'] = [(xv, yv, z[ix][iy]) for iy, yv in enumerate(y) for ix, xv in enumerate(x)]
+                kwargs['f'] = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
+            if len(np.shape(z)) == 1: # 3D plot!
+                n = np.shape(z)[0]
+                assert len(x) == n
+                assert len(y) == n
+                assert len(z) == n
+                kwargs['v'] = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
+                kwargs['e'] = [(i, i+1) for i in np.arange(0, n-1)]
 
         if 'v' in kwargs and 'f' in kwargs:
-            v = kwargs.pop('v')
-            f = kwargs.pop('f')
+            self.init_from_py_vf(kwargs['v'], kwargs['f'], msh_name)
+            
+        if 'v' in kwargs and 'e' in kwargs:
+            self.init_from_py_ve(kwargs['v'], kwargs['e'], msh_name)
 
-        if 'v' in locals() and 'f' in locals():    
-            self.init_from_py(v, f, msh_name, obj_name, coll_name)
-
-        self.init_from_bpy(chkType(msh_name, 'Mesh'))
+        self.bpy_msh = self.init_from_bpy(msh_name)
         self.vInit = self.v # for resetting
         self.vBkp = self.v  # for undoing (switching back and forth)
+
+        # create object if it doesn't exist, and link it to the scene
+        if not [o for o in bpy.data.objects if o.name == obj_name]:
+            obj = bpy.data.objects.new(obj_name, self.bpy_msh)
+            bpy.data.collections[coll_name].objects.link(obj)
     
-    def init_from_bpy(self, bpy_msh):
+    @staticmethod
+    def init_from_bpy(msh_name):
         """
         Initialize a bpn mesh from a bpy mesh.
         This is here to increase input flexibility to bpn.Msh's
         __init__ while preserving code readability.
         """
-        self.bpy_msh = bpy_msh
+        return chkType(msh_name, 'Mesh')
 
-    def init_from_py(self, v, f, msh_name, obj_name, coll_name):
+    @staticmethod
+    def init_from_py_vf(v, f, msh_name):
         """
         Create a blender mesh from python data, assign it to an object, and put it in a collection.
         :param v: (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
             3D vertex locations
         :param f: (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
             Faces
-        :param obj_name: (str) name of the object to assign the mesh
-        :param coll_name: (str) name of the collection to locate the object
         """
         mesh = bpy.data.meshes.new(msh_name)
         mesh.from_pydata(v, [], f)
         mesh.update(calc_edges=True)
-        self.bpy_msh = mesh
         
-        obj = bpy.data.objects.new(obj_name, mesh)
-        bpy.data.collections[coll_name].objects.link(obj)
+    @staticmethod
+    def init_from_py_ve(v, e, msh_name):
+        mesh = bpy.data.meshes.new(msh_name)
+        mesh.from_pydata(v, e, [])
+        mesh.update()
 
     @property
     def v(self):
@@ -754,15 +776,6 @@ def genPlotMsh(msh_name, xVals, yVals, zVals=None):
     msh.update()
 
     return msh
-
-    # # if I make a mesh this way, plots don't show up unless I go to edit mode
-    # msh.vertices.add(n)
-    # msh.edges.add(n-1)
-    # for i in range(n):
-    #     msh.vertices[i].co = (xVals[i], yVals[i], zVals[i])
-    #     if i < n-1:
-    #         msh.edges[i].vertices = (i, i+1)
-    # return msh
 
 def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0), coll_name='Collection'):
     """Generates an object fraom a mesh and attaches it to the current scene."""
