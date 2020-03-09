@@ -755,6 +755,7 @@ def genPlotMsh(msh_name, xVals, yVals, zVals=None):
 
     return msh
 
+    # # if I make a mesh this way, plots don't show up unless I go to edit mode
     # msh.vertices.add(n)
     # msh.edges.add(n-1)
     # for i in range(n):
