@@ -77,7 +77,7 @@ v1, f1 = mat2mesh(z1, x=x1, y=y1)
 #     bpn.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], name='sqrt_1', coll_name='roof')
 #     bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], name='sqrt_2', coll_name='roof')
 
-a = np.linspace(0, 2.0*np.pi, 100)
+a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)
 f = lambda a, offset: np.sin(a+offset)
 x = f(a, np.pi/2)
 y = f(a, 0)
@@ -90,3 +90,6 @@ e2 = [(i, i+1) for i in np.arange(0, n-1)]
 # bpn.plotDNA()
 m = bpn.Msh(v=v2, e=e2, name='strand1')
 m = bpn.Msh(x=-x, y=-y, z=z, name='strand2')
+
+# heart
+m = bpn.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='spiral')
