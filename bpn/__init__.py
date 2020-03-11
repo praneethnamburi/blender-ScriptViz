@@ -14,6 +14,8 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
+import new
+
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
@@ -501,85 +503,85 @@ class Msh:
     def _loadstl(self, stlfile, collection=None):
         return loadSTL([stlfile])['meshes'][0]
 
-class new:
-    @staticmethod
-    def collection(coll_name='newColl'):
-        if coll_name in [c.name for c in bpy.data.collections]:
-            col = bpy.data.collections[coll_name]
-        else:
-            col = bpy.data.collections.new(coll_name)
-            bpy.context.scene.collection.children.link(col)
-        return col
+# class new:
+#     @staticmethod
+#     def collection(coll_name='newColl'):
+#         if coll_name in [c.name for c in bpy.data.collections]:
+#             col = bpy.data.collections[coll_name]
+#         else:
+#             col = bpy.data.collections.new(coll_name)
+#             bpy.context.scene.collection.children.link(col)
+#         return col
 
-    @staticmethod
-    def obj(msh, col, obj_name='newObj'):
-        if isinstance(msh, str):
-            msh = bpy.data.meshes[msh]
-        if isinstance(col, str):
-            col = bpy.data.collections[col]
+#     @staticmethod
+#     def obj(msh, col, obj_name='newObj'):
+#         if isinstance(msh, str):
+#             msh = bpy.data.meshes[msh]
+#         if isinstance(col, str):
+#             col = bpy.data.collections[col]
 
-        if obj_name in [o.name for o in bpy.data.objects]:
-            obj = bpy.data.objects[obj_name]
-        else:
-            obj = bpy.data.objects.new(obj_name, msh)
-            col.objects.link(obj)
-        return obj
+#         if obj_name in [o.name for o in bpy.data.objects]:
+#             obj = bpy.data.objects[obj_name]
+#         else:
+#             obj = bpy.data.objects.new(obj_name, msh)
+#             col.objects.link(obj)
+#         return obj
 
-    # Meshes
-    @staticmethod
-    def msh_sphere(msh_name='newMsh', u=16, v=8, r=0.5):
-        if msh_name in [m.name for m in bpy.data.meshes]:
-            msh = bpy.data.meshes[msh_name]
-        else:
-            msh = bpy.data.meshes.new(msh_name)
-            bm = bmesh.new()
-            bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, diameter=r)
-            bm.to_mesh(msh)
-            bm.free()
-        return msh
+#     # Meshes
+#     @staticmethod
+#     def msh_sphere(msh_name='newMsh', u=16, v=8, r=0.5):
+#         if msh_name in [m.name for m in bpy.data.meshes]:
+#             msh = bpy.data.meshes[msh_name]
+#         else:
+#             msh = bpy.data.meshes.new(msh_name)
+#             bm = bmesh.new()
+#             bmesh.ops.create_uvsphere(bm, u_segments=u, v_segments=v, diameter=r)
+#             bm.to_mesh(msh)
+#             bm.free()
+#         return msh
     
-    @staticmethod
-    def msh_monkey(msh_name='Suzy'):
-        if msh_name in [m.name for m in bpy.data.meshes]:
-            msh = bpy.data.meshes[msh_name]
-        else:
-            msh = bpy.data.meshes.new(msh_name)
-            bm = bmesh.new()
-            bmesh.ops.create_monkey(bm)
-            bm.to_mesh(msh)
-            bm.free()
-        return msh
+#     @staticmethod
+#     def msh_monkey(msh_name='Suzy'):
+#         if msh_name in [m.name for m in bpy.data.meshes]:
+#             msh = bpy.data.meshes[msh_name]
+#         else:
+#             msh = bpy.data.meshes.new(msh_name)
+#             bm = bmesh.new()
+#             bmesh.ops.create_monkey(bm)
+#             bm.to_mesh(msh)
+#             bm.free()
+#         return msh
 
-    # easy object creation
-    @classmethod
-    def sphere(cls, obj_name='newObj', msh_name='newMsh', coll_name='newColl', u=16, v=8, r=0.5):
-        col = cls.collection(coll_name)
-        msh = cls.msh_sphere(msh_name, u=u, v=v, r=r)
-        obj = cls.obj(msh, col, obj_name)
-        return obj
+#     # easy object creation
+#     @classmethod
+#     def sphere(cls, obj_name='newObj', msh_name='newMsh', coll_name='newColl', u=16, v=8, r=0.5):
+#         col = cls.collection(coll_name)
+#         msh = cls.msh_sphere(msh_name, u=u, v=v, r=r)
+#         obj = cls.obj(msh, col, obj_name)
+#         return obj
 
-    @classmethod
-    def monkey(cls, obj_name='Suzy', msh_name='Suzy', coll_name='newColl'):
-        col = cls.collection(coll_name)
-        msh = cls.msh_monkey(msh_name)
-        obj = cls.obj(msh, col, obj_name)
-        return obj
+#     @classmethod
+#     def monkey(cls, obj_name='Suzy', msh_name='Suzy', coll_name='newColl'):
+#         col = cls.collection(coll_name)
+#         msh = cls.msh_monkey(msh_name)
+#         obj = cls.obj(msh, col, obj_name)
+#         return obj
 
-    @staticmethod
-    def primitive(pType='monkey', location=(1.0, 3.0, 5.0)):
-        """
-        Add a primitive at a given location - just simplifies syntax
-        pType can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
-        monkey, plane, torus
-        Adding a primitive while in edit mode will add the primitive to the
-        mesh that is being edited in mesh mode! This means that you can inherit
-        animations (and perhaps modifiers) by adding to a mesh!
-        """
-        funcName = 'primitive_'+pType+'_add'
-        if hasattr(bpy.ops.mesh, funcName):
-            getattr(bpy.ops.mesh, funcName)(location=location)
-        else:
-            raise ValueError(f"{pType} is not a valid argument")
+#     @staticmethod
+#     def primitive(pType='monkey', location=(1.0, 3.0, 5.0)):
+#         """
+#         Add a primitive at a given location - just simplifies syntax
+#         pType can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
+#         monkey, plane, torus
+#         Adding a primitive while in edit mode will add the primitive to the
+#         mesh that is being edited in mesh mode! This means that you can inherit
+#         animations (and perhaps modifiers) by adding to a mesh!
+#         """
+#         funcName = 'primitive_'+pType+'_add'
+#         if hasattr(bpy.ops.mesh, funcName):
+#             getattr(bpy.ops.mesh, funcName)(location=location)
+#         else:
+#             raise ValueError(f"{pType} is not a valid argument")
 
 class Draw:
     """Turtle-like access to bmesh functions."""
