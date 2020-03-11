@@ -93,3 +93,6 @@ m = bpn.Msh(x=-x, y=-y, z=z, name='strand2')
 
 # heart
 m = bpn.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='spiral')
+
+# implement turtle functions using grease pencil module
+# see if you can 'attach' segments at specific points, faces

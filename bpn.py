@@ -4,6 +4,7 @@ Praneeth's blender python module
 import errno
 import os
 import functools
+import inspect
 import sys
 import types
 import numpy as np
@@ -897,18 +898,28 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
         p.to_excel(fname, index=False, sheet_name=sheet_name)
     return p
 
-def animate_simple(anim_data, columns=['object', 'keyframe', 'attribute', 'value']):
+def animate_simple(anim_data, columns=None, propfunc=functools.partial(new.sphere, **{'coll_name':'Points', 'u':16, 'v':8, 'r':0.1})):
     """
     Simple keyframe animation in blender. 
 
-    Input:
-        anim_data, a pandas data frame with four columns
+    :param anim_data: (pandas.DataFrame)
+        A pandas data frame with four columns
+    :param columns: (list of strings)
         Pandas data frame is typically read from an excel file with these four columns
           - object <str> name of the object in blender
           - keyframe <int> frame number
           - attribute <str> attribute name, such as location, rotation_euler, scale
           - value <list> 3-element list in the case of location, rotation_euler and scale
-
+    :param propfunc: (types.FunctionType)
+        Function used to create an object if it does not exist
+        Default: create a uv sphere
+        Use functools.partial to pass default arguments to your favorite creation function.
+        The object name is drawn from the excel file.
+        Note: 
+            If you supply 'msh_name' argument, then the same mesh will be used for all the objects created.
+                propfunc=functools.partial(new.sphere, **{'coll_name':'Points', 'msh_name':'sph', 'u':16, 'v':8, 'r':0.1})
+            If not, the mesh name is same as the object name.
+                propfunc=functools.partial(new.sphere, **{'coll_name':'Points', 'u':16, 'v':8, 'r':0.1})
     Result:
         keyframe animation in the blend file
     
@@ -917,23 +928,38 @@ def animate_simple(anim_data, columns=['object', 'keyframe', 'attribute', 'value
         fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
         bpn.animate_simple(fname)
     """
+    def get_obj_list(obj_name):
+        prop_list = Props().get(obj_name) 
+        if len(prop_list) > 1: # multiple props detected, only keep objects
+            prop_list = [o for o in prop_list if isinstance(o, bpy.types.Object)]
+        return prop_list
+
+    if columns is None:
+        columns = ['object', 'keyframe', 'attribute', 'value']
+
     if isinstance(anim_data, str):
         if os.path.isfile(anim_data):
             anim_data = pd.read_excel(anim_data, sheet_name='animation')
 
     assert isinstance(anim_data, pd.DataFrame)
     for i in np.arange(0, len(anim_data)):
-        propList = Props().get(anim_data.iloc[i][columns[0]]) # columns[0] = 'object'
-         
-        if len(propList) > 1: # multiple props detected, only keep objects
-            propList = [o for o in propList if isinstance(o, bpy.types.Object)]
+        this_obj_name = anim_data.iloc[i][columns[0]] # columns[0] = 'object'
+        prop_list = get_obj_list(this_obj_name)
         
-        if not propList: # object doesn't exist in the scene, so skip
-            continue
-        
-        assert len(propList) == 1 # there should really only be one object with that name
+        if not prop_list: # object doesn't exist in the scene, create it!
+            if isinstance(propfunc, functools.partial):
+                inp_dict = [a[1] for a in inspect.getmembers(propfunc) if a[0] == 'keywords'][0]
+                if 'msh_name' in inp_dict:
+                    this_msh_name = inp_dict['msh_name']
+                else: # if msh_name is not present, create a new mesh for each object
+                    this_msh_name = this_obj_name
 
-        obj = propList[0] 
+            propfunc(obj_name=this_obj_name, msh_name=this_msh_name)
+            prop_list = get_obj_list(this_obj_name)
+        
+        assert len(prop_list) == 1 # there should really only be one object with that name
+
+        obj = prop_list[0] 
         frame = anim_data.iloc[i][columns[1]] # columns[1] = 'keyframe'
         attr = anim_data.iloc[i][columns[2]]  # columns[2] = 'attribute'
         val = anim_data.iloc[i][columns[3]]   # columns[3] = 'value'
