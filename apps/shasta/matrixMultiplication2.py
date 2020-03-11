@@ -10,14 +10,17 @@ if DEV_ROOT not in sys.path:
 
 import bpn # pylint: disable=unused-import
 
+from importlib import reload
+
+bpn = reload(bpn)
 bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor_location[0] = -100
+# bpy.data.scenes['Scene'].cursor_location[0] = -100
 
 try:
-    msh = bpn.Msh('Plane')
+    msh = bpn.Msh(name='Plane')
 except:
-    bpn.addPrimitive(pType='plane', location=(0.0, 0.0, 0.0))
-    msh = bpn.Msh('Plane')
+    bpn.new.circle(obj_name='Plane')
+    msh = bpn.Msh(name='Plane')
 
 msh.v = np.array([\
     [-1, -1, 0],\

@@ -10,17 +10,19 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import bpn # pylint: disable=unused-import
+from importlib import reload
 
+bpn = reload(bpn)
 bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor_location[0] = -100
+# bpy.data.scenes['Scene'].cursor_location[0] = -100
 
 COORD_FILE = os.path.join(DEV_ROOT, '_temp/suzanneCoords.pkl')
 
 try:
-    msh = bpn.Msh('Suzanne')
+    msh = bpn.Msh(name='Suzy')
 except:
-    bpn.addPrimitive(pType='monkey', location=(0.0, 0.0, 0.0))
-    msh = bpn.Msh('Suzanne')
+    bpn.new.monkey()
+    msh = bpn.Msh(name='Suzy')
 
 if not os.path.exists(COORD_FILE):
     coords = msh.v
@@ -51,10 +53,10 @@ newCoords = m1@coords
 # make sure you're in object mode
 msh.v = newCoords.T
 
-# coords = msh.v
-# for i, co in enumerate(coords):
-#     coords[i] = coords[i] + 0.01*np.random.randn(3)
-# msh.v = coords
+coords = msh.v
+for i, co in enumerate(coords):
+    coords[i] = coords[i] + 0.01*np.random.randn(3)
+msh.v = coords
 
 # try:
 #     λ = bpy.lamb

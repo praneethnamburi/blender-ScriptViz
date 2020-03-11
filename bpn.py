@@ -537,6 +537,18 @@ class new:
             bm.to_mesh(msh)
             bm.free()
         return msh
+    
+    @staticmethod
+    def msh_monkey(msh_name='Suzy'):
+        if msh_name in [m.name for m in bpy.data.meshes]:
+            msh = bpy.data.meshes[msh_name]
+        else:
+            msh = bpy.data.meshes.new(msh_name)
+            bm = bmesh.new()
+            bmesh.ops.create_monkey(bm)
+            bm.to_mesh(msh)
+            bm.free()
+        return msh
 
     # easy object creation
     @classmethod
@@ -545,6 +557,29 @@ class new:
         msh = cls.msh_sphere(msh_name, u=u, v=v, r=r)
         obj = cls.obj(msh, col, obj_name)
         return obj
+
+    @classmethod
+    def monkey(cls, obj_name='Suzy', msh_name='Suzy', coll_name='newColl'):
+        col = cls.collection(coll_name)
+        msh = cls.msh_monkey(msh_name)
+        obj = cls.obj(msh, col, obj_name)
+        return obj
+
+    @staticmethod
+    def primitive(pType='monkey', location=(1.0, 3.0, 5.0)):
+        """
+        Add a primitive at a given location - just simplifies syntax
+        pType can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
+        monkey, plane, torus
+        Adding a primitive while in edit mode will add the primitive to the
+        mesh that is being edited in mesh mode! This means that you can inherit
+        animations (and perhaps modifiers) by adding to a mesh!
+        """
+        funcName = 'primitive_'+pType+'_add'
+        if hasattr(bpy.ops.mesh, funcName):
+            getattr(bpy.ops.mesh, funcName)(location=location)
+        else:
+            raise ValueError(f"{pType} is not a valid argument")
 
 class Draw:
     """Turtle-like access to bmesh functions."""
@@ -827,22 +862,6 @@ def chkType(inp, inpType='Mesh'):
         # this will only happen if you didn't pass a mesh, object, or an appropriate string
         raise TypeError("Expected input of type bpy.types." + inpType + ", got, " + str(type(inp)) + " instead")
     return inp
-
-# Blender usefulness exercise #5 - add primitives
-def addPrimitive(pType='monkey', location=(1.0, 3.0, 5.0)):
-    """
-    Add a primitive at a given location - just simplifies syntax
-    pType can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
-    monkey, plane, torus
-    Adding a primitive while in edit mode will add the primitive to the
-    mesh that is being edited in mesh mode! This means that you can inherit
-    animations (and perhaps modifiers) by adding to a mesh!
-    """
-    funcName = 'primitive_'+pType+'_add'
-    if hasattr(bpy.ops.mesh, funcName):
-        getattr(bpy.ops.mesh, funcName)(location=location)
-    else:
-        raise ValueError(f"{pType} is not a valid argument")
 
 ## Functions inspired by the anatomy project
 def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=['object', 'keyframe', 'attribute', 'value']):
