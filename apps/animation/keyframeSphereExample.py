@@ -38,4 +38,8 @@ bpy = bpn.bpy
 #     p = np.array([eval(k) for k in anim_data.loc[anim_data['object'] == obj_name]['value']])
 #     bpn.Msh(x=p[:, 0], y=p[:, 1], z=p[:, 2], name=obj_name+'_trajectory', coll_name=traj_coll_name)
 
-bpn.new.sphere(obj_name='sph30', msh_name='sp30', coll_name='myc', r=3, u=3, v=2)
+# bpn.new.sphere(obj_name='sph30', msh_name='sp30', coll_name='myc', r=3, u=3, v=2)
+# bpn.new.monkey(name='L', msh_name='M')
+# bpn.new.sphere(name='Sph', r=2, u=6, v=8)
+# bpn.new.cube(name='de', msh_name='e', size=0.4)
+bpn.new.cone(name='mycone', segments=4, diameter1=2, diameter2=2, depth=2*np.sqrt(2), cap_ends=True, cap_tris=False)
