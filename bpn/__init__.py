@@ -169,26 +169,47 @@ class Msh:
         fnv - slow. faces containing vertex i (Msh().f, vertex index i) -> face neighbors of i
         vnv - slow. vertices connected to vertex i (Msh().e, vertex index i) -> vertex neighbors of i
     
+    # Creation:
+        Broadly, Msh objects can be created from:
+        - (type=stl) an STL file import
+        - (type=blend) the blender environment
+        - (type=vfedata) creating vertex, faces, and edges from data
+            - (type=fun) a 2d function that takes two floats as input and produces one output
+            - (type=mat) a 2d matrix or list
+            - (type=plot) a 3d plot
+        - (type=primitive) a selected set of primitives (use bpn.new for this!)
+            - sphere {'u':16, 'v':8, 'r':0.5}
+            - cube {'size':0.5}
+            - monkey {}
+            - cone {'n':12, 'r1':2, 'r2':0, 'd':3, 'cap_ends':True, 'cap_tris':False}
+            - ngon {'n':6, 'r1':2, 'r2':0, 'cap_ends':False, 'cap_tris':False}
+            - polygon - alias for ngon
+            - circle {n=32, r=1} (doesn't produce faces, use ngon for that)
+
     TODO: Update help and documentation for this:
     # make a mesh from python data
     Msh(name=name, v=vertices, f=faces)
-    Msh(name, v, f)
-    Msh(v, f, name='awesomeMesh')
-    Msh(v, f)
+    Msh(v=v1, f=f1)
+    Msh(v=v1, e=e1)
+    Msh(v=v1, e=e1, f=f1)
+    # name, msh_name, obj_name, coll_name behave as usual
 
     # make a mesh from an STL file
-    Msh(stlfile, 'awesomeMesh')
-    Msh('awesomeMesh', stlfile)
-    Msh(stlfile)
-    Msh(stlfile, name='awesomeMesh')
+    Msh(stl=stlfile)
+    Msh(stl=stlfile, name='awesome') # mesh and object get the same name
+    Msh(stl=stlfile, coll_name='myColl') # put msh in a collection coll_name
+    Msh(stlfile, name='awesome', msh_name='awesomeMesh', coll_name='myColl')
+    Msh(stlfile, msh_name='awesomeMesh', obj_name='awesomeObj', coll_name='myColl')
 
     # get a mesh from the blender environment
-    Msh(blender mesh name)
-    Msh(blender mesh object)
-    Msh(blender obj name)
+    Msh(name=blender mesh name)
+    Msh(name=blender obj name)
+    Msh(name=blender mesh object) # works, but not recommended
+
+    # make a mesh from a 2d function
+    Msh(xyfun=lambda x, y: x*x+y*y, name='parabola')
 
     TODO: Methods:
-    m.objects - list of objects employing the current mesh. property
     m.merge(list of meshes) # subsume a collection of meshes, assign vertex groups to keep track of originals
     Note: Use this only with triangular meshes
     """
@@ -200,8 +221,10 @@ class Msh:
                 (str) name of an object loaded in blender (get the associated mesh)
                 (bpy.types.Mesh) the bpy mesh object
             obj_name='new_obj' (str) name of the object to assign the mesh
-            coll_name='new_coll' (str) name of the collection to locate the object
+            coll_name='new_coll' (str) name of the collection to locate the object / to place the created object
             name='thing' (str) both the mesh and the object will receive this name
+                name will get overwritten by msh_name or obj_name if present
+            stl=stlfilename (str) name of stl file to import
 
             Create a mesh from a function:
                 xyfun (function with two float inputs and one float output)

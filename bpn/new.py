@@ -14,6 +14,8 @@ import pntools as pn
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 
+from .__init__ import Msh
+
 def collection(coll_name='Collection'):
     if coll_name in [c.name for c in bpy.data.collections]:
         col = bpy.data.collections[coll_name]
@@ -82,10 +84,9 @@ def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='Collect
         mshfunc(bm, **kwargs)
         bm.to_mesh(msh)
         bm.free()
+        msh.update()
 
-    col = collection(coll_name)
-    o = obj(msh, col, obj_name)
-    return o
+    return Msh(msh_name=msh.name, obj_name=obj_name, coll_name=coll_name, pargs=kwargs)
 
 sphere = partial(easycreate, bmesh.ops.create_uvsphere)
 monkey = partial(easycreate, bmesh.ops.create_monkey)
