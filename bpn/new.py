@@ -1,12 +1,20 @@
 """
 Creation submodule for bpn.
 """
+import os
+import sys
 from functools import partial
+
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
+
+import pntools as pn
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 
-def collection(coll_name='newColl'):
+def collection(coll_name='Collection'):
     if coll_name in [c.name for c in bpy.data.collections]:
         col = bpy.data.collections[coll_name]
     else:
@@ -34,7 +42,7 @@ def obj(msh, col, obj_name='newObj'):
     return o
 
 # easy object creation
-def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='newColl', name=None, **kwargs):
+def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='Collection', name=None, **kwargs):
     """
     **kwargs : u=16, v=8, r=0.5 for uv sphere
     **kwargs : size=0.5 for uv cube
@@ -44,22 +52,27 @@ def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='newColl
             obj_name = name
         if msh_name is easycreate.__defaults__[1]:
             msh_name = name
-    col = collection(coll_name)
 
-    # input control for sphere
+    # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
-        if 'u' in kwargs:
-            kwargs['u_segments'] = kwargs.pop('u')
-        if 'v' in kwargs:
-            kwargs['v_segments'] = kwargs.pop('v')
-        if 'r' in kwargs:
-            kwargs['diameter'] = kwargs.pop('r')
-        if 'u_segments' not in kwargs:
-            kwargs['u_segments'] = 16
-        if 'v_semgents' not in kwargs:
-            kwargs['v_segments'] = 8
-        if 'diameter' not in kwargs:
-            kwargs['diameter'] = 0.5
+        kwargs_def = {'u_segments':16, 'v_segments':8, 'diameter':0.5}
+        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], 'diameter': ['r', 'diameter']}
+        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+
+    if str(mshfunc) == str(bmesh.ops.create_cube):
+        kwargs_def = {'size':1}
+        kwargs_alias = {'size': ['size', 'sz', 's', 'r']}
+        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    
+    if str(mshfunc) == str(bmesh.ops.create_cone):
+        kwargs_def = {'segments':12, 'diameter1':2, 'diameter2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
+        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
+        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+
+    if str(mshfunc) == str(bmesh.ops.create_circle):
+        kwargs_def = {'segments':32, 'radius':1, 'cap_ends':False, 'cap_tris':False}
+        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'radius':['radius', 'r'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
+        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if msh_name in [m.name for m in bpy.data.meshes]:
         msh = bpy.data.meshes[msh_name]
@@ -70,6 +83,7 @@ def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='newColl
         bm.to_mesh(msh)
         bm.free()
 
+    col = collection(coll_name)
     o = obj(msh, col, obj_name)
     return o
 
@@ -77,6 +91,11 @@ sphere = partial(easycreate, bmesh.ops.create_uvsphere)
 monkey = partial(easycreate, bmesh.ops.create_monkey)
 cube = partial(easycreate, bmesh.ops.create_cube)
 cone = partial(easycreate, bmesh.ops.create_cone)
+polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 'r2':1.8})
+ngon = polygon
+
+# No faces, just edges
+circle = partial(easycreate, bmesh.ops.create_circle)
 
 def primitive(pType='monkey', location=(1.0, 3.0, 5.0)):
     """

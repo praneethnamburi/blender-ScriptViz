@@ -389,3 +389,12 @@ def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imageba
             entries, dlTime = pickle.load(f)
 
     return entries, dlTime
+
+# input handling
+def clean_kwargs(kwargs, kwargs_def, kwargs_alias, ):
+    for k in kwargs_def:
+        for ka in kwargs_alias[k]:
+            if ka in kwargs:
+                kwargs_def[k] = kwargs[ka]
+    return kwargs_def
+    

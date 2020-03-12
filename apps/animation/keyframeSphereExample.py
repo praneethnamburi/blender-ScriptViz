@@ -42,4 +42,38 @@ bpy = bpn.bpy
 # bpn.new.monkey(name='L', msh_name='M')
 # bpn.new.sphere(name='Sph', r=2, u=6, v=8)
 # bpn.new.cube(name='de', msh_name='e', size=0.4)
-bpn.new.cone(name='mycone', segments=4, diameter1=2, diameter2=2, depth=2*np.sqrt(2), cap_ends=True, cap_tris=False)
+# bpn.new.cone(name='mycone', segments=4, diameter1=2, diameter2=2, depth=2*np.sqrt(2), cap_ends=True, cap_tris=False)
+# bpn.new.cone(name='mycone')
+# bpn.new.cone(name='mycone2', seg=3, d=1)
+# bpn.new.cone(name='mycone2', seg=3, r1=3, r2=2, d=0, cap_ends=False)
+
+# bpn.new.polygon(name='hex', seg=6)
+# bpn.new.ngon(name='circle', coll_name='Collection', n=32, r1=1, r2=0)
+
+# bpn.new.polygon(name='hex', seg=6)
+# h = bpn.Msh(name='hex')
+
+#-------basic extrusion------- extend this!!
+bpn.new.circle(name='circle', n=6)
+h = bpn.Msh(name='circle')
+
+newV = h.v + np.array([1, 1, 1])
+v = [tuple(k) for k in np.concatenate([h.v, newV])]
+
+newE = h.e + h.nV
+connE = np.concatenate([[np.arange(0, h.nE)], [np.arange(0, h.nE) + h.nV]]).T
+e = [tuple(k) for k in np.concatenate([h.e, newE, connE])]
+
+connF = np.array([[connE[i, 0], connE[i, 1], connE[i+1, 1], connE[i+1, 0]] for i in np.arange(-1, np.shape(connE)[0]-1)])
+f = [tuple(k) for k in connF]
+
+bpn.Msh(name='hexCopy', v=v, e=e, f=f)
+
+# # assign vertices to groups
+# get vertices in group
+# verts_ig = [[v.index, [g.group for g in v.groups]] for v in m.bpy_msh.vertices]
+# names of groups
+# {k.index : k.name for k in o.vertex_groups}
+# It looks like objects have the names of vertex groups, and meshes have the info for group membership of each vertex
+# Vertex groups appear to ve a property of the object, rather than the mesh somehow. 
+# Change bpn.Msh class to be an object 
