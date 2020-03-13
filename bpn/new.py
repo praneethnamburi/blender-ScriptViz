@@ -98,17 +98,5 @@ ngon = polygon
 # No faces, just edges
 circle = partial(easycreate, bmesh.ops.create_circle)
 
-def primitive(pType='monkey', location=(1.0, 3.0, 5.0)):
-    """
-    Add a primitive at a given location - just simplifies syntax
-    pType can be circle, cone, cube, cylinder, grid, ico_sphere, uv_sphere,
-    monkey, plane, torus
-    Adding a primitive while in edit mode will add the primitive to the
-    mesh that is being edited in mesh mode! This means that you can inherit
-    animations (and perhaps modifiers) by adding to a mesh!
-    """
-    funcName = 'primitive_'+pType+'_add'
-    if hasattr(bpy.ops.mesh, funcName):
-        getattr(bpy.ops.mesh, funcName)(location=location)
-    else:
-        raise ValueError(f"{pType} is not a valid argument")
+# other primitives:
+# cylinder, grid, ico_sphere, plane, torus

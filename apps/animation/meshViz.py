@@ -1,17 +1,21 @@
+"""
+Demonstrates various uses of the bpn.Msh module
+"""
 import os
 import sys
 from importlib import reload
-import numpy as np # pylint: disable=unused-import
-import pandas as pd 
 import types
+import numpy as np # pylint: disable=unused-import
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import bpn # pylint: disable=unused-import
+import mathutils # pylint: disable=import-error
 
 bpn = reload(bpn)
+bpn.new = reload(bpn.new)
 
 bpy = bpn.bpy
 
@@ -64,35 +68,47 @@ z1 = fun2mat(fun, x1, y1)
 v1, f1 = mat2mesh(z1, x=x1, y=y1)
 
 # # demonstrate different ways of using bpn msh
-# m = bpn.Msh(v=v1, f=f1, obj_name='parabola1', coll_name='Collection')
-m = bpn.Msh(v=v1, f=f1)
-# m = bpn.Msh(xyfun=fun)
+p = bpn.Msh(v=v1, f=f1, name='parabola1', msh_name='parabola', coll_name='surface')
+p.loc = p.loc + mathutils.Vector((-4.0, -3.0, 0.0))
+# m = bpn.Msh(v=v1, f=f1)
+p2 = bpn.Msh(xyfun=fun, name='parabola2', coll_name='surface')
+p2.loc = p2.loc + mathutils.Vector((4.0, -3.0, 0.0))
 # m = bpn.Msh(z=z1) # not the parabola you're expecting
 # m = bpn.Msh(z=z1, x=x1, y=y1) # better
 
-# def xyifun(alpha):
-#     return lambda x, y: np.sqrt(alpha-np.abs(x))
+def xyifun(alpha):
+    return lambda x, y: np.sqrt(alpha-np.abs(x))
 
-# for i in np.arange(1, 7):
-#     bpn.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], name='sqrt_1', coll_name='roof')
-#     bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], name='sqrt_2', coll_name='roof')
+for i in np.arange(1, 7):
+    rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], msh_name='sqrt_1'+str(i), obj_name='sqrt_1'+str(i), coll_name='roof')
+    rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
+    rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='roof')
+    rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
 
-# a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)
-# f = lambda a, offset: np.sin(a+offset)
-# x = f(a, np.pi/2)
-# y = f(a, 0)
-# z = a
+## 3D plots
+# DNA
+a = np.linspace(-2.0*np.pi, 2.0*np.pi, 100)
+f = lambda a, offset: np.sin(a+offset)
+x = f(a, np.pi/2)
+y = f(a, 0)
+z = a
 
-# n = np.size(x)
-# v2 = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
-# e2 = [(i, i+1) for i in np.arange(0, n-1)]
+n = np.size(x)
+v2 = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
+e2 = [(i, i+1) for i in np.arange(0, n-1)]
 
-# # bpn.plotDNA()
-# m = bpn.Msh(v=v2, e=e2, name='strand1')
-# m = bpn.Msh(x=-x, y=-y, z=z, name='strand2')
+m = bpn.Msh(v=v2, e=e2, name='strand1', coll_name='plots')
+m = bpn.Msh(x=-x, y=-y, z=z, name='strand2', coll_name='plots')
 
-# # heart
-# m = bpn.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='spiral')
+# heart
+a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)
+m = bpn.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='heart', coll_name='plots')
+
+## primitives
+s1 = bpn.new.sphere(name='sphere01', msh_name='sphere', coll_name='primitives')
+s1.loc = (0.0, 1.0, 0.0)
+s2 = bpn.new.sphere(name='sphere02', msh_name='sphere', coll_name='primitives')
+s2.loc = (2.0, 2.0, 0.0)
 
 # implement turtle functions using grease pencil module
 # see if you can 'attach' segments at specific points, faces

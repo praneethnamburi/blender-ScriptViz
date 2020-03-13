@@ -20,7 +20,8 @@ if DEV_ROOT not in sys.path:
 
 import pntools as pn
 
-from . import new
+if __package__ is not None:
+    from . import new
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
@@ -175,8 +176,13 @@ class Msh:
         - (type=blend) the blender environment
         - (type=vfedata) creating vertex, faces, and edges from data
             - (type=fun) a 2d function that takes two floats as input and produces one output
+                xyfun -> x (list), y (list), z (2D list) -> v, f (e=automatically calculated) -> mesh
+                xyfun (function with two float inputs and one float output)
+                    xyfun = lambda x, y: x*x+y*y
             - (type=mat) a 2d matrix or list
+                - x (list), y(list), z (2D list) -> v, f (e=automatically created) -> mesh
             - (type=plot) a 3d plot
+                - x (list), y(list), z (list) -> v, e (no faces) -> mesh
         - (type=primitive) a selected set of primitives (use bpn.new for this!)
             - sphere {'u':16, 'v':8, 'r':0.5}
             - cube {'size':0.5}
@@ -254,7 +260,7 @@ class Msh:
         if 'stl' in kwargs:
             self._setmoc_stl(kwargs['stl'], kwargs)
         else:
-            self.setmoc(kwargs)
+            self._setmoc(kwargs)
         self.name = {'msh': self.m.name, 'obj': self.o.name, 'coll': self.c.name}
         self.inp = kwargs
         self.vInit = self.v # for resetting
@@ -286,7 +292,7 @@ class Msh:
             self.c.objects.unlink(self.o)
             self.c = col
 
-    def setmoc(self, kwargs):
+    def _setmoc(self, kwargs):
         """
         Parse keyword arguments to set mesh, object and collection.
         """
@@ -304,18 +310,39 @@ class Msh:
             coll_name = 'Collection'            
         else:
             coll_name = kwargs['coll_name']
-        new.collection(coll_name) # create if it doesn't exist
+        
+        # if obj_name exists, use object and corresponding mesh
+        if obj_name in [o.name for o in bpy.data.objects]:
+            self.o = bpy.data.objects[obj_name]
+            self.m = self.o.data
+            self.c = self.o.users_collection[0]
+            # if the object exists, but is in a different collection than coll_name, nothing happens
+            # TODO: make a move_collection function 
+        else:
+            # if mesh exists, assign it to the object, and put it in collection
+            if msh_name in [m.name for m in bpy.data.meshes]:
+                self.m = bpy.data.meshes[msh_name]
+            else: # if mesh doesn't exist, make the mesh
+                self.m = self._make_mesh(msh_name, kwargs)
+            # object doesn't exist, so make it and link it to the scene
+            self.o = bpy.data.objects.new(obj_name, self.m)
+            self.c = new.collection(coll_name) # create if it doesn't exist
+            self.c.objects.link(self.o)
 
+    def _make_mesh(self, msh_name, kwargs):
+        """
+        This mesh creation function is invoked only if mesh specified by msh_name does not exist.
+        """
         if 'z' in kwargs or 'xyfun' in kwargs:
             if 'x' not in kwargs:
-                if 'z' in kwargs:
+                if 'z' in kwargs and len(np.shape(kwargs['z'])) == 2:
                     x = np.arange(0, np.shape(kwargs['z'])[0])
                 elif 'xyfun' in kwargs:
                     x = np.arange(-2, 2, 0.1)
             else:
                 x = kwargs['x']
             if 'y' not in kwargs:
-                if 'z' in kwargs:
+                if 'z' in kwargs and len(np.shape(kwargs['z'])) == 2:
                     y = np.arange(0, np.shape(kwargs['z'])[1])
                 elif 'xyfun' in kwargs:
                     y = np.arange(-2, 2, 0.1)
@@ -346,24 +373,15 @@ class Msh:
                 kwargs['v'] = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
                 kwargs['e'] = [(i, i+1) for i in np.arange(0, n-1)]
 
-        if 'v' in kwargs and 'f' in kwargs and 'e' in kwargs:
-            self.init_from_py_vef(kwargs['v'], kwargs['e'], kwargs['f'], msh_name)
-
-        if 'v' in kwargs and 'f' in kwargs:
-            self.init_from_py_vf(kwargs['v'], kwargs['f'], msh_name)
-            
-        if 'v' in kwargs and 'e' in kwargs:
-            self.init_from_py_ve(kwargs['v'], kwargs['e'], msh_name)
-
-        self.m = self.init_from_bpy(msh_name)
-
-        # create object if it doesn't exist, and link it to the scene
-        if not [o for o in bpy.data.objects if o.name == obj_name]:
-            obj = bpy.data.objects.new(obj_name, self.m)
-            bpy.data.collections[coll_name].objects.link(obj)
-        
-        self.o = obj
-        self.c = bpy.data.collections[coll_name]
+        if 'v' in kwargs and ('f' in kwargs or 'e' in kwargs):
+            if 'e' not in kwargs:
+                kwargs['e'] = []
+            if 'f' not in kwargs:
+                kwargs['f'] = []
+            msh = self.init_from_py_vef(kwargs['v'], kwargs['e'], kwargs['f'], msh_name)
+        else:
+            msh = self.init_from_bpy(msh_name)
+        return msh
 
     @staticmethod
     def init_from_bpy(msh_name):
@@ -375,29 +393,23 @@ class Msh:
         return chkType(msh_name, 'Mesh')
 
     @staticmethod
-    def init_from_py_vf(v, f, msh_name):
+    def init_from_py_vef(v, e, f, msh_name):
         """
         Create a blender mesh from python data, assign it to an object, and put it in a collection.
         :param v: (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
             3D vertex locations
+        :param e: (numpy array of size nEx2, or a 2d list of size nE with 2 element lists of vertex index)    
+            Edges
         :param f: (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
             Faces
         """
         mesh = bpy.data.meshes.new(msh_name)
-        mesh.from_pydata(v, [], f)
-        mesh.update(calc_edges=True)
-        
-    @staticmethod
-    def init_from_py_ve(v, e, msh_name):
-        mesh = bpy.data.meshes.new(msh_name)
-        mesh.from_pydata(v, e, [])
-        mesh.update()
-
-    @staticmethod
-    def init_from_py_vef(v, e, f, msh_name):
-        mesh = bpy.data.meshes.new(msh_name)
         mesh.from_pydata(v, e, f)
-        mesh.update()
+        if not e:
+            mesh.update(calc_edges=True)
+        else:
+            mesh.update()
+        return mesh
 
     @property
     def v(self):
@@ -575,6 +587,15 @@ class Msh:
         if 'invalid' in str(self.c).lower():
             self.c = bpy.data.collections[self.name['coll']] #pylint: disable=attribute-defined-outside-init
 
+    # object properties
+    @property
+    def loc(self):
+        return self.o.location
+    
+    @loc.setter
+    def loc(self, new_loc):
+        assert len(new_loc) == 3
+        self.o.location = new_loc
 
 class Draw:
     """Turtle-like access to bmesh functions."""
@@ -859,7 +880,8 @@ def chkType(inp, inpType='Mesh'):
         return inp.data # in blender, obj.data points to the mesh corresponding to that object
     if not isinstance(inp, getattr(bpy.types, inpType)):
         # this will only happen if you didn't pass a mesh, object, or an appropriate string
-        raise TypeError("Expected input of type bpy.types." + inpType + ", got, " + str(type(inp)) + " instead")
+        # raise TypeError("Expected input of type bpy.types." + inpType + ", got, " + str(type(inp)) + " instead")
+        inp = None
     return inp
 
 ## Functions inspired by the anatomy project
@@ -996,4 +1018,4 @@ def demo_animate_sphere():
         bpy.context.scene.frame_set(thisFrame)
         for attr in attrs:
             setattr(obj, attr, thisLoc)
-            obj.keyframe_insert(data_path=attr, frame=thisFrame)
+            obj.o.keyframe_insert(data_path=attr, frame=thisFrame)
