@@ -268,7 +268,7 @@ class Msh:
             self._setmoc_stl(kwargs['stl'], kwargs)
         else:
             self._setmoc(kwargs)
-        self.name = {'msh': self.m.name, 'obj': self.o.name, 'coll': self.c.name}
+        self.name = {'msh': self.bm.name, 'obj': self.bo.name, 'coll': self.bc.name}
         self.inp = kwargs
         self.vInit = self.v # for resetting
         self.vBkp = self.v  # for undoing (switching back and forth)
@@ -279,25 +279,25 @@ class Msh:
         """
         assert os.path.isfile(stlfile)
         s = loadSTL([stlfile])
-        self.m = s['meshes'][0]
-        self.o = s['objects'][0]
-        self.c = s['objects'][0].users_collection[0]
+        self.bm = s['meshes'][0] # bm - blender mesh bpy.data.meshes
+        self.bo = s['objects'][0] # bo - blender object bpy.data.objects
+        self.bc = s['objects'][0].users_collection[0] # bc - blender collection bpy.data.collections
 
         if 'name' in kwargs:
-            self.m.name = kwargs['name']
-            self.o.name = kwargs['name']
+            self.bm.name = kwargs['name']
+            self.bo.name = kwargs['name']
 
         if 'msh_name' in kwargs:
-            self.m.name = kwargs['msh_name']
+            self.bm.name = kwargs['msh_name']
         
         if 'obj_name' in kwargs:
-            self.o.name = kwargs['obj_name']
+            self.bo.name = kwargs['obj_name']
         
         if 'coll_name' in kwargs:
             col = new.collection(kwargs['coll_name'])
-            col.objects.link(self.o)
-            self.c.objects.unlink(self.o)
-            self.c = col
+            col.objects.link(self.bo)
+            self.bc.objects.unlink(self.bo)
+            self.bc = col
 
     def _setmoc(self, kwargs):
         """
@@ -320,21 +320,21 @@ class Msh:
         
         # if obj_name exists, use object and corresponding mesh
         if obj_name in [o.name for o in bpy.data.objects]:
-            self.o = bpy.data.objects[obj_name]
-            self.m = self.o.data
-            self.c = self.o.users_collection[0]
+            self.bo = bpy.data.objects[obj_name]
+            self.bm = self.bo.data
+            self.bc = self.bo.users_collection[0]
             # if the object exists, but is in a different collection than coll_name, nothing happens
             # TODO: make a move_collection function 
         else:
             # if mesh exists, assign it to the object, and put it in collection
             if msh_name in [m.name for m in bpy.data.meshes]:
-                self.m = bpy.data.meshes[msh_name]
+                self.bm = bpy.data.meshes[msh_name]
             else: # if mesh doesn't exist, make the mesh
-                self.m = self._make_mesh(msh_name, kwargs)
+                self.bm = self._make_mesh(msh_name, kwargs)
             # object doesn't exist, so make it and link it to the scene
-            self.o = bpy.data.objects.new(obj_name, self.m)
-            self.c = new.collection(coll_name) # create if it doesn't exist
-            self.c.objects.link(self.o)
+            self.bo = bpy.data.objects.new(obj_name, self.bm)
+            self.bc = new.collection(coll_name) # create if it doesn't exist
+            self.bc.objects.link(self.bo)
 
     def _make_mesh(self, msh_name, kwargs):
         """
@@ -396,37 +396,37 @@ class Msh:
     @property
     def v(self):
         """Coordinates of a mesh as an nVx3 numpy array."""
-        return np.array([v.co for v in self.m.vertices])
+        return np.array([v.co for v in self.bm.vertices])
 
     @property
     def vn(self):
         """Vertex normals as an nVx3 numpy array."""
-        return np.array([v.normal[:] for v in self.m.vertices])
+        return np.array([v.normal[:] for v in self.bm.vertices])
     
     @property
     def f(self):
         """Faces as an nFx3 numpy array."""
-        return np.array([polygon.vertices[:] for polygon in self.m.polygons])
+        return np.array([polygon.vertices[:] for polygon in self.bm.polygons])
 
     @property
     def fn(self):
         """Face normals as an nFx3 numpy array."""
-        return np.array([polygon.normal[:] for polygon in self.m.polygons])
+        return np.array([polygon.normal[:] for polygon in self.bm.polygons])
         
     @property
     def fa(self):
         """Area of faces as an nFx3 numpy array."""
-        return np.array([polygon.area for polygon in self.m.polygons])
+        return np.array([polygon.area for polygon in self.bm.polygons])
     
     @property
     def fc(self):
         """Coordinates of face centers."""
-        return np.array([polygon.center for polygon in self.m.polygons])
+        return np.array([polygon.center for polygon in self.bm.polygons])
 
     @property
     def e(self):
         """Vertex indices of edges."""
-        return np.array([edge.vertices[:] for edge in self.m.edges])
+        return np.array([edge.vertices[:] for edge in self.bm.edges])
 
     @property
     def eL(self):
@@ -461,7 +461,7 @@ class Msh:
         change the mesh coordinates and switch it back.
         """
         self.vBkp = self.v # for undo
-        for vertexCount, vertex in enumerate(self.m.vertices):
+        for vertexCount, vertex in enumerate(self.bm.vertices):
             vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
 
     @property
@@ -475,7 +475,7 @@ class Msh:
 
     def delete(self):
         """Remove the mesh and corresponding objects from blender."""
-        bpy.data.meshes.remove(self.m, do_unlink=True)
+        bpy.data.meshes.remove(self.bm, do_unlink=True)
 
     def undo(self):
         """
@@ -535,7 +535,7 @@ class Msh:
     def export(self, fName=None, fPath=PATH['cache']):
         """Export a Msh instance into an stl file."""
         if fName is None:
-            fName = self.m.name + '.stl'
+            fName = self.bm.name + '.stl'
 
         if fName.lower()[-4:] != '.stl':
             print('File name should end with a .stl')
@@ -547,8 +547,8 @@ class Msh:
                 fPath = os.path.dirname(fName)
         fName = os.path.basename(fName)
 
-        v = [tuple(v.co) for v in self.m.vertices]
-        f = [tuple(polygon.vertices[:]) for polygon in self.m.polygons]
+        v = [tuple(v.co) for v in self.bm.vertices]
+        f = [tuple(polygon.vertices[:]) for polygon in self.bm.polygons]
 
         # generate faces for blender's write_stl function
         # faces: iterable of tuple of 3 vertex, vertex is tuple of 3 coordinates as float
@@ -565,40 +565,40 @@ class Msh:
         """
         Refresh if blender does memory management and moves things.
         """
-        if 'invalid' in str(self.m).lower():
-            self.m = bpy.data.meshes[self.name['msh']] #pylint: disable=attribute-defined-outside-init
-        if 'invalid' in str(self.o).lower():
-            self.o = bpy.data.objects[self.name['obj']] #pylint: disable=attribute-defined-outside-init
-        if 'invalid' in str(self.c).lower():
-            self.c = bpy.data.collections[self.name['coll']] #pylint: disable=attribute-defined-outside-init
+        if 'invalid' in str(self.bm).lower():
+            self.bm = bpy.data.meshes[self.name['msh']] #pylint: disable=attribute-defined-outside-init
+        if 'invalid' in str(self.bo).lower():
+            self.bo = bpy.data.objects[self.name['obj']] #pylint: disable=attribute-defined-outside-init
+        if 'invalid' in str(self.bc).lower():
+            self.bc = bpy.data.collections[self.name['coll']] #pylint: disable=attribute-defined-outside-init
 
     # object properties
     @property
     def loc(self):
         """Object location (not mesh!)"""
-        return self.o.location
+        return self.bo.location
     @loc.setter
     def loc(self, new_loc):
         assert len(new_loc) == 3
-        self.o.location = new_loc
+        self.bo.location = new_loc
 
     @property
     def rot(self):
         """Object rotation"""
-        return self.o.rotation_euler
+        return self.bo.rotation_euler
     @rot.setter
     def rot(self, theta):
-        self.o.rotation_euler.x = theta[0]
-        self.o.rotation_euler.y = theta[1]
-        self.o.rotation_euler.z = theta[2]
+        self.bo.rotation_euler.x = theta[0]
+        self.bo.rotation_euler.y = theta[1]
+        self.bo.rotation_euler.z = theta[2]
 
     @property
     def scl(self):
         """Object scale"""
-        return self.o.scale
+        return self.bo.scale
     @scl.setter
     def scl(self, s):
-        self.o.scale = mathutils.Vector(s)
+        self.bo.scale = mathutils.Vector(s)
 
     # object transforms
     def translate(self, delta):
@@ -607,7 +607,7 @@ class Msh:
         delta is a 3-element tuple, list, numpy array or Vector
         """
         assert len(delta) == 3
-        self.o.location = self.o.location + mathutils.Vector(delta)
+        self.bo.location = self.bo.location + mathutils.Vector(delta)
     
     def rotate(self, theta, inp_type='degrees', frame='global'):
         """
@@ -620,11 +620,11 @@ class Msh:
         if inp_type != 'degrees':
             theta = [math.radians(θ) for θ in theta]
         if frame == 'local':
-            self.o.rotation_euler.x = self.o.rotation_euler.x + theta[0]
-            self.o.rotation_euler.y = self.o.rotation_euler.y + theta[1]
-            self.o.rotation_euler.z = self.o.rotation_euler.z + theta[2]
+            self.bo.rotation_euler.x = self.bo.rotation_euler.x + theta[0]
+            self.bo.rotation_euler.y = self.bo.rotation_euler.y + theta[1]
+            self.bo.rotation_euler.z = self.bo.rotation_euler.z + theta[2]
         else: #frame = global
-            self.o.rotation_euler.rotate(mathutils.Euler(tuple(theta)))
+            self.bo.rotation_euler.rotate(mathutils.Euler(tuple(theta)))
 
     def scale(self, delta):
         """
@@ -632,10 +632,10 @@ class Msh:
         delta is a 3-element tuple, list, numpy array or Vector
         """
         if isinstance(delta, int):
-            self.o.scale = self.o.scale*delta
+            self.bo.scale = self.bo.scale*delta
         else:
             assert len(delta) == 3
-            self.o.scale = mathutils.Vector(np.array(delta)*np.array(self.o.scale))
+            self.bo.scale = mathutils.Vector(np.array(delta)*np.array(self.bo.scale))
     
     def key(self, frame=None, target='lrs', values=None):
         assert isinstance(target, str)
@@ -657,7 +657,7 @@ class Msh:
             attrs = ['rotation_euler', 'scale']
 
         if not values:
-            values = [tuple(getattr(self.o, attr)) for attr in attrs]
+            values = [tuple(getattr(self.bo, attr)) for attr in attrs]
             # for some reason, s.key() doesn't take current values if I don't use tuple
         
         frame_current = bpy.context.scene.frame_current
@@ -665,9 +665,110 @@ class Msh:
             frame = frame_current
         bpy.context.scene.frame_set(frame)
         for attr, value in zip(attrs, values):
-            setattr(self.o, attr, value)
-            self.o.keyframe_insert(data_path=attr, frame=frame)
+            setattr(self.bo, attr, value)
+            self.bo.keyframe_insert(data_path=attr, frame=frame)
         # bpy.context.scene.frame_set(frame_current)
+
+    def to_coll(self, coll_name, typ='move'):
+        assert isinstance(coll_name, str) or isinstance(coll_name, bpy.types.Collection)
+        assert typ in ['copy', 'move']
+        oldC = self.bc
+        if isinstance(coll_name, str):
+            self.bc = new.collection(coll_name)
+        else:
+            self.bc = coll_name
+        self.bc.objects.link(self.bo)
+        if typ == 'move':
+            oldC.objects.unlink(self.bo)
+
+    @property
+    def m(self):
+        """
+        Easy access to blender mesh.
+        """
+        return self.bm
+    
+    @m.setter
+    def m(self, new_m):
+        """
+        Objects can have animations. Use this property to change the mesh, but preserve all the animations
+        """
+        assert isinstance(new_m, str) or isinstance(new_m, bpy.types.Mesh)
+        if isinstance(new_m, str):
+            all_msh = [tm.name for tm in bpy.data.meshes]
+            if new_m in all_msh:
+                new_m = bpy.data.meshes[new_m]
+            else:
+                new_m = []
+
+        if new_m: # set only if it exists
+            self.bo.data = new_m
+            self.bm = new_m
+        else:
+            print('Mesh does not exist!')
+
+    @property
+    def o(self):
+        """
+        Easy access to the object. Currenty, this cannot be set.
+        """
+        return self.bo
+
+    @property
+    def c(self):
+        """
+        Easy access to blender collection. When supplied with a new name, object moves into that collection.
+        """
+        return self.bc
+
+    @c.setter
+    def c(self, coll_name):
+        self.to_coll(coll_name, 'move')
+
+    def copy(self, obj_name=None, coll_name=None):
+        """
+        Make a copy of the object, keep the same mesh and put it in the same collection.
+        Use the same animation data!
+        """
+        this_o = self.bo.copy()
+        if isinstance(obj_name, str):
+            this_o.name = obj_name
+        if isinstance(coll_name, str):
+            new.collection(coll_name).objects.link(this_o)
+        else:
+            self.bc.objects.link(this_o)
+        return Msh(obj_name=this_o.name)
+
+    def deepcopy(self, obj_name=None, coll_name=None, msh_name=None):
+        """
+        Make a copy of everything - object, mesh and animation
+        """
+        this_o = self.bo.copy()
+        this_o.data = this_o.data.copy()
+        if isinstance(obj_name, str):
+            this_o.name = obj_name
+        if isinstance(coll_name, str):
+            new.collection(coll_name).objects.link(this_o)
+        else:
+            self.bc.objects.link(this_o)
+        if isinstance(msh_name, str):
+            this_o.data.name = msh_name
+        return Msh(obj_name=this_o.name)
+
+def get(obj_name=None):
+    """
+    Create a bpn msh object from object name
+    bpn.obj('sphere')
+    :param obj_name: (str) name of the object in blender's environment
+    """
+    if not obj_name: # return the last objects
+        return Msh(obj_name=[o.name for o in bpy.data.objects][-1])
+
+    if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
+        print('No object found with name: ' + obj_name)
+        return []
+
+    return Msh(obj_name=obj_name)
 
 class Draw:
     """Turtle-like access to bmesh functions."""

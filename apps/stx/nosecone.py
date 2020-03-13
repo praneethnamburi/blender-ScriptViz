@@ -27,7 +27,7 @@ ncObj = out1['objects'][0]
 m = bpn.Msh(out1['meshes'][0])
 
 ncObj.name = 'NoseCone'
-m.m.name = 'NoseCone'
+m.bm.name = 'NoseCone'
 
 bpn.shade('WIREFRAME')
 
