@@ -562,6 +562,9 @@ class Msh:
         write_stl(filepath=os.path.join(fPath, fName), faces=faces, ascii=False)
 
     def refresh(self):
+        """
+        Refresh if blender does memory management and moves things.
+        """
         if 'invalid' in str(self.m).lower():
             self.m = bpy.data.meshes[self.name['msh']] #pylint: disable=attribute-defined-outside-init
         if 'invalid' in str(self.o).lower():
@@ -633,6 +636,38 @@ class Msh:
         else:
             assert len(delta) == 3
             self.o.scale = mathutils.Vector(np.array(delta)*np.array(self.o.scale))
+    
+    def key(self, frame=None, target='lrs', values=None):
+        assert isinstance(target, str)
+        target = target.lower()
+
+        if target in ['l', 'loc', 'location']:
+            attrs = ['location']
+        if target in ['r', 'rot', 'rotation', 'rotation_euler']:
+            attrs = ['rotation_euler']
+        if target in ['s', 'scl', 'scale']:
+            attrs = ['scale']
+        if target in ['lrs', 'locrotscale', 'locrotscl']:
+            attrs = ['location', 'rotation_euler', 'scale']
+        if target in ['lr', 'locrot']:
+            attrs = ['location', 'rotation_euler']
+        if target in ['ls', 'locscl', 'locscale']:
+            attrs = ['location', 'rotation_euler']
+        if target in ['rs', 'rotscl', 'rotscale']:
+            attrs = ['rotation_euler', 'scale']
+
+        if not values:
+            values = [tuple(getattr(self.o, attr)) for attr in attrs]
+            # for some reason, s.key() doesn't take current values if I don't use tuple
+        
+        frame_current = bpy.context.scene.frame_current
+        if not frame:
+            frame = frame_current
+        bpy.context.scene.frame_set(frame)
+        for attr, value in zip(attrs, values):
+            setattr(self.o, attr, value)
+            self.o.keyframe_insert(data_path=attr, frame=frame)
+        # bpy.context.scene.frame_set(frame_current)
 
 class Draw:
     """Turtle-like access to bmesh functions."""

@@ -53,23 +53,23 @@ bpy = bpn.bpy
 # bpn.new.polygon(name='hex', seg=6)
 # h = bpn.Msh(name='hex')
 
-#-------basic extrusion------- extend this!!
-bpn.new.circle(name='circle', n=6)
-h = bpn.Msh(name='circle')
+# #-------basic extrusion------- extend this!!
+# bpn.new.circle(name='circle', n=6)
+# h = bpn.Msh(name='circle')
 
-newV = h.v + np.array([1, 1, 1])
-v = [tuple(k) for k in np.concatenate([h.v, newV])]
+# newV = h.v + np.array([1, 1, 1])
+# v = [tuple(k) for k in np.concatenate([h.v, newV])]
 
-newE = h.e + h.nV
-connE = np.concatenate([[np.arange(0, h.nE)], [np.arange(0, h.nE) + h.nV]]).T
-e = [tuple(k) for k in np.concatenate([h.e, newE, connE])]
+# newE = h.e + h.nV
+# connE = np.concatenate([[np.arange(0, h.nE)], [np.arange(0, h.nE) + h.nV]]).T
+# e = [tuple(k) for k in np.concatenate([h.e, newE, connE])]
 
-connF = np.array([[connE[i, 0], connE[i, 1], connE[i+1, 1], connE[i+1, 0]] for i in np.arange(-1, np.shape(connE)[0]-1)])
-f = [tuple(k) for k in connF]
+# connF = np.array([[connE[i, 0], connE[i, 1], connE[i+1, 1], connE[i+1, 0]] for i in np.arange(-1, np.shape(connE)[0]-1)])
+# f = [tuple(k) for k in connF]
 
-bpn.Msh(name='hexCopy', v=v, e=e, f=f)
+# bpn.Msh(name='hexCopy', v=v, e=e, f=f)
 
-# # assign vertices to groups
+# # ------------assign vertices to groups
 # get vertices in group
 # verts_ig = [[v.index, [g.group for g in v.groups]] for v in m.bpy_msh.vertices]
 # names of groups
@@ -77,3 +77,10 @@ bpn.Msh(name='hexCopy', v=v, e=e, f=f)
 # It looks like objects have the names of vertex groups, and meshes have the info for group membership of each vertex
 # Vertex groups appear to ve a property of the object, rather than the mesh somehow. 
 # Change bpn.Msh class to be an object 
+
+s = bpn.new.sphere(name='sphere')
+s.key(1)
+s.loc = (2, 2, 2)
+s.scl = (1, 0.2, 1)
+s.key(26)
+s.key(51, 's', [(0.2, 1, 1)])
