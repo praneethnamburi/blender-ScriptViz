@@ -5,7 +5,7 @@ Support for nutations.
 import os
 import sys
 import numpy as np # pylint: disable=unused-import
-import pandas as pd 
+# import pandas as pd 
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
 if DEV_ROOT not in sys.path:
@@ -29,8 +29,8 @@ bpy = bpn.bpy
 # bpy.context.scene.frame_set(160)
 
 # # To get the current object location
-# o = bpn.getObj('Talus_R')
-# print(o.location)
+# talus = bpn.get('Talus_R')
+# print(talus.loc)
 
 FRAME_INIT = 1
 FRAME_INRIGHT = 100

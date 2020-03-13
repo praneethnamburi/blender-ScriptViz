@@ -2,9 +2,10 @@
 Praneeth's blender python module
 """
 import errno
-import os
 import functools
 import inspect
+import math
+import os
 import sys
 import types
 import numpy as np
@@ -12,7 +13,6 @@ import pandas as pd
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
-import math #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
@@ -264,6 +264,9 @@ class Msh:
             
             More generally, supply v=myVertices, e=myEdges, f=myFaces to create a mesh
         """
+        self.bm = None # Initializing here, they will be set by one of the _setmoc functions
+        self.bo = None
+        self.bc = None
         if 'stl' in kwargs:
             self._setmoc_stl(kwargs['stl'], kwargs)
         else:
@@ -324,7 +327,7 @@ class Msh:
             self.bm = self.bo.data
             self.bc = self.bo.users_collection[0]
             # if the object exists, but is in a different collection than coll_name, nothing happens
-            # TODO: make a move_collection function 
+            # use Msh.to_coll(coll_name) explicitly to achieve this
         else:
             # if mesh exists, assign it to the object, and put it in collection
             if msh_name in [m.name for m in bpy.data.meshes]:
@@ -770,39 +773,6 @@ def get(obj_name=None):
 
     return Msh(obj_name=obj_name)
 
-class Draw:
-    """Turtle-like access to bmesh functions."""
-    def __init__(self, name_msh='autoMshName', name_obj='autoObjName', name_coll='Collection', name_scene='Scene'):
-        self.name_msh = name_msh
-        self.name_obj = name_obj
-        self.name_coll = name_coll
-        self.bm = bmesh.new()
-    def __neg__(self):
-        bpyMsh = bpy.data.meshes.new(self.name_msh)
-        self.bm.to_mesh(bpyMsh)
-        self.bm.free()
-        show(bpyMsh, name_obj='autoObjName', name_coll='Collection', name_scene='Scene')
-
-def show(bpyMsh, name_obj='autoObjName', name_coll='Collection', name_scene='Scene'):
-    """
-    Add mesh to a collection in the current scene.
-    
-    :param bpyMsh: blender mesh 
-        TODO: Add support for Msh class
-    :param name_obj: Name of the object
-    :param name_coll: Name of the collection. Put object in this collection. New one is made if it's not present.
-    :returns: this is a description of what is returned
-    """
-    obj = bpy.data.objects.new(name_obj, bpyMsh)
-    if name_scene not in [k.name for k in bpy.data.scenes]:
-        # doesn't make a new scene!
-        name_scene = bpy.context.scene.name
-    if name_coll not in [k.name for k in bpy.data.collections]:
-        myColl = bpy.data.collections.new(name_coll)
-        bpy.context.scene.collection.children.link(myColl)
-        del myColl
-    bpy.data.collections[name_coll].objects.link(obj)
-
 ### Input-output functions
 @ReportDelta
 def loadSTL(files):
@@ -938,7 +908,7 @@ def reset_blender():
         for obj in scene.objects:
             try:
                 scene.objects.unlink(obj)
-            except:
+            except NameError:
                 pass
     # only worry about data in the startup scene
     for bpy_data_iter in (bpy.data.objects, bpy.data.meshes, bpy.data.collections):
@@ -946,7 +916,7 @@ def reset_blender():
         for id_data in bpy_data_iter:
             try:
                 bpy_data_iter.remove(id_data)
-            except:
+            except NameError:
                 pass
 
 ### Control appearance
@@ -961,104 +931,10 @@ def shade(shading='WIREFRAME', area='Layout'):
                 space.shading.type = shading
 
 ### Demo functions that demonstrate some ways to use this API
-# Animating DNA
-def demo_animateDNA():
-    objList, _ = plotDNA()
-    animateObj_whole(objList, np.arange(0, 101, 20))
-# meshDance
-# brainExplosion
-
-## Blender usefulness exercise #1 - Plotting
-# Plotting two strands of DNA
-def plotDNA():
-    """
-    Plot DNA. Demonstrates how to plot in Blender.
-    Use: objList, mshList = bpn.pn_plotDNA()
-    """
-    x = np.linspace(0, 2.0*np.pi, 100)
-    y = lambda x, offset: np.sin(x+offset)
-    h1, m1 = plot(y(x, np.pi/2), y(x, 0), x)
-    h2, m2 = plot(y(x, -np.pi/2), -y(x, 0), x)
-    return [h1, h2], [m1, m2] # objList, mshList
-
-def plot(x, y, z=0, msh_name='autoMshName', coll_name='Collection'):
-    if msh_name == 'autoMshName':
-        obj_name = 'autoObjName'
-    else:
-        obj_name = msh_name
-    # create a mesh
-    msh = genPlotMsh(msh_name, x, y, z)
-    # instantiate an object
-    obj = genObj(msh, obj_name, coll_name=coll_name)
-    return obj, msh
-
-def genPlotMsh(msh_name, xVals, yVals, zVals=None):
-    """Generates a mesh for plotting."""
-    n = np.size(xVals)
-    if zVals is None:
-        zVals = np.zeros(n)
-    msh = bpy.data.meshes.new(msh_name)
-    
-    v = [(x, y, z) for x, y, z in zip(xVals, yVals, zVals)]
-    e = [(i, i+1) for i in np.arange(0, n-1)]
-    msh.from_pydata(v, e, [])
-    msh.update()
-
-    return msh
-
-def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0), coll_name='Collection'):
-    """Generates an object fraom a mesh and attaches it to the current scene."""
-    obj = bpy.data.objects.new(name, msh)
-    # put that object in the scene
-    obj.location = mathutils.Vector(location)
-    bpy.data.collections[coll_name].objects.link(obj)
-    return obj
-
-## Blender usefulness exercise #2 - animation
-# Animate the two strands of DNA
-def animateObj_whole(objList, frameList): # skeleton to transform the entire object
-    scn = bpy.context.scene # assuming there is only one scene
-    scn.frame_end = frameList[-1]+1 # assuming frameList is monotonically increasing
-    for frameNum in frameList:
-        scn.frame_set(frameNum+1) # because keyframes are 1-indexed in Blender
-        for obj in objList:
-            obj.rotation_euler = mathutils.Vector((0, 0, 2*np.pi*frameNum/frameList[-1]))
-            obj.keyframe_insert(data_path='rotation_euler', index=-1)
-
-def getObj(obj):
-    """Return an object given its name."""
-    return chkType(obj, 'Object')
-
-def chkType(inp, inpType='Mesh'):
-    """
-    Check if a given input is a mesh or an object.
-    inpType is either 'Mesh' or 'Object'
-    If inp is the name of a mesh/object, then find and return the appropriate python object.
-    If you requested a mesh but gave an object name, then return the mesh.
-    If you input an object, but are looking for a mesh, return the associated mesh.
-    """
-    if inpType == 'Mesh':
-        inpType_bpyData = 'meshes'
-    elif inpType == 'Object':
-        inpType_bpyData = 'objects'
-    if isinstance(inp, str):
-        if inp in [k.name for k in getattr(bpy.data, inpType_bpyData)]:
-            return getattr(bpy.data, inpType_bpyData)[inp]
-        elif (inpType == 'Mesh') and (inp in [k.name for k in bpy.data.objects]):
-            # if you requested a mesh but gave an object name, then return the mesh
-            return bpy.data.objects[inp].data
-        else:
-            raise ValueError("Could not find " + inp + " of type " + inpType)
-    if isinstance(inp, bpy.types.Object) and inpType == 'Mesh':
-        return inp.data # in blender, obj.data points to the mesh corresponding to that object
-    if not isinstance(inp, getattr(bpy.types, inpType)):
-        # this will only happen if you didn't pass a mesh, object, or an appropriate string
-        # raise TypeError("Expected input of type bpy.types." + inpType + ", got, " + str(type(inp)) + " instead")
-        inp = None
-    return inp
+# Animating DNA - re-do this part!
 
 ## Functions inspired by the anatomy project
-def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=['object', 'keyframe', 'attribute', 'value']):
+def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=('object', 'keyframe', 'attribute', 'value')):
     """
     Get location and rotation information of mesh objects from the current blender scene.
     
@@ -1078,7 +954,7 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
 
     Example:
         (load skeletalSystem.blend in blender)
-        fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+        fname = 'D:\\Workspace\\blenderPython\\apps\\anatomy\\nutations.xlsx'
         p2 = bpn.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
     """
     if isinstance(names, str):
@@ -1106,7 +982,7 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
                 for attr in attrs:
                     p.append([obj.name, frame, attr, list(getattr(obj, attr))])
 
-    p = pd.DataFrame(p, columns=columns)
+    p = pd.DataFrame(p, columns=list(columns))
     if isinstance(fname, str):
         p.to_excel(fname, index=False, sheet_name=sheet_name)
     return p
@@ -1138,7 +1014,7 @@ def animate_simple(anim_data, columns=None, propfunc=None):
     
     Example:
         (load skeletalSystem_originAtCenter_bkp02.blend)
-        fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+        fname = 'D:\\Workspace\\blenderPython\\apps\\anatomy\\nutations.xlsx'
         bpn.animate_simple(fname)
     """
     def get_obj_list(obj_name):

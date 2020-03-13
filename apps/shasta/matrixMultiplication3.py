@@ -14,7 +14,7 @@ from importlib import reload
 
 bpn = reload(bpn)
 bpy = bpn.bpy
-# bpy.data.scenes['Scene'].cursor_location[0] = -100
+bpy.data.scenes['Scene'].cursor.location[0] = -100
 
 COORD_FILE = os.path.join(DEV_ROOT, '_temp/suzanneCoords.pkl')
 

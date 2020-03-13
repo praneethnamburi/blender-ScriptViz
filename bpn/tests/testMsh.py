@@ -24,20 +24,20 @@ bpy = bpn.bpy
 #     return lambda ix, iy: z[ix][iy]
 # zFunc = callable_matrix(z)
 
-def fun2mat(xyfun, x=[], y=[]):
+def fun2mat(xyfun, tx=np.array([]), ty=np.array([])):
     """
     This functionality is already in the bpn module.
     It is here only to illustrate the versatility of bpn.Msh creation
     """
     assert isinstance(xyfun, types.FunctionType)
     assert xyfun.__code__.co_argcount == 2 # function has two input arguments
-    if x is mat2mesh.__defaults__[0]: # default ranges
-        x = np.arange(-2, 2, 0.1)
-    if y is mat2mesh.__defaults__[1]:
-        y = np.arange(-2, 2, 0.1)
-    return np.array([[xyfun(xv, yv) for yv in y] for xv in x])
+    if tx is mat2mesh.__defaults__[0]: # default ranges
+        tx = np.arange(-2, 2, 0.1)
+    if ty is mat2mesh.__defaults__[1]:
+        ty = np.arange(-2, 2, 0.1)
+    return np.array([[xyfun(xv, yv) for yv in ty] for xv in tx])
 
-def mat2mesh(z, x=[], y=[]):
+def mat2mesh(tz, tx=np.array([]), ty=np.array([])):
     """
     z is a 2-D numpy array or a 2D list
     returns:
@@ -45,18 +45,18 @@ def mat2mesh(z, x=[], y=[]):
         f list of faces
     This is here only for demonstration. It is already in bpn module.
     """
-    if x is mat2mesh.__defaults__[0]:
-        x = np.arange(0, np.shape(z)[0])
-    if y is mat2mesh.__defaults__[1]:
-        y = np.arange(0, np.shape(z)[1])
+    if tx is mat2mesh.__defaults__[0]:
+        tx = np.arange(0, np.shape(tz)[0])
+    if ty is mat2mesh.__defaults__[1]:
+        ty = np.arange(0, np.shape(tz)[1])
 
-    nX = len(x)
-    nY = len(y)
+    nX = len(tx)
+    nY = len(ty)
 
-    assert len(x) == np.shape(z)[0]
-    assert len(y) == np.shape(z)[1]
+    assert len(tx) == np.shape(tz)[0]
+    assert len(ty) == np.shape(tz)[1]
     
-    v = [(xv, yv, z[ix][iy]) for iy, yv in enumerate(y) for ix, xv in enumerate(x)]
+    v = [(xv, yv, tz[ix][iy]) for iy, yv in enumerate(ty) for ix, xv in enumerate(tx)]
     f = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
     return v, f
 
@@ -64,7 +64,7 @@ fun = lambda x, y: x*x+y*y
 x1 = np.arange(-2, 2, 0.02)
 y1 = np.arange(-2, 3, 0.2)
 z1 = fun2mat(fun, x1, y1)
-v1, f1 = mat2mesh(z1, x=x1, y=y1)
+v1, f1 = mat2mesh(z1, tx=x1, ty=y1)
 
 # # demonstrate different ways of using bpn msh
 p = bpn.Msh(v=v1, f=f1, name='parabola1', msh_name='parabola', coll_name='surface')
@@ -87,9 +87,9 @@ for i in np.arange(1, 7):
 ## 3D plots
 # DNA
 a = np.linspace(-2.0*np.pi, 2.0*np.pi, 100)
-f = lambda a, offset: np.sin(a+offset)
-x = f(a, np.pi/2)
-y = f(a, 0)
+f1 = lambda a, offset: np.sin(a+offset)
+x = f1(a, np.pi/2)
+y = f1(a, 0)
 z = a
 
 n = np.size(x)

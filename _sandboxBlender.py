@@ -1,4 +1,4 @@
-import bpy
+import bpy #pylint: disable=import-error
 # context.area: VIEW_3D
 """
 This is a sandbox. Develop code here!
@@ -16,7 +16,7 @@ import pntools as pn
 import bpn # pylint: disable=unused-import
 
 bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor_location[0] = -10
+bpy.data.scenes['Scene'].cursor.location[0] = -10
 
 bpn.reset_blender()
 #-----------------

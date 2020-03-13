@@ -14,7 +14,7 @@ from importlib import reload
 bpn = reload(bpn)
 
 bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor_location[0] = -100
+bpy.data.scenes['Scene'].cursor.location[0] = -100
 
 bpn.reset_blender()
 import numpy as np
@@ -29,7 +29,7 @@ m = bpn.Msh(out1['meshes'][0])
 ncObj.name = 'NoseCone'
 m.bm.name = 'NoseCone'
 
-bpn.shade('WIREFRAME')
+bpn.archive.shade('WIREFRAME')
 
 print(dir(bpy))
 

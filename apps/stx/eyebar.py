@@ -17,7 +17,7 @@ if DEV_ROOT not in sys.path:
 import bpn # pylint: disable=unused-import
 
 bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor_location[0] = -100
+bpy.data.scenes['Scene'].cursor.location[0] = -100
 
 bpn.reset_blender()
 

@@ -9,9 +9,9 @@ DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
-import numpy as np
-import pandas as pd
-from functools import partial
+# import numpy as np
+# import pandas as pd
+# from functools import partial
 import bpn # pylint: disable=unused-import
 
 from importlib import reload
