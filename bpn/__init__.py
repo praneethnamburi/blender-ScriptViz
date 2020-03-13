@@ -12,6 +12,7 @@ import pandas as pd
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
+import math #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
@@ -237,25 +238,31 @@ class Msh:
                     xyfun = lambda x, y: x*x+y*y
                     A 2d matrix, z, gets created if a function is supplied
 
-            Create a mesh from 2d list or numpy array:
+            Create a mesh from 2d list or numpy array (xyz):
                 z (2d list or matrix to render in blender)
                 x (list) list or numpy array
                     x = np.arange(-2, 2, 0.02)
                 y (list)
                     y = np.arange(-2, 3, 0.2)
             
-            Create a mesh from vertices and faces:
+            Create a mesh from vertices and faces (vef):
                 v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
+                    Vertices
                 f (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
+                    Faces
 
-            Create a 3d plot:
+            Create a 3d plot (xyz):
                 z (list) with n elements
                 x (list) with n elements
                 y (list) with n elements
                 
-            Create a 'line' from vertices and edges:
+            Create a 'line' from vertices and edges (vef):
                 v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
-                e (lines connecting edges)
+                    Vertices
+                e (numpy array of size nEx2, or a 2d list of size nE with 2 element lists of vertex index)
+                    Edges connecting vertices
+            
+            More generally, supply v=myVertices, e=myEdges, f=myFaces to create a mesh
         """
         if 'stl' in kwargs:
             self._setmoc_stl(kwargs['stl'], kwargs)
@@ -378,27 +385,13 @@ class Msh:
                 kwargs['e'] = []
             if 'f' not in kwargs:
                 kwargs['f'] = []
-            msh = self.init_from_py_vef(kwargs['v'], kwargs['e'], kwargs['f'], msh_name)
+            msh = bpy.data.meshes.new(msh_name)
+            msh.from_pydata(kwargs['v'], kwargs['e'], kwargs['f'])
+            if not kwargs['e']:
+                msh.update(calc_edges=True)
+            else:
+                msh.update()
         return msh
-
-    @staticmethod
-    def init_from_py_vef(v, e, f, msh_name):
-        """
-        Create a blender mesh from python data, assign it to an object, and put it in a collection.
-        :param v: (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
-            3D vertex locations
-        :param e: (numpy array of size nEx2, or a 2d list of size nE with 2 element lists of vertex index)    
-            Edges
-        :param f: (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
-            Faces
-        """
-        mesh = bpy.data.meshes.new(msh_name)
-        mesh.from_pydata(v, e, f)
-        if not e:
-            mesh.update(calc_edges=True)
-        else:
-            mesh.update()
-        return mesh
 
     @property
     def v(self):
@@ -579,12 +572,67 @@ class Msh:
     # object properties
     @property
     def loc(self):
+        """Object location (not mesh!)"""
         return self.o.location
-    
     @loc.setter
     def loc(self, new_loc):
         assert len(new_loc) == 3
         self.o.location = new_loc
+
+    @property
+    def rot(self):
+        """Object rotation"""
+        return self.o.rotation_euler
+    @rot.setter
+    def rot(self, theta):
+        self.o.rotation_euler.x = theta[0]
+        self.o.rotation_euler.y = theta[1]
+        self.o.rotation_euler.z = theta[2]
+
+    @property
+    def scl(self):
+        """Object scale"""
+        return self.o.scale
+    @scl.setter
+    def scl(self, s):
+        self.o.scale = mathutils.Vector(s)
+
+    # object transforms
+    def translate(self, delta):
+        """
+        Move an object by delta.
+        delta is a 3-element tuple, list, numpy array or Vector
+        """
+        assert len(delta) == 3
+        self.o.location = self.o.location + mathutils.Vector(delta)
+    
+    def rotate(self, theta, inp_type='degrees', frame='global'):
+        """
+        Rotate an object.
+        theta is a 3-element tuple, list, numpy array or Vector
+        inp_type is 'degrees' (default) or 'radians'
+        frame of reference is either 'global' or 'local'
+        """
+        assert len(theta) == 3
+        if inp_type != 'degrees':
+            theta = [math.radians(θ) for θ in theta]
+        if frame == 'local':
+            self.o.rotation_euler.x = self.o.rotation_euler.x + theta[0]
+            self.o.rotation_euler.y = self.o.rotation_euler.y + theta[1]
+            self.o.rotation_euler.z = self.o.rotation_euler.z + theta[2]
+        else: #frame = global
+            self.o.rotation_euler.rotate(mathutils.Euler(tuple(theta)))
+
+    def scale(self, delta):
+        """
+        Scale an object.
+        delta is a 3-element tuple, list, numpy array or Vector
+        """
+        if isinstance(delta, int):
+            self.o.scale = self.o.scale*delta
+        else:
+            assert len(delta) == 3
+            self.o.scale = mathutils.Vector(np.array(delta)*np.array(self.o.scale))
 
 class Draw:
     """Turtle-like access to bmesh functions."""
