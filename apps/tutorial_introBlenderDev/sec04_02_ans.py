@@ -11,7 +11,7 @@ from bpn import Props
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor.location[0] = -100
 
-bpn.reset_blender()
+bpn.env.reset()
 
 # Instantiating a class using parenthesis
 print(Props())

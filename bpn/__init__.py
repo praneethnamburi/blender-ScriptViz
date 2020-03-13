@@ -22,7 +22,7 @@ if DEV_ROOT not in sys.path:
 import pntools as pn
 
 if __package__ is not None:
-    from . import new
+    from . import new, env
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
@@ -641,6 +641,22 @@ class Msh:
             self.bo.scale = mathutils.Vector(np.array(delta)*np.array(self.bo.scale))
     
     def key(self, frame=None, target='lrs', values=None):
+        """
+        Easy keying. Useful for playing around in the command line, or iterating ideas while keeping history.
+        :param frame: (int) Uses current frame number if nothing is specified.
+        :param target: (str) recommended use - one of 'l', 'r', 's', 'lrs', 'lr', 'ls', 'rs'
+        :param values: (list) each element of the list should be a 3-tuple
+            If you have only one parameter to change, still supply [(1, 2, 3)] instead of (1, 2, 3)
+
+        Note that if values are not specified, current numbers will be used.
+        Example:
+            s = bpn.new.sphere(name='sphere')
+            s.key(1)
+            s.loc = (2, 2, 2) # this location will be keyed into frame 26!
+            s.key(26)
+            s.scl = (1, 0.2, 1)
+            s.key(51)
+        """
         assert isinstance(target, str)
         target = target.lower()
 
@@ -673,7 +689,16 @@ class Msh:
         # bpy.context.scene.frame_set(frame_current)
 
     def to_coll(self, coll_name, typ='move'):
-        assert isinstance(coll_name, str) or isinstance(coll_name, bpy.types.Collection)
+        """
+        Move this object to a collection.
+
+        :param coll_name: (str)
+            A collection will be created if a collection by coll_name doesn't exist
+        :param typ: (str) 'copy' or 'move'
+            Note that copy won't copy the object itself. It will simply keep the same object in both collections. 
+            Use Msh.copy or Msh.deepcopy to achieve this.
+        """
+        assert isinstance(coll_name, (bpy.types.Collection, str))
         assert typ in ['copy', 'move']
         oldC = self.bc
         if isinstance(coll_name, str):
@@ -896,39 +921,6 @@ class Props:
                     iterFlag = True
         return children
 
-def reset_blender():
-    """
-    Reset the current scene programatically.
-
-    Script adapted from:
-    https://developer.blender.org/T47418
-    """
-    # bpy.ops.wm.read_factory_settings()
-    for scene in bpy.data.scenes:
-        for obj in scene.objects:
-            try:
-                scene.objects.unlink(obj)
-            except NameError:
-                pass
-    # only worry about data in the startup scene
-    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes, bpy.data.collections):
-        # may not work for collections - blender bug
-        for id_data in bpy_data_iter:
-            try:
-                bpy_data_iter.remove(id_data)
-            except NameError:
-                pass
-
-### Control appearance
-def shade(shading='WIREFRAME', area='Layout'):
-    """Set shading in the 3D viewport"""
-    my_areas = bpy.data.screens[area].areas
-    assert shading in ['WIREFRAME', 'SOLID', 'MATERIAL', 'RENDERED']
-
-    for area in my_areas:
-        for space in area.spaces:
-            if space.type == 'VIEW_3D' and area.type == 'VIEW_3D':
-                space.shading.type = shading
 
 ### Demo functions that demonstrate some ways to use this API
 # Animating DNA - re-do this part!
@@ -1062,6 +1054,9 @@ def animate_simple(anim_data, columns=None, propfunc=None):
         obj.keyframe_insert(data_path=attr, frame=frame)
 
 def demo_animate_sphere():
+    """
+    Demonstration for animating a sphere.
+    """
     obj = new.sphere(obj_name='sphere', msh_name='sph', coll_name='Collection')
     frameID = [1, 50, 100]
     loc = [(1, 1, 1), (1, 2, 1), (2, 2, 1)]

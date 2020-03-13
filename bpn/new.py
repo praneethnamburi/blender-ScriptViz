@@ -17,6 +17,10 @@ import bmesh #pylint: disable=import-error
 from .__init__ import Msh
 
 def collection(coll_name='Collection'):
+    """
+    Create a new collection with name coll_name if it doesn't exist.
+    Returns: (bpy.types.Collection)
+    """
     if coll_name in [c.name for c in bpy.data.collections]:
         col = bpy.data.collections[coll_name]
     else:
@@ -27,14 +31,17 @@ def collection(coll_name='Collection'):
 def obj(msh, col, obj_name='newObj'):
     """
     Creates an object with obj_name if it does not exist.
-    If object with name exists, returns object
+    If object with name exists, returns object.
+
+    :param msh: (str, bpy.types.Mesh) mesh from blender
+    :param col: (str, bpy.types.Collection) collection from blender
     
     DOES NOT: change collection of the object if col is different from the object's collection
     """
     if isinstance(msh, str):
         msh = bpy.data.meshes[msh]
     if isinstance(col, str):
-        col = bpy.data.collections[col]
+        col = collection(col)
 
     if obj_name in [o.name for o in bpy.data.objects]:
         o = bpy.data.objects[obj_name]

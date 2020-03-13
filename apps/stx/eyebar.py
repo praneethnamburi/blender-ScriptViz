@@ -19,7 +19,7 @@ import bpn # pylint: disable=unused-import
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor.location[0] = -100
 
-bpn.reset_blender()
+bpn.env.reset()
 
 import numpy as np
 

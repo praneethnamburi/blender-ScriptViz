@@ -16,7 +16,7 @@ bpn = reload(bpn)
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor.location[0] = -100
 
-bpn.reset_blender()
+bpn.env.reset()
 import numpy as np
 
 # load the original eyebar mesh from Gilbert Menon 2019
@@ -29,7 +29,7 @@ m = bpn.Msh(out1['meshes'][0])
 ncObj.name = 'NoseCone'
 m.bm.name = 'NoseCone'
 
-bpn.archive.shade('WIREFRAME')
+bpn.env.shade('WIREFRAME')
 
 print(dir(bpy))
 

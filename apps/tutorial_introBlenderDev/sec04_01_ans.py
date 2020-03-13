@@ -10,7 +10,7 @@ import bpn # pylint: disable=unused-import
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor.location[0] = -100
 
-# bpn.reset_blender()
+# bpn.env.reset()
 
 bpy.ops.mesh.primitive_cube_add(location=(1.0, 0.0, 0.0))
 
