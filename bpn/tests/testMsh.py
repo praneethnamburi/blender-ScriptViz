@@ -15,7 +15,6 @@ import bpn # pylint: disable=unused-import
 import mathutils # pylint: disable=import-error
 
 bpn = reload(bpn)
-bpn.new = reload(bpn.new)
 
 bpy = bpn.bpy
 

@@ -379,18 +379,7 @@ class Msh:
             if 'f' not in kwargs:
                 kwargs['f'] = []
             msh = self.init_from_py_vef(kwargs['v'], kwargs['e'], kwargs['f'], msh_name)
-        else:
-            msh = self.init_from_bpy(msh_name)
         return msh
-
-    @staticmethod
-    def init_from_bpy(msh_name):
-        """
-        Initialize a bpn mesh from a bpy mesh.
-        This is here to increase input flexibility to bpn.Msh's
-        __init__ while preserving code readability.
-        """
-        return chkType(msh_name, 'Mesh')
 
     @staticmethod
     def init_from_py_vef(v, e, f, msh_name):
@@ -938,7 +927,7 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
         p.to_excel(fname, index=False, sheet_name=sheet_name)
     return p
 
-def animate_simple(anim_data, columns=None, propfunc=functools.partial(new.sphere, **{'coll_name':'Points', 'u':16, 'v':8, 'r':0.1})):
+def animate_simple(anim_data, columns=None, propfunc=None):
     """
     Simple keyframe animation in blender. 
 
@@ -973,6 +962,9 @@ def animate_simple(anim_data, columns=None, propfunc=functools.partial(new.spher
         if len(prop_list) > 1: # multiple props detected, only keep objects
             prop_list = [o for o in prop_list if isinstance(o, bpy.types.Object)]
         return prop_list
+
+    if propfunc is None:
+        propfunc = functools.partial(new.sphere, **{'coll_name':'Points', 'u':16, 'v':8, 'r':0.1})
 
     if columns is None:
         columns = ['object', 'keyframe', 'attribute', 'value']
@@ -1017,5 +1009,5 @@ def demo_animate_sphere():
     for thisFrame, thisLoc in zip(frameID, loc):
         bpy.context.scene.frame_set(thisFrame)
         for attr in attrs:
-            setattr(obj, attr, thisLoc)
+            setattr(obj.o, attr, thisLoc)
             obj.o.keyframe_insert(data_path=attr, frame=thisFrame)
