@@ -22,7 +22,7 @@ if DEV_ROOT not in sys.path:
 import pntools as pn
 
 if __package__ is not None:
-    from . import new, env
+    from . import new, env, demo
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
@@ -634,10 +634,10 @@ class Msh:
         Scale an object.
         delta is a 3-element tuple, list, numpy array or Vector
         """
-        if isinstance(delta, int):
-            self.bo.scale = self.bo.scale*delta
+        if isinstance(delta, (int, float)):
+            self.bo.scale = self.bo.scale*float(delta)
         else:
-            assert len(delta) == 3
+            assert np.size(delta) == 3
             self.bo.scale = mathutils.Vector(np.array(delta)*np.array(self.bo.scale))
     
     def key(self, frame=None, target='lrs', values=None):
@@ -1052,17 +1052,3 @@ def animate_simple(anim_data, columns=None, propfunc=None):
         bpy.context.scene.frame_set(frame)
         setattr(obj, attr, val)
         obj.keyframe_insert(data_path=attr, frame=frame)
-
-def demo_animate_sphere():
-    """
-    Demonstration for animating a sphere.
-    """
-    obj = new.sphere(obj_name='sphere', msh_name='sph', coll_name='Collection')
-    frameID = [1, 50, 100]
-    loc = [(1, 1, 1), (1, 2, 1), (2, 2, 1)]
-    attrs = ['location', 'rotation_euler', 'scale']
-    for thisFrame, thisLoc in zip(frameID, loc):
-        bpy.context.scene.frame_set(thisFrame)
-        for attr in attrs:
-            setattr(obj.o, attr, thisLoc)
-            obj.o.keyframe_insert(data_path=attr, frame=thisFrame)
