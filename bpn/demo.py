@@ -2,8 +2,10 @@
 Demonstrations using the bpn module
 
 Functions:
-    animate_spheres - keyframe animation
-    animate_dna - animated plots
+    spheres - keyframe animation
+    dna - animated plots
+    heart - plot a heart
+    arch - surface plots with 2d functions
 """
 import os
 import sys
@@ -13,12 +15,15 @@ DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
+import pntools as pn
+
 import bpn
 import bpy #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 from . import new
 
-def animate_spheres():
+def spheres():
     """
     Demonstration for animating a sphere using blender's functions.
     """
@@ -51,7 +56,7 @@ def animate_spheres():
     s4 = bpn.new.sphere(name='sphere4', msh_name='sph', coll_name='Spheres')
     s4.key(1).translate((0, 0, 2)).key(26).scale((1, 1, 0.3)).key(51).scale((1, 1, 4)).key(101)
 
-def animate_dna():
+def dna():
     """
     Animate two strands of DNA
     """
@@ -65,8 +70,8 @@ def animate_dna():
     v2 = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
     e2 = [(i, i+1) for i in np.arange(0, n-1)]
 
-    s1 = bpn.Msh(v=v2, e=e2, name='strand1', coll_name='plots')
-    s2 = bpn.Msh(x=-x, y=-y, z=z, name='strand2', coll_name='plots')
+    s1 = bpn.Msh(v=v2, e=e2, name='strand1', coll_name='Plots')
+    s2 = bpn.Msh(x=-x, y=-y, z=z, name='strand2', coll_name='Plots')
     
     frames = (1, 50, 100, 150, 200)
     bpy.context.scene.frame_start = frames[0]
@@ -77,3 +82,28 @@ def animate_dna():
         for i in np.arange(1, np.size(frames)):
             s.rotate((0, 0, 90))
             s.key(frames[i], 'r')
+
+def heart():
+    """Plot a heart"""
+    a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)
+    bpn.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='heart', coll_name='Plots')
+
+def arch():
+    """2D surface plots"""
+    def xyifun(alpha):
+        return lambda x, y: np.sqrt(alpha-np.abs(x))
+
+    for i in np.arange(1, 7):
+        rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], msh_name='sqrt_1'+str(i), obj_name='sqrt_1'+str(i), coll_name='Arch')
+        rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
+        rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='Arch')
+        rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
+
+def main():
+    """
+    Runs all the demos.
+    """
+    all_mem = pn.getmembers(sys.modules[__name__], False)
+    all_func = [eval(name) for name, typ in all_mem.items() if typ == 'function' and name != 'main'] #pylint: disable=eval-used
+    for func in all_func:
+        func()

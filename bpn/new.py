@@ -1,14 +1,19 @@
 """
 Creation submodule for bpn.
 """
+import os
+import sys
 from functools import partial
+
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+if DEV_ROOT not in sys.path:
+    sys.path.append(DEV_ROOT)
 
 import pntools as pn
 
+import bpn
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
-
-from .__init__ import Msh
 
 def collection(coll_name='Collection'):
     """
@@ -87,7 +92,7 @@ def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='Collect
         bm.free()
         msh.update()
 
-    return Msh(msh_name=msh.name, obj_name=obj_name, coll_name=coll_name, pargs=kwargs)
+    return bpn.Msh(msh_name=msh.name, obj_name=obj_name, coll_name=coll_name, pargs=kwargs)
 
 sphere = partial(easycreate, bmesh.ops.create_uvsphere)
 monkey = partial(easycreate, bmesh.ops.create_monkey)

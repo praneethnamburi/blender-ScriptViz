@@ -9,12 +9,12 @@ DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
+from importlib import reload
 # import numpy as np
 # import pandas as pd
 # from functools import partial
-import bpn # pylint: disable=unused-import
 
-from importlib import reload
+import bpn # pylint: disable=unused-import
 
 bpn = reload(bpn)
 bpn.new = reload(bpn.new)
@@ -43,9 +43,9 @@ bpy = bpn.bpy
 # bpn.new.sphere(name='Sph', r=2, u=6, v=8)
 # bpn.new.cube(name='de', msh_name='e', size=0.4)
 # bpn.new.cone(name='mycone', segments=4, diameter1=2, diameter2=2, depth=2*np.sqrt(2), cap_ends=True, cap_tris=False)
-# bpn.new.cone(name='mycone')
+# bpn.new.cone(name='mycone1')
 # bpn.new.cone(name='mycone2', seg=3, d=1)
-# bpn.new.cone(name='mycone2', seg=3, r1=3, r2=2, d=0, cap_ends=False)
+# bpn.new.cone(name='mycone3', seg=3, r1=3, r2=2, d=0, cap_ends=False)
 
 # bpn.new.polygon(name='hex', seg=6)
 # bpn.new.ngon(name='circle', coll_name='Collection', n=32, r1=1, r2=0)
@@ -77,14 +77,5 @@ bpy = bpn.bpy
 # It looks like objects have the names of vertex groups, and meshes have the info for group membership of each vertex
 # Vertex groups appear to ve a property of the object, rather than the mesh somehow. 
 # Change bpn.Msh class to be an object 
-
-# s = bpn.new.sphere(name='sphere')
-# s.key(1)
-# s.key(26)
-# s.loc = (2, 2, 2)
-# s.scl = (1, 0.2, 1) # this will be ignored
-# s.key(26, 'l')
-# s.key(51, 's', [(0.2, 1, 1)])
-
 
 # set frame start, frame end, fps

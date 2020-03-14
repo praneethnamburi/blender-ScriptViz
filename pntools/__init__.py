@@ -391,7 +391,18 @@ def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imageba
     return entries, dlTime
 
 # input handling
-def clean_kwargs(kwargs, kwargs_def, kwargs_alias, ):
+def clean_kwargs(kwargs, kwargs_def, kwargs_alias):
+    """
+    Clean keyword arguments based on default values and aliasing.
+
+    :param kwargs: (dict) input kwargs that require cleaning.
+    :param kwargs_def: (dict) should have all the possible keyword arguments.
+    :param kwargs_alias: (dict) lists all possible aliases for each keyword.
+        {kw1: [kw1, kw1_alias1, ..., kw1_aliasn], ...}
+        kw1 is used inside the function, but kw1=val, kw1_alias1=val, ..., kw1_aliasn are all valid
+
+    Returns: (dict) keyword arguments after cleaning. Ensures all keywords are present, and have the names used in the function.
+    """
     for k in kwargs_def:
         for ka in kwargs_alias[k]:
             if ka in kwargs:

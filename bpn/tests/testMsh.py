@@ -75,28 +75,16 @@ p2.loc = p2.loc + mathutils.Vector((4.0, -3.0, 0.0))
 # m = bpn.Msh(z=z1) # not the parabola you're expecting
 # m = bpn.Msh(z=z1, x=x1, y=y1) # better
 
-def xyifun(alpha):
-    return lambda x, y: np.sqrt(alpha-np.abs(x))
-
-for i in np.arange(1, 7):
-    rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], msh_name='sqrt_1'+str(i), obj_name='sqrt_1'+str(i), coll_name='roof')
-    rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
-    rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='roof')
-    rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
+demo.arch()
 
 ## 3D plots
 # DNA
-demo.animate_dna()
+demo.dna()
 
 # heart
-a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)
-m = bpn.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='heart', coll_name='plots')
+demo.heart()
 
-## primitives
-s1 = bpn.new.sphere(name='sphere01', msh_name='sphere', coll_name='primitives')
-s1.loc = (0.0, 1.0, 0.0)
-s2 = bpn.new.sphere(name='sphere02', msh_name='sphere', coll_name='primitives')
-s2.loc = (2.0, 2.0, 0.0)
+# do more extensive testing here
 
 # implement turtle functions using grease pencil module
 # see if you can 'attach' segments at specific points, faces

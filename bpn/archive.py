@@ -18,6 +18,7 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 def demo_animateDNA():
+    """Old way of animating DNA. See demo.dna() for the new way"""
     objList, _ = plotDNA()
     animateObj_whole(objList, np.arange(0, 101, 20))
 # meshDance
@@ -37,6 +38,7 @@ def plotDNA():
     return [h1, h2], [m1, m2] # objList, mshList
 
 def plot(x, y, z=0, msh_name='autoMshName', coll_name='Collection'):
+    """Old plot functionality, see bpn.Msh. Perhaps make 'plot' a sub-class of bpn Msh?"""
     if msh_name == 'autoMshName':
         obj_name = 'autoObjName'
     else:
@@ -72,6 +74,7 @@ def genObj(msh, name='autoObjName', location=(0.0, 0.0, 0.0), coll_name='Collect
 ## Blender usefulness exercise #2 - animation
 # Animate the two strands of DNA
 def animateObj_whole(objList, frameList): # skeleton to transform the entire object
+    """Old keyframe animation. Superseded by bpn.Msh.key() function."""
     scn = bpy.context.scene # assuming there is only one scene
     scn.frame_end = frameList[-1]+1 # assuming frameList is monotonically increasing
     for frameNum in frameList:
