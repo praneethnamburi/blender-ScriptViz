@@ -9,6 +9,8 @@ Usage:
 
 import os
 import sys
+from importlib import reload
+import numpy as np
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
 if DEV_ROOT not in sys.path:
@@ -21,12 +23,9 @@ bpy.data.scenes['Scene'].cursor.location[0] = -100
 
 bpn.env.reset()
 
-import numpy as np
-
 LOAD_PATH = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\Gilbert Menon 2019\EyeBar.STL")
 SAVE_PATH = os.path.realpath(r"D:\GDrive Columbia\issalab_data\Marmoset stereotax\pn\EyeBarGM2019.STL")
 
-from importlib import reload
 bpn = reload(bpn)
 
 # load the original eyebar mesh from Gilbert Menon 2019

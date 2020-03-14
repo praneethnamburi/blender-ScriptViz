@@ -86,12 +86,5 @@ bpy = bpn.bpy
 # s.key(26, 'l')
 # s.key(51, 's', [(0.2, 1, 1)])
 
-s = bpn.new.sphere(name='sphere')
-s.key(1)
-s.loc = (2, 2, 2)
-s.key(26)
-s.scl = (1, 0.2, 1)
-s.key(51)
-s.scl = (1, 2, 0.2)
-s.key(76)
+
 # set frame start, frame end, fps

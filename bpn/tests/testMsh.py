@@ -12,12 +12,12 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import bpn # pylint: disable=unused-import
+from bpn import demo
+
 import mathutils # pylint: disable=import-error
 
 bpn = reload(bpn)
-
 bpy = bpn.bpy
-
 
 # # Turn a matrix into a callable function
 # def callable_matrix(z):
@@ -86,18 +86,7 @@ for i in np.arange(1, 7):
 
 ## 3D plots
 # DNA
-a = np.linspace(-2.0*np.pi, 2.0*np.pi, 100)
-f1 = lambda a, offset: np.sin(a+offset)
-x = f1(a, np.pi/2)
-y = f1(a, 0)
-z = a
-
-n = np.size(x)
-v2 = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
-e2 = [(i, i+1) for i in np.arange(0, n-1)]
-
-m = bpn.Msh(v=v2, e=e2, name='strand1', coll_name='plots')
-m = bpn.Msh(x=-x, y=-y, z=z, name='strand2', coll_name='plots')
+demo.animate_dna()
 
 # heart
 a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)

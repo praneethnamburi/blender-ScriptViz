@@ -4,6 +4,7 @@ Support for nutations.
 
 import os
 import sys
+from importlib import reload
 import numpy as np # pylint: disable=unused-import
 # import pandas as pd 
 
@@ -12,8 +13,6 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import bpn # pylint: disable=unused-import
-
-from importlib import reload
 
 bpn = reload(bpn)
 

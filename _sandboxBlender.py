@@ -1,9 +1,9 @@
-import bpy #pylint: disable=import-error
 # context.area: VIEW_3D
 """
 This is a sandbox. Develop code here!
 """
 #-----------------
+import math
 import os
 import sys
 import numpy as np
@@ -15,18 +15,19 @@ if DEV_ROOT not in sys.path:
 import pntools as pn
 import bpn # pylint: disable=unused-import
 
+import bpy #pylint: disable=import-error
 bpy = bpn.bpy
 bpy.data.scenes['Scene'].cursor.location[0] = -10
 
 bpn.env.reset()
 #-----------------
 
-import bmesh
-import math
-import mathutils
+import bmesh #pylint: disable=import-error
+
+import mathutils #pylint: disable=import-error
 
 # Make a new BMesh
-a = bpn.Draw()
+a = bpn.archive.Draw()
 
 # Add a circle XXX, should return all geometry created, not just verts.
 bmesh.ops.create_circle(a.bm, radius=0.2, segments=10)
