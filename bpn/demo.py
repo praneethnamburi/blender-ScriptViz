@@ -116,10 +116,6 @@ def zoo():
 
     bpn.new.polygon(name='hex', seg=6, coll_name='zoo')
 
-    # for obj in bpy.data.collections['zoo'].objects:
-    #     msh_obj = bpn.Msh(name=obj.name)
-    #     msh_obj.translate(np.random.randint(-6, 6, 3))
-    #     msh_obj.to_coll('zoo')
     for obj in bpn.Msh.all:
         obj.translate(np.random.randint(-6, 6, 3))
         obj.to_coll('zoo')

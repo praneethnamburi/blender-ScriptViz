@@ -82,6 +82,9 @@ def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='Collect
         kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'radius':['radius', 'r'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
         kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
+    if str(mshfunc) == str(bmesh.ops.create_monkey):
+        kwargs = {}
+
     if msh_name in [m.name for m in bpy.data.meshes]:
         msh = bpy.data.meshes[msh_name]
     else:
