@@ -191,8 +191,7 @@ class Msh(pn.Track):
         self.inp = kwargs
         self.vInit = self.v # for resetting
         self.vBkp = self.v  # for undoing (switching back and forth)
-        self.track(self)
-        # super().__init__() # this really fucks up import. Don't do this despite pylint complaining
+        super().__init__() # self.track(self)
     
     def _setmoc_stl(self, stlfile, kwargs):
         """
