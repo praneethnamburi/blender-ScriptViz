@@ -491,10 +491,11 @@ def clean_kwargs(kwargs, kwargs_def, kwargs_alias):
         (dict) keyword arguments after cleaning. Ensures all keywords are present, and have the names used in the function.
         (dict) remaining keyword arguments
     """
-    for k in kwargs_def:
+    kwargs_fun = kwargs_def.copy()
+    for k in kwargs_fun:
         for ka in kwargs_alias[k]:
             if ka in kwargs:
-                kwargs_def[k] = kwargs.pop(ka)
+                kwargs_fun[k] = kwargs.pop(ka)
 
-    return kwargs_def, kwargs
+    return kwargs_fun, kwargs
     
