@@ -21,14 +21,12 @@ import bpn
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import new
-
 def spheres():
     """
     Demonstration for animating a sphere using blender's functions.
     """
     # Animation with blender's keyframe_insert
-    s1 = new.sphere(obj_name='sphere1', msh_name='sph', coll_name='Spheres')
+    s1 = bpn.new.sphere(obj_name='sphere1', msh_name='sph', coll_name='Spheres')
     frameID = [1, 50, 100]
     loc = [(1, 1, 1), (1, 2, 1), (2, 2, 1)]
     attrs = ['location', 'rotation_euler', 'scale']
@@ -98,6 +96,35 @@ def arch():
         rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
         rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='Arch')
         rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
+
+def zoo():
+    """
+    Create a zoo of primitives. 
+    """
+    bpn.Msh.track_start()
+    bpn.new.sphere(obj_name='sph30', msh_name='sp30', r=0.7, u=3, v=2, coll_name='zoo')
+    bpn.new.monkey(name='L', msh_name='M', coll_name='zoo')
+    bpn.new.sphere(name='Sph', r=2, u=6, v=8, coll_name='zoo')
+    bpn.new.cube(name='de', msh_name='e', size=0.4, coll_name='zoo')
+    bpn.new.cone(name='mycone', segments=4, diameter1=2, diameter2=2, depth=2*np.sqrt(2), cap_ends=True, cap_tris=False, coll_name='zoo')
+    bpn.new.cone(name='mycone1', coll_name='zoo')
+    bpn.new.cone(name='mycone2', seg=3, d=1, coll_name='zoo')
+    bpn.new.cone(name='mycone3', seg=3, r1=3, r2=2, d=0, cap_ends=False, coll_name='zoo')
+
+    bpn.new.polygon(name='hex', seg=6, coll_name='zoo')
+    bpn.new.ngon(name='circle', n=32, r1=1, r2=0, coll_name='zoo')
+
+    bpn.new.polygon(name='hex', seg=6, coll_name='zoo')
+
+    # for obj in bpy.data.collections['zoo'].objects:
+    #     msh_obj = bpn.Msh(name=obj.name)
+    #     msh_obj.translate(np.random.randint(-6, 6, 3))
+    #     msh_obj.to_coll('zoo')
+    for obj in bpn.Msh.all:
+        obj.translate(np.random.randint(-6, 6, 3))
+        obj.to_coll('zoo')
+
+    bpn.Msh.track_end()
 
 def main():
     """

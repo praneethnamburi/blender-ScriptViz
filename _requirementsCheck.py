@@ -72,7 +72,6 @@ Tips:
 """
 
 import os
-import subprocess
 import sys
 from pathlib import Path
 
@@ -94,7 +93,6 @@ def writeBlenderStartupFile(fName_full):
         f.write("import sys\n")
         f.write("import os\n")
         f.write("sys.path.append(os.path.realpath('"+ pathToAppend +"'))\n")
-        f.write("import bpn\n")
     finally:
         f.close()
 

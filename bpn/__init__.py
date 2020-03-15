@@ -47,7 +47,7 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 # Import bpy from bpn in all scripts from which you will launch blender
 bpy.loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
 
-class Msh:
+class Msh(pn.Track):
     """
     Numpy-like access to blender meshes.
 
@@ -191,6 +191,8 @@ class Msh:
         self.inp = kwargs
         self.vInit = self.v # for resetting
         self.vBkp = self.v  # for undoing (switching back and forth)
+        self.track(self)
+        # super().__init__() # this really fucks up import. Don't do this despite pylint complaining
     
     def _setmoc_stl(self, stlfile, kwargs):
         """
@@ -626,9 +628,10 @@ class Msh:
             self.bc = new.collection(coll_name)
         else:
             self.bc = coll_name
-        self.bc.objects.link(self.bo)
-        if typ == 'move':
-            oldC.objects.unlink(self.bo)
+        if coll_name not in [c.name for c in self.bo.users_collection]: # link only if the object isn't in collection already
+            self.bc.objects.link(self.bo)
+            if typ == 'move':
+                oldC.objects.unlink(self.bo)
 
     @property
     def m(self):
