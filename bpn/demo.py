@@ -3,9 +3,10 @@ Demonstrations using the bpn module
 
 Functions:
     spheres - keyframe animation
-    dna - animated plots
-    heart - plot a heart
-    arch - surface plots with 2d functions
+    dna     - animated plots
+    heart   - plot a heart
+    arch    - surface plots with 2d functions
+    zoo     - creates a zoo of primitive objects
 """
 import os
 import sys

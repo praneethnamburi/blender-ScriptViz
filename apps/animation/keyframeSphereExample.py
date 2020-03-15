@@ -37,14 +37,6 @@ bpy = bpn.bpy
 #     p = np.array([eval(k) for k in anim_data.loc[anim_data['object'] == obj_name]['value']])
 #     bpn.Msh(x=p[:, 0], y=p[:, 1], z=p[:, 2], name=obj_name+'_trajectory', coll_name=traj_coll_name)
 
-# bpn.env.reset()
-
-msh = bpy.data.meshes.new('Suzy')
-bm = bmesh.new()
-bmesh.ops.create_monkey(bm)
-bm.to_mesh(msh)
-bm.free()
-msh.update()
 
 # #-------basic extrusion------- extend this!!
 # bpn.new.circle(name='circle', n=6)
@@ -72,3 +64,15 @@ msh.update()
 # Change bpn.Msh class to be an object 
 
 # set frame start, frame end, fps
+
+bpn.env.reset()
+
+θ = np.radians(np.arange(0, 360*3, 10))
+x = θ*np.sin(θ)
+y = np.sqrt(θ)*np.cos(θ)
+z = np.zeros_like(θ)
+
+sp = bpn.Msh(name='spiral', x=x, y=y, z=z)
+sp.rotate((0, 45, 0))
+
+s = bpn.new.sphere(name='sph')
