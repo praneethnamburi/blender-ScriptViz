@@ -207,7 +207,8 @@ class Track:
         class TestClass(Track):
         def __init__(self, num):
             self.num = num
-            self.track(self)
+            # self.track(self)
+            super().__init__() # include this line at the end of __init__ after inheritance
     """
     all = []
     cache = []
@@ -263,11 +264,6 @@ class Track:
             return {getattr(k, key):k for k in cls.all}
         
         return {getattr(k, key):getattr(k, val) for k in cls.all}
-
-class TestClass(Track):
-    def __init__(self, num):
-        self.n = num
-        super().__init__() # include this line at the end of __init__ after inheritance
 
 class OnDisk:
     """
