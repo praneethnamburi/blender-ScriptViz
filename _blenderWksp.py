@@ -56,19 +56,20 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
     sys.path.append('__bpnModifyFilePath__')
 
 import bpn
-import pntools as my
+from bpn import env, new, demo # pylint: disable=unused-import
+import pntools as pn
 import marmoset_atlas as atl # pylint: disable=W0611
 
 def reloadAll():
-    """Reloads bpn and my (pntools)"""
-    exec('bpn = reload(bpn); my = reload(my)') # pylint: disable=W0122
+    """Reloads bpn and pn (pntools)"""
+    exec('bpn = reload(bpn); pn = reload(pn)') # pylint: disable=W0122
 
 # delete convenience variables that are polluting the namespace!
 def clearWorkSpace():
     """Removes blender's convenience variables and import * imports"""
-    for k in list(my.getmembers(math).keys()):
+    for k in list(pn.getmembers(math).keys()):
         del globals()[k]
-    for k in list(my.getmembers(mathutils).keys()):
+    for k in list(pn.getmembers(mathutils).keys()):
         del globals()[k]
     del globals()['C']
     del globals()['D']
