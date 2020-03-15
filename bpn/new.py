@@ -108,10 +108,18 @@ polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 
 
 def ngon(**kwargs):
     """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
-    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':0, 'fill':True}
+    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':-1, 'fill':True}
     kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
     kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-
+    
+    # if offset isn't specified, compute it
+    if kwargs_fun['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
+        n = kwargs_fun['n']
+        if n%2 == 1: # odd number of faces
+            kwargs_fun['theta_offset_deg'] = ((n-2)*180/n)%90
+        else:
+            kwargs_fun['theta_offset_deg'] = 360/(2*n)
+            
     v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
     if not kwargs_fun['fill']:
         f = []
