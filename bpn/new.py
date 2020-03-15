@@ -15,6 +15,7 @@ import pntools as pn
 import bpn
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 def collection(coll_name='Collection'):
     """
@@ -108,8 +109,27 @@ ngon = polygon
 # No faces, just edges
 circle = partial(easycreate, bmesh.ops.create_circle)
 
+def plane(**kwargs):
+    """
+    Plane primitive
+    bpn.new.plane(name='Plane', size=2) # use size, sz, r, or s
+    This is the length of the side.
+    Works for now, but not ideal. We want only 4 vertices and one face. Re-write this function.
+    """
+    kwargs_orig = kwargs
+    kwargs_def = {'segments':4, 'diameter1':2, 'diameter2':0, 'depth':0, 'cap_ends':False, 'cap_tris':False}
+    kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r', 'sz', 'size', 's'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
+    kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    kwargs['diameter1'] = kwargs['diameter1']/np.sqrt(2)
+
+    msh = partial(easycreate, bmesh.ops.create_cone)(**{**kwargs_orig, **kwargs})
+    msh.rotate((0, 0, 45))
+    msh.v = msh.v_world
+    msh.bo.matrix_world = mathutils.Matrix(np.eye(4))
+    return msh
+
 # other primitives:
-# cylinder, grid, ico_sphere, plane, torus
+# cylinder, grid, ico_sphere, torus
 
 # convenience 
 def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
