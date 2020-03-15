@@ -491,11 +491,14 @@ def clean_kwargs(kwargs, kwargs_def, kwargs_alias):
         {kw1: [kw1, kw1_alias1, ..., kw1_aliasn], ...}
         kw1 is used inside the function, but kw1=val, kw1_alias1=val, ..., kw1_aliasn are all valid
 
-    Returns: (dict) keyword arguments after cleaning. Ensures all keywords are present, and have the names used in the function.
+    Returns: 
+        (dict) keyword arguments after cleaning. Ensures all keywords are present, and have the names used in the function.
+        (dict) remaining keyword arguments
     """
     for k in kwargs_def:
         for ka in kwargs_alias[k]:
             if ka in kwargs:
-                kwargs_def[k] = kwargs[ka]
-    return kwargs_def
+                kwargs_def[k] = kwargs.pop(ka)
+
+    return kwargs_def, kwargs
     

@@ -1,10 +1,10 @@
 """
 Creation submodule for bpn.
 """
+from functools import partial
 import os
 import sys
 import numpy as np
-from functools import partial
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 if DEV_ROOT not in sys.path:
@@ -15,7 +15,8 @@ import pntools as pn
 import bpn
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
-import mathutils #pylint: disable=import-error
+
+from . import vef
 
 def collection(coll_name='Collection'):
     """
@@ -67,22 +68,22 @@ def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='Collect
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
         kwargs_def = {'u_segments':16, 'v_segments':8, 'diameter':0.5}
         kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], 'diameter': ['r', 'diameter']}
-        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_cube):
         kwargs_def = {'size':1}
         kwargs_alias = {'size': ['size', 'sz', 's', 'r']}
-        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
     if str(mshfunc) == str(bmesh.ops.create_cone):
         kwargs_def = {'segments':12, 'diameter1':2, 'diameter2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
         kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
-        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_circle):
         kwargs_def = {'segments':32, 'radius':1, 'cap_ends':False, 'cap_tris':False}
         kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'radius':['radius', 'r'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
-        kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_monkey):
         kwargs = {}
@@ -104,29 +105,23 @@ monkey = partial(easycreate, bmesh.ops.create_monkey)
 cube = partial(easycreate, bmesh.ops.create_cube)
 cone = partial(easycreate, bmesh.ops.create_cone)
 polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 'r2':1.8})
-ngon = polygon
 
-# No faces, just edges
+def ngon(**kwargs):
+    """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
+    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':0, 'fill':True}
+    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
+    kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+
+    v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
+    if not kwargs_fun['fill']:
+        f = []
+
+    return bpn.Msh(v=v, e=e, f=f, **kwargs_msh)
+
+plane = partial(ngon, **{'n':4, 'r':2/np.sqrt(2), 'theta_offset_deg':45})
+
+# No faces, just edges - redundant now, just use ngon
 circle = partial(easycreate, bmesh.ops.create_circle)
-
-def plane(**kwargs):
-    """
-    Plane primitive
-    bpn.new.plane(name='Plane', size=2) # use size, sz, r, or s
-    This is the length of the side.
-    Works for now, but not ideal. We want only 4 vertices and one face. Re-write this function.
-    """
-    kwargs_orig = kwargs
-    kwargs_def = {'segments':4, 'diameter1':2, 'diameter2':0, 'depth':0, 'cap_ends':False, 'cap_tris':False}
-    kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r', 'sz', 'size', 's'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
-    kwargs = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-    kwargs['diameter1'] = kwargs['diameter1']/np.sqrt(2)
-
-    msh = partial(easycreate, bmesh.ops.create_cone)(**{**kwargs_orig, **kwargs})
-    msh.rotate((0, 0, 45))
-    msh.v = msh.v_world
-    msh.bo.matrix_world = mathutils.Matrix(np.eye(4))
-    return msh
 
 # other primitives:
 # cylinder, grid, ico_sphere, torus
