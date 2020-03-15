@@ -77,11 +77,13 @@ class AddMethods:
 
 class Tracker:
     """
-    Keep track of all instances of objects created by a class
+    Keep track of all instances of objects created by a class.
+    This converts a class into a Tracker object. 
+    To keep a class as a class, use inheritance with the Track class.
     clsToTrack. Decorator. 
 
     Meant to convert clsToTrack into a Tracker object with properties
-    _all, n, and methods dictAccess
+    all, n, and methods dictAccess
 
     TODO:list 
     1. keeping track of all tracked classes is controversial because all
@@ -103,17 +105,18 @@ class Tracker:
     def __init__(self, clsToTrack):
         self.clsToTrack = clsToTrack
         functools.update_wrapper(self, clsToTrack)
-        self.all_ = []
+        self.all = []
+        self.cache = []
     def __call__(self, *args, **kwargs):
         funcOut = self.clsToTrack(*args, **kwargs)
-        self.all_.append(funcOut)
+        self.all.append(funcOut)
         return funcOut
     def __delitem__(self, item):
         """
         Stop tracking item.
         item is an instance of clsToTrack
         """
-        self.all_.remove(item)
+        self.all.remove(item)
 
     def dictAccess(self, key='id', val=None):
         """
@@ -129,14 +132,14 @@ class Tracker:
         :returns: A dictionary of property pairs for all objects in key(property1):val(property2)
         """
         if not val:
-            return {getattr(k, key):k for k in self.all_}
+            return {getattr(k, key):k for k in self.all}
         
-        return {getattr(k, key):getattr(k, val) for k in self.all_}
+        return {getattr(k, key):getattr(k, val) for k in self.all}
 
     @property
     def n(self):
         """Return the number of instances being tracked."""
-        return len(self.all_)
+        return len(self.all)
 
     def query(self, queryStr="agent == 'sausage' and accuracy > 0.7", keys=None):
         """
@@ -150,7 +153,7 @@ class Tracker:
         Refer to tests for examples and notes on how to use.
         """
         if not queryStr:
-            return self.all_
+            return self.all
 
         def parseQuery(queryStr):
             queryUnits = re.split(r'and|or', queryStr)
@@ -169,7 +172,7 @@ class Tracker:
                 queryStr = queryStr.replace(key, 'k.'+key)
 
         try:
-            objList = eval("[k for k in self.all_ if " + queryStr + "]") #pylint:disable=eval-used
+            objList = eval("[k for k in self.all if " + queryStr + "]") #pylint:disable=eval-used
         except Warning:
             print('Query failed.')
             print(queryStr)
@@ -177,7 +180,94 @@ class Tracker:
 
     def clean(self):
         """Forget the objects tracked so far."""
-        self.all_ = []
+        self.all = []
+    
+    def clear_cache(self):
+        """Clear cache used by temporary tracking sessions."""
+        self.cache = []
+
+    def track_start(self):
+        """
+        Start a tracking session. Move current objects to cache, and clean.
+        Note that objects are tracked even without this method if a class is being tracked.
+        Use this to create temporary tracking sessions.
+        """
+        self.cache = self.all
+        self.clean()
+
+    def track_end(self):
+        """End tracking session."""
+        self.all = self.cache
+        self.clear_cache()
+
+class Track:
+    """
+    The Tracker class converts a class into an object, and therefore, is very inconvenient when it comes to module imports.
+    In that case, use this class like so:
+        class TestClass(Track):
+        def __init__(self, num):
+            self.num = num
+            self.track(self)
+    """
+    all = []
+    cache = []
+    def __init__(self):
+        self.track(self)
+
+    @classmethod
+    def track(cls, obj):
+        """Just used by the initalization function to track object."""
+        cls.all.append(obj)
+    
+    @classmethod
+    def clear(cls):
+        """Forget the objects tracked so far."""
+        cls.all = []
+    
+    @classmethod
+    def clear_cache(cls):
+        """Clear cache used by temporary tracking sessions."""
+        cls.cache = []
+
+    @classmethod
+    def track_start(cls):
+        """
+        Start a tracking session. Move current objects to cache, and clean.
+        Note that objects are tracked even without this method if a class is being tracked.
+        Use this to create temporary tracking sessions.
+        """
+        cls.cache = cls.all
+        cls.all = []
+
+    @classmethod
+    def track_end(cls):
+        """End tracking session."""
+        cls.all = cls.cache
+        cls.cache = []
+
+    @classmethod
+    def dictAccess(cls, key='id', val=None):
+        """
+        Give access to the object based on key. 
+        
+        Note:
+        If keys (id) of different objects are the same, then only the
+        last reference will be preserved.
+
+        :param key: Property of the object being tracked (to be used as the key).
+        :param val: Property of the object being tracked (to be used as the value).
+                    When set to None, val is set to the object itself.
+        :returns: A dictionary of property pairs for all objects in key(property1):val(property2)
+        """
+        if not val:
+            return {getattr(k, key):k for k in cls.all}
+        
+        return {getattr(k, key):getattr(k, val) for k in cls.all}
+
+class TestClass(Track):
+    def __init__(self, num):
+        self.n = num
+        super().__init__() # include this line at the end of __init__ after inheritance
 
 class OnDisk:
     """
