@@ -3,6 +3,7 @@ Creation submodule for bpn.
 """
 import os
 import sys
+import numpy as np
 from functools import partial
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
@@ -109,3 +110,17 @@ circle = partial(easycreate, bmesh.ops.create_circle)
 
 # other primitives:
 # cylinder, grid, ico_sphere, plane, torus
+
+# convenience 
+def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
+    """
+    Makes a spiral.
+    :param n_rot: number of rotations
+    :param res: resolution (degrees) between points
+    """
+    θ = np.radians(np.arange(360*offset_rot, 360*n_rot+res, res))
+    x = θ*np.sin(θ)/(np.pi*2)
+    y = θ*np.cos(θ)/(np.pi*2)
+    z = np.zeros_like(θ)
+
+    return bpn.Msh(x=x, y=y, z=z, **kwargs)

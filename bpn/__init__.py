@@ -24,6 +24,7 @@ import pntools as pn
 if __package__ is not None:
     from . import new, env, demo
     from .env import Props, ReportDelta
+    from .utils import apply_matrix
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
@@ -64,6 +65,7 @@ class Msh(pn.Track):
         TODO: also save edges and faces in history
 
         v - vertices (can be set, but only as a whole)
+        v_world - vertices in world co-ordinates
         vn - vertex normals
         f - faces (vertex indices)
         fn - face normals
@@ -317,6 +319,12 @@ class Msh(pn.Track):
     def v(self):
         """Coordinates of a mesh as an nVx3 numpy array."""
         return np.array([v.co for v in self.bm.vertices])
+
+    @property
+    def v_world(self):
+        """Return world coordinates as nVx3 numpy array."""
+        bpy.context.view_layer.update()
+        return apply_matrix(self.v, self.bo.matrix_world)
 
     @property
     def vn(self):

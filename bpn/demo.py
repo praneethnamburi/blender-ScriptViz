@@ -7,6 +7,7 @@ Functions:
     heart   - plot a heart
     arch    - surface plots with 2d functions
     zoo     - creates a zoo of primitive objects
+    spiral  - animates an object along a spiral path
 """
 import os
 import sys
@@ -122,6 +123,18 @@ def zoo():
         obj.to_coll('zoo')
 
     bpn.Msh.track_end()
+
+def spiral():
+    """
+    Animating along a path with a few lines of code.
+    """
+    sp = bpn.new.spiral(name='spiral')
+    sp.rotate((0, 30, 0))
+
+    s = bpn.new.sphere(name='sphere', r=0.3, u=4, v=2)
+    s.key(1, 'l')
+    for idx, loc in enumerate(list(sp.v_world)):
+        s.key(idx+2, 'l', [tuple(loc)])
 
 def main():
     """

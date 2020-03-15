@@ -67,12 +67,4 @@ bpy = bpn.bpy
 
 bpn.env.reset()
 
-θ = np.radians(np.arange(0, 360*3, 10))
-x = θ*np.sin(θ)
-y = np.sqrt(θ)*np.cos(θ)
-z = np.zeros_like(θ)
 
-sp = bpn.Msh(name='spiral', x=x, y=y, z=z)
-sp.rotate((0, 45, 0))
-
-s = bpn.new.sphere(name='sph')
