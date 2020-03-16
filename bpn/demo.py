@@ -55,6 +55,8 @@ def spheres():
     # chaining transforms (relative)
     s4 = bpn.new.sphere(name='sphere4', msh_name='sph', coll_name='Spheres')
     s4.key(1).translate((0, 0, 2)).key(26).scale((1, 1, 0.3)).key(51).scale((1, 1, 4)).key(101)
+    
+    bpn.env.Key().auto_lim()
 
 def dna():
     """
@@ -74,14 +76,14 @@ def dna():
     s2 = bpn.Msh(x=-x, y=-y, z=z, name='strand2', coll_name='Plots')
     
     frames = (1, 50, 100, 150, 200)
-    bpy.context.scene.frame_start = frames[0]
-    bpy.context.scene.frame_end = frames[-1]
 
     for s in (s1, s2):
         s.key(frames[0], 'r')
         for i in np.arange(1, np.size(frames)):
             s.rotate((0, 0, 90))
             s.key(frames[i], 'r')
+
+    bpn.env.Key().auto_lim()
 
 def heart():
     """Plot a heart"""

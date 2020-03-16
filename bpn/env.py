@@ -10,6 +10,7 @@ Functions:
     shade() - Change the shading in 3D viewport
 """
 import functools
+import numpy as np
 
 import bpy #pylint: disable=import-error
 # import traceback
@@ -210,3 +211,42 @@ def shade(shading='WIREFRAME', area='Layout'):
         for space in this_area.spaces:
             if space.type == 'VIEW_3D' and this_area.type == 'VIEW_3D':
                 space.shading.type = shading
+
+class Key:
+    """
+    Easy access to set animation limits.
+
+    After a series of animation commands, use env.Key().auto_lim()
+    """
+    @property
+    def start(self):
+        """First frame of animation."""
+        return bpy.context.scene.frame_start
+    @start.setter
+    def start(self, val):
+        bpy.context.scene.frame_start = val
+    begin = start
+
+    @property
+    def end(self):
+        """Last frame of animation."""
+        return bpy.context.scene.frame_end
+    @end.setter
+    def end(self, val):
+        bpy.context.scene.frame_end = val
+    stop = end
+
+    @property
+    def lim(self):
+        """Current animation limits."""
+        return self.begin, self.end
+    @lim.setter
+    def lim(self, val):
+        self.begin = val[0]
+        self.end = val[1]
+
+    def auto_lim(self):
+        """Use this function after doing an animation."""
+        action_list = np.array([action.frame_range for action in bpy.data.actions if action.users > 0])
+        if action_list.size:
+            self.lim = np.min(action_list), np.max(action_list)
