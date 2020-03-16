@@ -6,6 +6,7 @@ Babel==2.6.0
 backcall==0.1.0
 bleach==3.1.0
 certifi==2018.11.29
+cffi==1.14.0
 chardet==3.0.4
 Click==7.0
 colorama==0.4.1
@@ -56,8 +57,10 @@ prometheus-client==0.5.0
 prompt-toolkit==2.0.8
 ptvsd==4.2.2
 ptyprocess==0.6.0
+pycparser==2.20
 Pygments==2.3.1
 pylint==2.2.2
+pymunk==5.6.0
 pyparsing==2.3.1
 pyrsistent==0.14.11
 python-dateutil==2.7.5
