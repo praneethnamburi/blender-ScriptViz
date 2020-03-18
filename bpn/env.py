@@ -199,6 +199,8 @@ def reset():
                 bpy_data_iter.remove(id_data)
             except AttributeError:
                 pass
+    # clear frame change handlers (perhaps clear all handlers?)
+    bpy.app.handlers.frame_change_pre.clear()
 
 def shade(shading='WIREFRAME', area='Layout'):
     """
