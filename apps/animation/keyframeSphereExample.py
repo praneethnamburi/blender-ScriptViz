@@ -11,6 +11,7 @@ if DEV_ROOT not in sys.path:
 
 from importlib import reload
 import numpy as np
+import copy
 # import pandas as pd
 # from functools import partial
 
@@ -67,4 +68,24 @@ bpy = bpn.bpy
 
 bpn.env.reset()
 
+bpy.app.handlers.frame_change_pre.clear()
 
+sph = bpn.new.sphere(name='sphere').translate((-2, 0, 0))
+mky = bpn.new.monkey(name='suzy').translate((2, 0, 0))
+
+def flat_top(obj):
+    """
+    input: bpn.Msh object 
+    """
+    v_orig = obj.v
+    v_targ = copy.deepcopy(v_orig)
+    v_targ[v_targ[:, -1] > 0, -1] = 0
+
+    def my_handler(scene):
+        p = scene.frame_current/scene.frame_end
+        obj.v = (1-p)*v_orig + p*v_targ
+    bpy.app.handlers.frame_change_pre.append(my_handler)  
+
+flat_top(sph)
+flat_top(mky)
+ 
