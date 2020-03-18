@@ -138,9 +138,32 @@ def spiral():
     for idx, loc in enumerate(list(sp.v_world)):
         s.key(idx+2, 'l', [tuple(loc)])
 
+def plane_slice():
+    """
+    Using the plane slicer to 'sculpt' simple objects.
+    """
+    r = 1
+    n = 4
+    sph = bpn.new.sphere(name='sphere', r=r)
+
+    subtended_angle = 2*np.pi/n
+    trans = r*np.cos(subtended_angle/2)
+    sph.translate(z=trans)
+
+    for _ in range(n-1):
+        sph.slice_z().rotate(np.degrees((subtended_angle, 0, 0)))
+
+    len_z = np.max(sph.v[:, -1]) - np.min(sph.v[:, -1])
+    sph.translate(z=-0.8*len_z)
+    sph.slice_z(slice_dir='pos')
+    len_z = np.max(sph.v[:, -1]) - np.min(sph.v[:, -1])
+    sph.translate(z=len_z)
+    sph.morph(frame_start=151)
+    return sph
+
 def main():
     """
-    Runs all the demos.
+    Runs all the demos. Avoid using this!
     """
     all_mem = pn.getmembers(sys.modules[__name__], False)
     all_func = [eval(name) for name, typ in all_mem.items() if typ == 'function' and name != 'main'] #pylint: disable=eval-used

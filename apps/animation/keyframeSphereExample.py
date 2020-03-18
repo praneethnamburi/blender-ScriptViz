@@ -16,6 +16,7 @@ import copy
 # from functools import partial
 
 import bpn # pylint: disable=unused-import
+bpn = reload(bpn)
 import bmesh # pylint: disable=import-error
 
 bpy = bpn.bpy
@@ -64,28 +65,48 @@ bpy = bpn.bpy
 # Vertex groups appear to ve a property of the object, rather than the mesh somehow. 
 # Change bpn.Msh class to be an object 
 
-# set frame start, frame end, fps
+# Frame event handlers!------------
 
+# bpn.env.reset()
+
+# bpy.app.handlers.frame_change_pre.clear()
+
+# sph = bpn.new.sphere(name='sphere').translate((-2, 0, 0))
+# mky = bpn.new.monkey(name='suzy').translate((2, 0, 0))
+
+# def flat_top(obj):
+#     """
+#     input: bpn.Msh object 
+#     """
+#     v_orig = obj.v
+#     v_targ = copy.deepcopy(v_orig)
+#     v_targ[v_targ[:, -1] > 0, -1] = 0
+
+#     def my_handler(scene):
+#         p = scene.frame_current/scene.frame_end
+#         obj.v = (1-p)*v_orig + p*v_targ
+#     bpy.app.handlers.frame_change_pre.append(my_handler)  
+
+# flat_top(sph)
+# flat_top(mky)
+
+# ------------
 bpn.env.reset()
 
-bpy.app.handlers.frame_change_pre.clear()
+s = bpn.demo.plane_slice()
 
-sph = bpn.new.sphere(name='sphere').translate((-2, 0, 0))
-mky = bpn.new.monkey(name='suzy').translate((2, 0, 0))
-
-def flat_top(obj):
+def morph(obj):
     """
     input: bpn.Msh object 
     """
-    v_orig = obj.v
-    v_targ = copy.deepcopy(v_orig)
-    v_targ[v_targ[:, -1] > 0, -1] = 0
+    v_orig = obj.vInit
+    v_targ = obj.v
 
     def my_handler(scene):
         p = scene.frame_current/scene.frame_end
         obj.v = (1-p)*v_orig + p*v_targ
     bpy.app.handlers.frame_change_pre.append(my_handler)  
 
-flat_top(sph)
-flat_top(mky)
- 
+bpy.app.handlers.frame_change_pre.clear()
+bpn.env.Key().lim = 1, 50
+morph(s) 

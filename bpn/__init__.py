@@ -528,14 +528,19 @@ class Msh(pn.Track):
     def scl(self, s):
         self.bo.scale = mathutils.Vector(s)
 
-    # object transforms
-    def translate(self, delta):
+    # object transforms - update view_layer after any transform operating on the object (bo)
+    def translate(self, delta=0, x=0, y=0, z=0):
         """
         Move an object by delta.
         delta is a 3-element tuple, list, numpy array or Vector
+        sph.translate((0, 0, 0.6))
+        sph.translate(z=0.6)
         """
+        if delta == 0:
+            delta = (x, y, z)
         assert len(delta) == 3
         self.bo.location = self.bo.location + mathutils.Vector(delta)
+        bpy.context.view_layer.update()
         return self
     
     def rotate(self, theta, inp_type='degrees', frame='global'):
@@ -554,6 +559,7 @@ class Msh(pn.Track):
             self.bo.rotation_euler.z = self.bo.rotation_euler.z + theta[2]
         else: #frame = global
             self.bo.rotation_euler.rotate(mathutils.Euler(tuple(theta)))
+        bpy.context.view_layer.update()
         return self
 
     def scale(self, delta):
@@ -566,8 +572,56 @@ class Msh(pn.Track):
         else:
             assert np.size(delta) == 3
             self.bo.scale = mathutils.Vector(np.array(delta)*np.array(self.bo.scale))
+        bpy.context.view_layer.update()
+        return self
+
+    # transforms on mesh vertices
+    def apply_matrix(self):
+        """
+        Apply world transformation coordinates to the mesh vertices.
+        CAUTION: Applies matrix to the MESH directly and NOT the object!!
+        It also resets matrix_world
+        Note that this move will move the mesh center to origin.
+        """
+        self.vBkp = self.v # for undoing
+        self.v = apply_matrix(self.v, self.bo.matrix_world)
+        self.bo.matrix_world = mathutils.Matrix(np.eye(4))
+        bpy.context.view_layer.update()
         return self
     
+    def slice_ax(self, axis='x', slice_dir='neg'):
+        """
+        Use a plane as a slicer and set all vertices below it to zero.
+        """
+        assert slice_dir in ('pos', 'neg')
+        if isinstance(axis, str):
+            axis = {'x':0, 'y':1, 'z':2}[axis]
+        self.vBkp = self.v
+
+        # apply matrix, do your thing, apply inverse, then put the original matrix back in
+        m = self.bo.matrix_world.copy()
+        mi = m.copy()
+        mi.invert()
+        self.apply_matrix()
+
+        v = self.v
+        if slice_dir == 'neg':
+            v[v[:, axis] < 0, axis] = 0
+        else:
+            v[v[:, axis] > 0, axis] = 0
+        self.v = v
+
+        self.bo.matrix_world = mi
+        self.apply_matrix()
+        self.bo.matrix_world = m
+        bpy.context.view_layer.update()
+        return self
+
+    slice_x = functools.partialmethod(slice_ax, axis='x')
+    slice_y = functools.partialmethod(slice_ax, axis='y')
+    slice_z = functools.partialmethod(slice_ax, axis='z')
+
+    # animation
     def key(self, frame=None, target='lrs', values=None):
         """
         Easy keying. Useful for playing around in the command line, or iterating ideas while keeping history.
@@ -617,6 +671,19 @@ class Msh(pn.Track):
         # bpy.context.scene.frame_set(frame_current)
 
         return self # so you can chain keyings into one command
+
+    def morph(self, n_frames=50, frame_start=1):
+        """
+        Morphs the mesh from initial vertex positions to current vertex positions.
+        CAUTION: Using this multiple times on the same object can cause unpredictable behavior.
+        """
+        v_orig = self.vInit
+        v_targ = self.v
+        frame_end = frame_start + n_frames
+        def my_handler(scene):
+            p = (scene.frame_current-frame_start)/(frame_end-frame_start)
+            self.v = (1-p)*v_orig + p*v_targ
+        bpy.app.handlers.frame_change_pre.append(my_handler)
 
     def to_coll(self, coll_name, typ='move'):
         """
