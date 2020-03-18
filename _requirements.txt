@@ -53,6 +53,7 @@ pandocfilters==1.4.2
 parso==0.3.3
 pexpect==4.6.0
 pickleshare==0.7.5
+ply==3.11
 prometheus-client==0.5.0
 prompt-toolkit==2.0.8
 ptvsd==4.2.2
@@ -63,15 +64,18 @@ pylint==2.2.2
 pymunk==5.6.0
 pyparsing==2.3.1
 pyrsistent==0.14.11
+PySpice==1.3.2
 python-dateutil==2.7.5
 pytz==2018.9
 pywin32==227
 pywinpty==0.5.5
+PyYAML==5.3
 pyzmq==17.1.2
 qtconsole==4.4.3
 QtPy==1.9.0
 requests==2.21.0
 rope==0.11.0
+scipy==1.4.1
 Send2Trash==1.5.0
 six==1.12.0
 snowballstemmer==1.2.1
