@@ -83,9 +83,7 @@ import pntools as my
 
 def writeBlenderStartupFile(fName_full):
     """
-    Generate a startup file to load the contents of _blenderWksp.py into
-    a string that is available via bpy. Only changes to bpy are
-    available in the blender console.
+    Generate a startup file that adds development directory (current directory) to the system path
     """
     pathToAppend = str(THIS_DIR).replace('\\', '\\\\')
     try:
