@@ -40,7 +40,7 @@ line that should be removed #__bpnRemovesThisLine__
 """
 
 import sys
-print("Don't run _blenderWksp.py directly. Exiting.") #__bpnRemovesThisLine__
+print("Don't run _blenderwksp.py directly. Exiting.") #__bpnRemovesThisLine__
 sys.exit() #__bpnRemovesThisLine__
 import os
 import math
