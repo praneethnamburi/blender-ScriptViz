@@ -19,10 +19,10 @@ from a terminal. Then, execute that string within blender's python
 console.
 
 Usage:
-1. Launch blender from the terminal using:
->>> blender --python marmoset_atlas.py
-2. Execute the following command in blender's python console:
->>> exec(bpy.loadStr)
+1. Launch blender using blender.start command from the VSCode blender add-on.
+2. Type the following commands into the blender console.
+>>> import bpn
+>>> exec(bpn.loadStr)
 
 Testing:
 To check if the script worked as intended, inspect variables in
@@ -82,7 +82,7 @@ def clear_workSpace():
 
 clear_workSpace()
 del clear_workSpace
-del bpn.bpy.loadStr
+del bpn.loadStr
 
 # Don't add anything here to test. Add only things you want done every
 # time you load blender

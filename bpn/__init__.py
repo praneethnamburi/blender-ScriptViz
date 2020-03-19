@@ -46,7 +46,7 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 ### add whatever you want to execute inside the blender terminal in _blenderWksp.py
 # Import bpy from bpn in all scripts from which you will launch blender
-bpy.loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), '_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
+loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), 'bpn\\_blenderWksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
 
 class Msh(pn.Track):
     """
