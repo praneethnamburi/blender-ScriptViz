@@ -97,6 +97,14 @@ class Tracker:
     you can simply create a groupOperations class without __new__,
     __init__ or __call__ functions, and decorate clsToDecorate with that
     class. See tests for an example.
+
+    Example of extending the Tracker class:
+    class ImgGroupOps(my.Tracker):
+        def __init__(self, clsToTrack):
+            super().__init__(clsToTrack)
+            self.load()
+        
+        def load(self):
     """
     _tracked = [] # all the classes being tracked
     def __new__(cls, clsToTrack):
