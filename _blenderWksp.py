@@ -58,7 +58,6 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
 import bpn
 from bpn import env, new, demo # pylint: disable=unused-import
 import pntools as pn
-import marmoset_atlas as atl # pylint: disable=W0611
 
 def reload_all(constraint='Workspace'):
     """
