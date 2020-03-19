@@ -1,14 +1,8 @@
 """
-Morphs
+Morphs.
+
+The idea behind morphs is to scuplt basic shapes, and see what extrapolating those morphs can do!
 """
-
-import os
-import sys
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
-
 from importlib import reload
 import numpy as np
 # import copy
@@ -21,7 +15,7 @@ import bmesh # pylint: disable=import-error
 bpy = bpn.bpy
 env = bpn.env
 
-def tongue():
+def tongue(poly_smooth=True):
     """
     Morph should look like a tongue in one direction, and an alien helmet in another.
 
@@ -42,7 +36,7 @@ def tongue():
     sph.bo.modifiers['subd'].render_levels = 2
 
     for p in sph.bm.polygons:
-        p.use_smooth = True
+        p.use_smooth = poly_smooth
 
 env.reset()
 tongue()
