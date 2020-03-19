@@ -2,7 +2,7 @@
 
 #%%
 import os
-os.chdir('C:\\Workspace\\blenderPython\\apps') # location of this file
+os.chdir('D:\\Workspace\\blenderPython\\apps') # location of this file
 #%%
 import sys
 import numpy as np
@@ -23,15 +23,15 @@ beh = mk.session.query('nTrials > 10')
 #%%
 np.shape(beh)
 #%%
-imgDb = mk.img.dictAccess('id_desc')
-behSess = beh[1]
-trialCount = 0
+# imgDb = mk.img.dictAccess('id_desc')
+# behSess = beh[1]
+# trialCount = 0
 
-h_PN = [imgDb[k].id[:7] for k in behSess.sampleObject_id_desc]
-h_EI = behSess.SampleHashesPrefix[behSess.Sample]
+# h_PN = [imgDb[k].id[:7] for k in behSess.sampleObject_id_desc]
+# h_EI = behSess.SampleHashesPrefix[behSess.Sample]
 
-print('PN points to:', vars([imgDb[k] for k in imgDb if h_PN[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
-print('EI points to:', vars([imgDb[k] for k in imgDb if h_EI[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
+# print('PN points to:', vars([imgDb[k] for k in imgDb if h_PN[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
+# print('EI points to:', vars([imgDb[k] for k in imgDb if h_EI[trialCount] in imgDb[k].id[:7]][trialCount])['path_display'])
 
 #%%
 allHash = [im.mkturkHash for im in mk.img.all_]
