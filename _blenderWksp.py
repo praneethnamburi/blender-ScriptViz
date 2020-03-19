@@ -60,12 +60,15 @@ from bpn import env, new, demo # pylint: disable=unused-import
 import pntools as pn
 import marmoset_atlas as atl # pylint: disable=W0611
 
-def reloadAll():
-    """Reloads bpn and pn (pntools)"""
-    exec('bpn = reload(bpn); pn = reload(pn)') # pylint: disable=W0122
+def reload_all(constraint='Workspace'):
+    """
+    Reloads all modules with constraint in str(module).
+    If all your modules to be reloaded are in drive D:, then use constraint = 'D:'
+    """
+    return [reload(eval(obj)) for obj in globals() if inspect.ismodule(eval(obj)) and constraint in str(eval(obj))] # pylint: disable=W0122
 
 # delete convenience variables that are polluting the namespace!
-def clearWorkSpace():
+def clear_workSpace():
     """Removes blender's convenience variables and import * imports"""
     for k in list(pn.getmembers(math).keys()):
         del globals()[k]
@@ -74,8 +77,8 @@ def clearWorkSpace():
     del globals()['C']
     del globals()['D']
 
-clearWorkSpace()
-del clearWorkSpace
+clear_workSpace()
+del clear_workSpace
 del bpn.bpy.loadStr
 
 # Don't add anything here to test. Add only things you want done every
