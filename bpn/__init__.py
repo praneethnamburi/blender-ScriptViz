@@ -189,6 +189,7 @@ class Msh(pn.Track):
             self._setmoc_stl(kwargs['stl'], kwargs)
         else:
             self._setmoc(kwargs)
+        # TODO: This system is vulnerable to renames, what about mesh and collection re-assignments?
         self.name = {'msh': self.bm.name, 'obj': self.bo.name, 'coll': self.bc.name}
         self.inp = kwargs
         self.vInit = self.v # for resetting

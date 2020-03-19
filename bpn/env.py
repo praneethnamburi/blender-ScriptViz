@@ -252,3 +252,8 @@ class Key:
         action_list = np.array([action.frame_range for action in bpy.data.actions if action.users > 0])
         if action_list.size:
             self.lim = np.min(action_list), np.max(action_list)
+
+    def goto(self, frame):
+        """Go to a frame given by frame."""
+        assert isinstance(frame, int)
+        bpy.context.scene.frame_current = frame
