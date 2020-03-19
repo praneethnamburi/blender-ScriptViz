@@ -64,8 +64,12 @@ def reload_all(constraint='Workspace'):
     """
     Reloads all modules with constraint in str(module).
     If all your modules to be reloaded are in drive D:, then use constraint = 'D:'
+    Returns names of all the modules that were identified for reload
     """
-    return [reload(eval(obj)) for obj in globals() if inspect.ismodule(eval(obj)) and constraint in str(eval(obj))] # pylint: disable=W0122
+    all_mod = [obj for obj in globals() if inspect.ismodule(eval(obj)) and constraint in str(eval(obj))] # pylint: disable=W0122
+    for modname in all_mod:
+        reload(eval(modname))
+    return all_mod
 
 # delete convenience variables that are polluting the namespace!
 def clear_workSpace():
