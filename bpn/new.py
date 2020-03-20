@@ -17,6 +17,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 
 from . import vef
+from .utils import clean_names
 
 def collection(coll_name='Collection'):
     """
@@ -57,19 +58,10 @@ def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_na
     """
     **kwargs : u=16, v=8, r=0.5 for uv sphere
     **kwargs : size=0.5 for uv cube
-    """
-    if isinstance(name, str):
-        if obj_name is easycreate.__defaults__[2]:
-            obj_name = name
-        if msh_name is easycreate.__defaults__[1]:
-            msh_name = name
 
-    i = 0
-    new_name = obj_name
-    while new_name in [o.name for o in bpy.data.objects]:
-        i += 1
-        new_name = obj_name + '.{:03d}'.format(i)
-    obj_name = new_name
+    Warning: Avoid empty creates such as new.sphere()!
+    """
+    name, msh_name, obj_name, coll_name = clean_names(easycreate, name, msh_name, obj_name, coll_name, 'new', 'current')
 
     # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):

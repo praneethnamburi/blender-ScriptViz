@@ -73,9 +73,9 @@ def reload_all(constraint='Workspace'):
 # delete convenience variables that are polluting the namespace!
 def clear_workSpace():
     """Removes blender's convenience variables and import * imports"""
-    for k in list(pn.getmembers(math).keys()):
+    for k in list(pn.get_mod_members(math).keys()):
         del globals()[k]
-    for k in list(pn.getmembers(mathutils).keys()):
+    for k in list(pn.get_mod_members(mathutils).keys()):
         del globals()[k]
     del globals()['C']
     del globals()['D']

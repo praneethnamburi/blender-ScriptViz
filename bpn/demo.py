@@ -21,6 +21,7 @@ import pntools as pn
 
 import bpn
 import bpy #pylint: disable=import-error
+import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
 def spheres():
@@ -161,11 +162,22 @@ def plane_slice():
     sph.morph(frame_start=151)
     return sph
 
+def draw_basic():
+    """Draw a loopy thing."""
+    a = bpn.Draw('link')
+    bmesh.ops.create_circle(a.bm, radius=0.2, segments=6)
+    for vert in a.bm.verts[:]:
+        vert.co += mathutils.Vector((0., -1., 0))
+    a.spin(angle=np.pi, steps=3, axis='x', cent=(0., 0., 0.))
+    for i in range(5):
+        a.spin(angle=np.pi, steps=3, axis=(1., 1.0-2.0*(i%2), 0), cent=(2*i+1.0, 0., 0))
+    return +a
+
 def main():
     """
     Runs all the demos. Avoid using this!
     """
-    all_mem = pn.getmembers(sys.modules[__name__], False)
+    all_mem = pn.get_mod_members(sys.modules[__name__], False)
     all_func = [eval(name) for name, typ in all_mem.items() if typ == 'function' and name != 'main'] #pylint: disable=eval-used
     for func in all_func:
         func()

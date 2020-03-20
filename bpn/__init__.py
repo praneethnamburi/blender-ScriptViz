@@ -802,11 +802,7 @@ class Draw:
     Turtle-like access to bmesh functions.
     """
     def __init__(self, name=None, msh_name='autoMshName', obj_name='autoObjName', coll_name='Collection'):
-        if isinstance(name, str):
-            if obj_name is Draw.__init__.__defaults__[2]:
-                obj_name = name
-            if msh_name is Draw.__init__.__defaults__[1]:
-                msh_name = name
+        _, self.msh_name, self.obj_name, self.coll_name = utils.clean_names(Draw.__init__, name, msh_name, obj_name, coll_name, 'new', 'new')
         self.msh_name = msh_name
         self.obj_name = obj_name
         self.coll_name = coll_name

@@ -23,8 +23,9 @@ Functions:
     pkgList: List packages. Uses pip freeze.
     pkgPath: List path to a [package list]. Fails for several packages.
 
-    functionInputs: Input variable names and default values of a function.
-    getmembers: Members of a module.
+    get_func_inputs: Input variable names and default values of a function.
+    get_mod_members: Members of a module.
+    
     printDict: Print a dictionary to the command line.
 
 I/O:
@@ -429,16 +430,14 @@ def pkgPath(pkgNames=None):
     return currPkgDir
 
 ## introspection
-def functionInputs(func):
+def get_func_inputs(func):
     """Get the input variable names and default values to a function."""
-    inputVarNames = []
-    defaultValues = []
+    inpdict = {}
     if callable(func):
-        inputVarNames = [str(k) for k in inspect.signature(func).parameters.keys()]
-        defaultValues = [inspect.signature(func).parameters[k].default for k in [str(k) for k in inspect.signature(func).parameters.keys()]]
-    return inputVarNames, defaultValues
+        inpdict = {str(k):inspect.signature(func).parameters[str(k)].default for k in inspect.signature(func).parameters.keys()}
+    return inpdict
 
-def getmembers(mod, includeSubModules=True):
+def get_mod_members(mod, includeSubModules=True):
     """Return members of a module."""
     members = {}
     for name, data in inspect.getmembers(mod):
