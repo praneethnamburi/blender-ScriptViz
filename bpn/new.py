@@ -54,7 +54,7 @@ def obj(msh, col, obj_name='newObj'):
     return o
 
 # easy object creation
-def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_name='Collection', **kwargs):
+def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_name='Collection', return_type='bpn.Msh', **kwargs):
     """
     **kwargs : u=16, v=8, r=0.5 for uv sphere
     **kwargs : size=0.5 for uv cube
@@ -87,17 +87,21 @@ def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_na
     if str(mshfunc) == str(bmesh.ops.create_monkey):
         kwargs = {}
 
-    if msh_name in [m.name for m in bpy.data.meshes]:
-        msh = bpy.data.meshes[msh_name]
-    else:
-        msh = bpy.data.meshes.new(msh_name)
+    if 'bpn' in str(return_type) and 'Msh' in str(return_type):
+        if msh_name in [m.name for m in bpy.data.meshes]:
+            msh = bpy.data.meshes[msh_name]
+        else:
+            msh = bpy.data.meshes.new(msh_name)
+            bm = bmesh.new()
+            mshfunc(bm, **kwargs)
+            bm.to_mesh(msh)
+            bm.free()
+            msh.update()
+        return bpn.Msh(msh_name=msh.name, obj_name=obj_name, coll_name=coll_name, pargs=kwargs)
+    elif 'BMesh' in str(return_type):
         bm = bmesh.new()
         mshfunc(bm, **kwargs)
-        bm.to_mesh(msh)
-        bm.free()
-        msh.update()
-
-    return bpn.Msh(msh_name=msh.name, obj_name=obj_name, coll_name=coll_name, pargs=kwargs)
+        return bm
 
 sphere = partial(easycreate, bmesh.ops.create_uvsphere)
 monkey = partial(easycreate, bmesh.ops.create_monkey)

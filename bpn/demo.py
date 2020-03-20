@@ -173,6 +173,19 @@ def draw_basic():
         a.spin(angle=np.pi, steps=3, axis=(1., 1.0-2.0*(i%2), 0), cent=(2*i+1.0, 0., 0))
     return +a
 
+def draw_atom():
+    """Electron clouds-like structure."""
+    a = bpn.Draw('cloud', coll_name='atom')
+    a.circle(n=2, r=0.1)
+    for vert in a.bm.verts[:]:
+        vert.co += mathutils.Vector((0., -1., 0))
+    a.spin(angle=np.pi, steps=24, axis='x', cent=(0., 0., 0.))
+    a.spin(angle=2*np.pi, steps=6, axis='y', cent=(0., 0., 0.), geom=bpn.turtle.Geom(a.bm).all, use_duplicate=True)
+    cloud = +a
+    cloud.scale((1, 0.6, 1))
+    nucleus = bpn.new.sphere('nucleus', r=0.2, coll_name='atom')
+    return (nucleus, cloud)
+
 def main():
     """
     Runs all the demos. Avoid using this!

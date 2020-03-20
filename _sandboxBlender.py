@@ -14,7 +14,6 @@ if DEV_ROOT not in sys.path:
 
 # import pntools as pn
 import bpn # pylint: disable=unused-import
-from bpn.utils import geom2vef
 import bpy #pylint: disable=import-error
 
 bpn.env.reset()
@@ -32,7 +31,7 @@ bpn.env.reset()
 # geom2vef = bpn.utils.geom2vef
 # Make a new BMesh
 a = bpn.Draw('link2')
-bmesh.ops.create_circle(a.bm, radius=0.2, segments=6)
+a.circle(n=2, r=0.2)
 for vert in a.bm.verts[:]:
     vert.co += mathutils.Vector((0., -1., 0))
 
@@ -40,11 +39,10 @@ for vert in a.bm.verts[:]:
 
 # Spin and deal with geometry on side 'a'
 edges_start_a = a.bm.edges[:]
-geom = a.spin(angle=np.pi, steps=12, axis='x', cent=(0., 0., 0.))
+geom = a.spin(angle=np.pi, steps=24, axis='x', cent=(0., 0., 0.))
+geom = a.spin(angle=2*np.pi, steps=6, axis='y', cent=(0., 0., 0.), geom=bpn.turtle.Geom(a.bm).all, use_duplicate=True)
 
-_, edges_end_a, _ = geom.vef
-
-print(a.obj_name)
+# _, edges_end_a, _ = geom.vef
 
 # Extrude and create geometry on side 'b'
 # verts_extrude_b, edges_extrude_b, _ = a.extrude(a.geom_last[1])

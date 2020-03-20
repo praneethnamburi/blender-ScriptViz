@@ -3,6 +3,7 @@ Turtle module
 """
 import os
 import sys
+from functools import partial
 import numpy as np
 
 import bpy #pylint: disable=import-error
@@ -13,6 +14,7 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import bpn
+import pntools as pn
 
 from .utils import clean_names
 
@@ -24,14 +26,32 @@ class Draw:
         _, self.msh_name, self.obj_name, self.coll_name = clean_names(Draw.__init__, name, msh_name, obj_name, coll_name, 'new', 'new')
         self.bm = bmesh.new()
         self.geom_last = ()
+    
+    # Creation functions
+    def circle(self, **kwargs):
+        """
+        a = Draw()
+        geom = a.circle(n=6, r=1)
+        """
+        kwargs_def = {'segments':8, 'radius':1}
+        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'radius':['radius', 'r']}
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs['cap_ends'] = False
+        kwargs['cap_tris'] = False
 
+        bmesh.ops.create_circle(self.bm, **kwargs)
+
+        self.geom_last = Geom(self.bm)
+        return self.geom_last
+
+    # Operations
     def spin(self, geom=None, angle=np.pi, steps=10, axis=(1.0, 0.0, 0.0), cent=(0.0, 1.0, 0.0), use_duplicate=False):
         """spin"""
         if not geom:
             if not self.geom_last:
                 geom = self.bm.verts[:] + self.bm.edges[:]
             else:
-                geom = self.geom_last[0][:] + self.geom_last[1][:]
+                geom = self.geom_last.v + self.geom_last.e
         if isinstance(axis, str):
             ax = [0, 0, 0]
             if 'x' in axis:
@@ -68,7 +88,10 @@ class Draw:
 class Geom:
     """Simplifying BMesh geometry object."""
     def __init__(self, geom):
-        self.geom = geom
+        if isinstance(geom, bmesh.types.BMesh):
+            self.geom = geom.verts[:]+geom.edges[:]+geom.faces[:]
+        else:
+            self.geom = geom
     
     @property
     def v(self):
@@ -109,3 +132,8 @@ class Geom:
     def vef(self):
         """Tuple (v, e, f)"""
         return (self.v, self.e, self.f)
+
+    @property
+    def all(self):
+        """All vetices, edges and faces in one list"""
+        return self.v + self.e + self.f
