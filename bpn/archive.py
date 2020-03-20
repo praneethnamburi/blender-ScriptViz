@@ -19,7 +19,6 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import bpn
-from bpn.utils import geom2vef
 
 def demo_animateDNA():
     """Old way of animating DNA. See demo.dna() for the new way"""

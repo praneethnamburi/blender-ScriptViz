@@ -24,7 +24,8 @@ import pntools as pn
 if __package__ is not None:
     from . import new, env, demo, utils
     from .env import Props, ReportDelta
-    from .utils import apply_matrix, geom2vef
+    from .turtle import Draw
+    from .utils import apply_matrix
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
@@ -796,54 +797,6 @@ def get(obj_name=None):
         return []
 
     return Msh(obj_name=obj_name)
-
-class Draw:
-    """
-    Turtle-like access to bmesh functions.
-    """
-    def __init__(self, name=None, msh_name='autoMshName', obj_name='autoObjName', coll_name='Collection'):
-        _, self.msh_name, self.obj_name, self.coll_name = utils.clean_names(Draw.__init__, name, msh_name, obj_name, coll_name, 'new', 'new')
-        self.msh_name = msh_name
-        self.obj_name = obj_name
-        self.coll_name = coll_name
-        self.bm = bmesh.new()
-        self.geom_last = ()
-
-    def spin(self, geom=None, angle=np.pi, steps=10, axis=(1.0, 0.0, 0.0), cent=(0.0, 1.0, 0.0), use_duplicate=False):
-        """spin"""
-        if not geom:
-            if not self.geom_last:
-                geom = self.bm.verts[:] + self.bm.edges[:]
-            else:
-                geom = self.geom_last[0][:] + self.geom_last[1][:]
-        if isinstance(axis, str):
-            ax = [0, 0, 0]
-            if 'x' in axis:
-                ax[0] = 1
-            if 'y' in axis:
-                ax[1] = 1
-            if 'z' in axis:
-                ax[2] = 1
-            axis = tuple(ax)
-        self.geom_last = geom2vef(bmesh.ops.spin(
-            self.bm,
-            geom=geom,
-            angle=angle,
-            steps=steps,
-            axis=axis,
-            cent=cent,
-            use_duplicate=use_duplicate)['geom_last'])
-        return self.geom_last
-
-    def __pos__(self):
-        """
-        Create the object and add it to the scene.
-        """
-        bpyMsh = bpy.data.meshes.new(self.msh_name)
-        self.bm.to_mesh(bpyMsh)
-        self.bm.free()
-        return Msh(msh_name=self.msh_name, obj_name=self.obj_name, coll_name=self.coll_name)
-
 
 ### Input-output functions
 @ReportDelta

@@ -40,15 +40,17 @@ for vert in a.bm.verts[:]:
 
 # Spin and deal with geometry on side 'a'
 edges_start_a = a.bm.edges[:]
-_, edges_end_a, _ = a.spin(angle=np.pi, steps=12, axis='x', cent=(0., 0., 0.))
+geom = a.spin(angle=np.pi, steps=12, axis='x', cent=(0., 0., 0.))
+
+_, edges_end_a, _ = geom.vef
+
+print(a.obj_name)
 
 # Extrude and create geometry on side 'b'
-verts_extrude_b, edges_extrude_b, _ = geom2vef(bmesh.ops.extrude_edge_only(
-    a.bm,
-    edges=edges_end_a)['geom'])
+# verts_extrude_b, edges_extrude_b, _ = a.extrude(a.geom_last[1])
 
-for vert in verts_extrude_b:
-    vert.co = vert.co + mathutils.Vector((0, 0, 1))
+# for vert in verts_extrude_b:
+#     vert.co = vert.co + mathutils.Vector((0, 0, 1))
 
 # # Create the circle on side 'b'
 # _, edges_end_b, _ = geom2vef(bmesh.ops.spin(
