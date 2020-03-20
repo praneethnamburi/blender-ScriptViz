@@ -53,16 +53,23 @@ def obj(msh, col, obj_name='newObj'):
     return o
 
 # easy object creation
-def easycreate(mshfunc, obj_name='newObj', msh_name='newMsh', coll_name='Collection', name=None, **kwargs):
+def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_name='Collection', **kwargs):
     """
     **kwargs : u=16, v=8, r=0.5 for uv sphere
     **kwargs : size=0.5 for uv cube
     """
     if isinstance(name, str):
-        if obj_name is easycreate.__defaults__[0]:
+        if obj_name is easycreate.__defaults__[2]:
             obj_name = name
         if msh_name is easycreate.__defaults__[1]:
             msh_name = name
+
+    i = 0
+    new_name = obj_name
+    while new_name in [o.name for o in bpy.data.objects]:
+        i += 1
+        new_name = obj_name + '.{:03d}'.format(i)
+    obj_name = new_name
 
     # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
