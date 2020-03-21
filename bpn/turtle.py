@@ -22,8 +22,8 @@ class Draw:
     """
     Turtle-like access to bmesh functions.
     """
-    def __init__(self, name=None, msh_name='autoMshName', obj_name='autoObjName', coll_name='Collection', priority='new', priority_msh='new'):
-        _, self.msh_name, self.obj_name, self.coll_name = clean_names(Draw.__init__, name, msh_name, obj_name, coll_name, priority, priority_msh)
+    def __init__(self, name=None, **kwargs):
+        self.names, _ = clean_names(name, kwargs, {'msh_name':'draw_msh', 'obj_name':'draw_obj', 'priority_obj':'new', 'priority_msh':'new'})
         self.bm = bmesh.new()
         self.geom_last = ()
     
@@ -119,14 +119,14 @@ class Draw:
         Returns bpn.Msh
         """
         self.__neg__()
-        return bpn.Msh(msh_name=self.msh_name, obj_name=self.obj_name, coll_name=self.coll_name)
+        return bpn.Msh(msh_name=self.names['msh_name'], obj_name=self.names['obj_name'], coll_name=self.names['coll_name'])
 
     def __neg__(self):
         """
         Finishes drawing. Returns blender mesh. 
         Doesn't make an object or put it in the scene.
         """
-        bpyMsh = bpy.data.meshes.new(self.msh_name)
+        bpyMsh = bpy.data.meshes.new(self.names['msh_name'])
         self.bm.to_mesh(bpyMsh)
         self.bm.free()
         return bpyMsh

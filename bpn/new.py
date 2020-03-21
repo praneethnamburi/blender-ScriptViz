@@ -55,14 +55,14 @@ def obj(msh, col, obj_name='newObj'):
     return o
 
 # easy object creation
-def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_name='Collection', return_type='bpn.Msh', **kwargs):
+def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
     """
     **kwargs : u=16, v=8, r=0.5 for uv sphere
     **kwargs : size=0.5 for uv cube
 
     Warning: Avoid empty creates such as new.sphere()!
     """
-    name, msh_name, obj_name, coll_name = clean_names(easycreate, name, msh_name, obj_name, coll_name, 'new', 'current')
+    names, kwargs = clean_names(name, kwargs, {'priority_obj':'new', 'priority_msh':'current'})
 
     # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
@@ -89,16 +89,16 @@ def easycreate(mshfunc, name=None, msh_name='newMsh', obj_name='newObj', coll_na
         kwargs = {}
 
     if 'bpn' in str(return_type) and 'Msh' in str(return_type):
-        if msh_name in [m.name for m in bpy.data.meshes]:
-            msh = bpy.data.meshes[msh_name]
+        if names['msh_name'] in [m.name for m in bpy.data.meshes]:
+            msh = bpy.data.meshes[names['msh_name']]
         else:
-            msh = bpy.data.meshes.new(msh_name)
+            msh = bpy.data.meshes.new(names['msh_name'])
             bm = bmesh.new()
             mshfunc(bm, **kwargs)
             bm.to_mesh(msh)
             bm.free()
             msh.update()
-        return bpn.Msh(msh_name=msh.name, obj_name=obj_name, coll_name=coll_name, pargs=kwargs)
+        return bpn.Msh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
     elif 'BMesh' in str(return_type):
         bm = bmesh.new()
         mshfunc(bm, **kwargs)
@@ -138,12 +138,13 @@ circle = partial(easycreate, bmesh.ops.create_circle)
 # other primitives:
 # cylinder, grid, ico_sphere, torus
 
-def torus(name=None, msh_name='torus', obj_name='torus', coll_name='Collection', **kwargs):
+def torus(name=None, **kwargs):
     """
     Make a torus in the x-y plane
     torus('mytorus', u=6, v=32, r=1, t=0.3)
     """
-    _, msh_name, obj_name, coll_name = clean_names(torus, name, msh_name, obj_name, coll_name, 'new', 'current')
+    names, kwargs = clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
+
     kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':-1}
     kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}
     kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
@@ -151,7 +152,7 @@ def torus(name=None, msh_name='torus', obj_name='torus', coll_name='Collection',
     if kwargs['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
         kwargs['theta_offset_deg'] = _ngon_offset_deg(kwargs['n_u'])
 
-    a = bpn.Draw(name=name, msh_name=msh_name, obj_name=obj_name, coll_name=coll_name, priority='new', priority_msh='current')
+    a = bpn.Draw(**names)
     v, e, _ = bpn.vef.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
     start = a.addvef(v, e, [])
 

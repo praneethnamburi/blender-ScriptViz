@@ -538,6 +538,8 @@ class Msh(pn.Track):
         sph.translate((0, 0, 0.6))
         sph.translate(z=0.6)
         """
+        if 'numpy' in str(type(delta)):
+            delta = tuple(delta)
         if delta == 0:
             delta = (x, y, z)
         assert len(delta) == 3

@@ -43,6 +43,7 @@ import re
 import pickle
 import sys
 import subprocess
+from copy import deepcopy
 from timeit import default_timer as timer
 
 if __package__ is not None:
@@ -484,7 +485,7 @@ def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imageba
     return entries, dlTime
 
 # input handling
-def clean_kwargs(kwargs, kwargs_def, kwargs_alias):
+def clean_kwargs(kwargs, kwargs_def, kwargs_alias=None):
     """
     Clean keyword arguments based on default values and aliasing.
 
@@ -495,10 +496,12 @@ def clean_kwargs(kwargs, kwargs_def, kwargs_alias):
         kw1 is used inside the function, but kw1=val, kw1_alias1=val, ..., kw1_aliasn are all valid
 
     Returns: 
-        (dict) keyword arguments after cleaning. Ensures all keywords are present, and have the names used in the function.
+        (dict) keyword arguments after cleaning. Ensures all keywords in kwargs_def are present, and have the names used in the function.
         (dict) remaining keyword arguments
     """
-    kwargs_fun = kwargs_def.copy()
+    if not kwargs_alias:
+        kwargs_alias = {key : [key] for key in kwargs_def.keys()}
+    kwargs_fun = deepcopy(kwargs_def)
     for k in kwargs_fun:
         for ka in kwargs_alias[k]:
             if ka in kwargs:
