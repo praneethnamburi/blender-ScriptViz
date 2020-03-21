@@ -142,6 +142,11 @@ def torus(name=None, **kwargs):
     """
     Make a torus in the x-y plane
     torus('mytorus', u=6, v=32, r=1, t=0.3)
+        u = number of subdivisions in a saggital section (small circle)
+        v = number of subdivisions in the horizontal section (big circle)
+        r = radius of the doughnut
+        t = thickness (radius)
+        th = degrees to rotate the small circle
     """
     names, kwargs = clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
 
@@ -155,15 +160,12 @@ def torus(name=None, **kwargs):
     a = bpn.Draw(**names)
     v, e, _ = bpn.vef.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
     start = a.addvef(v, e, [])
-
+    bmesh.ops.rotate(a.bm, verts=start.v, cent=(0, 0, 0), matrix=mathutils.Matrix.Rotation(np.radians(90.0), 3, 'Y'))
     for vert in start.v:
         vert.co += mathutils.Vector((0., -kwargs['r_v'], 0.))
-    end = a.spin(angle=2*np.pi-2*np.pi/kwargs['n_v'], steps=kwargs['n_v']-1, axis='x', cent=(0., 0., 0.))
+    end = a.spin(angle=2*np.pi-2*np.pi/kwargs['n_v'], steps=kwargs['n_v']-1, axis='z', cent=(0., 0., 0.))
     a.join(start.e + end.e)
     tor = +a
-    # tor.rotate((0, 90, 0)).apply_matrix()
-    # tor.subsurf(2, 2)
-    # tor.shade('smooth')
     return tor
 
 # convenience 
