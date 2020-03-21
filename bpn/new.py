@@ -15,6 +15,7 @@ import pntools as pn
 import bpn
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 from . import vef
 from .utils import clean_names
@@ -117,17 +118,17 @@ def ngon(**kwargs):
     
     # if offset isn't specified, compute it
     if kwargs_fun['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
-        n = kwargs_fun['n']
-        if n%2 == 1: # odd number of faces
-            kwargs_fun['theta_offset_deg'] = ((n-2)*180/n)%90
-        else:
-            kwargs_fun['theta_offset_deg'] = 360/(2*n)
+        kwargs_fun['theta_offset_deg'] = _ngon_offset_deg(kwargs_fun['n'])
             
     v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
     if not kwargs_fun['fill']:
         f = []
 
     return bpn.Msh(v=v, e=e, f=f, **kwargs_msh)
+
+def _ngon_offset_deg(n):
+    return ((n-2)*180/n)%90 if n%2 == 1 else 360/(2*n)
+
 
 plane = partial(ngon, **{'n':4, 'r':2/np.sqrt(2), 'theta_offset_deg':45})
 
@@ -136,6 +137,33 @@ circle = partial(easycreate, bmesh.ops.create_circle)
 
 # other primitives:
 # cylinder, grid, ico_sphere, torus
+
+def torus(name=None, msh_name='torus', obj_name='torus', coll_name='Collection', **kwargs):
+    """
+    Make a torus in the x-y plane
+    torus('mytorus', u=6, v=32, r=1, t=0.3)
+    """
+    _, msh_name, obj_name, coll_name = clean_names(torus, name, msh_name, obj_name, coll_name, 'new', 'current')
+    kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':-1}
+    kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}
+    kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    
+    if kwargs['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
+        kwargs['theta_offset_deg'] = _ngon_offset_deg(kwargs['n_u'])
+
+    a = bpn.Draw(name=name, msh_name=msh_name, obj_name=obj_name, coll_name=coll_name, priority='new', priority_msh='current')
+    v, e, _ = bpn.vef.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
+    start = a.addvef(v, e, [])
+
+    for vert in start.v:
+        vert.co += mathutils.Vector((0., -kwargs['r_v'], 0.))
+    end = a.spin(angle=2*np.pi-2*np.pi/kwargs['n_v'], steps=kwargs['n_v']-1, axis='x', cent=(0., 0., 0.))
+    a.join(start.e + end.e)
+    tor = +a
+    # tor.rotate((0, 90, 0)).apply_matrix()
+    # tor.subsurf(2, 2)
+    # tor.shade('smooth')
+    return tor
 
 # convenience 
 def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):

@@ -1,5 +1,5 @@
 """
-Demonstrations using the bpn module
+Demonstrations using the bpn package
 
 Functions:
     spheres - keyframe animation
@@ -8,6 +8,13 @@ Functions:
     arch    - surface plots with 2d functions
     zoo     - creates a zoo of primitive objects
     spiral  - animates an object along a spiral path
+
+    plane_slice - sculpting and morphing
+
+Turtle module:
+    draw_basic - Spring-like structure
+    draw_atom  - Electron cloud-like structure
+    draw_link  - One link of a chain
 """
 import os
 import sys
@@ -185,6 +192,22 @@ def draw_atom():
     cloud.scale((1, 0.6, 1))
     nucleus = bpn.new.sphere('nucleus', r=0.2, coll_name='atom')
     return (nucleus, cloud)
+
+def draw_link(n_u=6, n_v=16, l=1, r_v=1, r_u=0.2):
+    """Draw one link of the chain. Same as the example in bmesh.ops page"""
+    a = bpn.Draw('link')
+    u_start = a.circle(n=n_u, r=r_u)
+    for vert in u_start.v:
+        vert.co += mathutils.Vector((0., -r_v, 0))
+    u_end = a.spin(angle=np.pi, steps=n_v, axis='x', cent=(0., 0., 0.))
+
+    n_start = a.extrude(u_end.e)
+    for vert in n_start.v:
+        vert.co += mathutils.Vector((0, 0, l))
+
+    n_end = a.spin(angle=np.pi, steps=n_v, axis='x', cent=(0., 0., l))
+    a.join(u_start.e + n_end.e)
+    return +a
 
 def main():
     """

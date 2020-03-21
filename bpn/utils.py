@@ -32,6 +32,7 @@ def clean_names(func, name, msh_name, obj_name, coll_name, priority='new', prior
         If obj_name exists in blender environment, then make a new object name.
     """
     assert priority in ('new', 'current')
+    assert priority_msh in ('new', 'current')
     func_defaults = pn.get_func_inputs(func)
     if isinstance(name, str):
         if obj_name is func_defaults['obj_name']:

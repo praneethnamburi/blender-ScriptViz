@@ -577,7 +577,25 @@ class Msh(pn.Track):
         bpy.context.view_layer.update()
         return self
 
+    def subsurf(self, levels=2, render_levels=3, name=None):
+        """Subsurf modifier, because it is so common."""
+        if not name:
+            name = utils.new_name('subd', [m.name for m in self.bo.modifiers])
+        self.bo.modifiers.new(name, type='SUBSURF')
+        self.bo.modifiers[name].levels = levels
+        self.bo.modifiers[name].render_levels = render_levels
+    
     # transforms on mesh vertices
+    def shade(self, typ='smooth'):
+        """
+        Easy access to set shading.
+        Extend this to mark sharpe edges, and define smoothing only for some faces
+        """
+        assert typ in ('smooth', 'flat')
+        poly_smooth = True if typ == 'smooth' else False
+        for p in self.bm.polygons:
+            p.use_smooth = poly_smooth
+
     def apply_matrix(self):
         """
         Apply world transformation coordinates to the mesh vertices.

@@ -13,5 +13,9 @@ def ngon(n=3, r=1, th_off_deg=0):
     v = [(r*np.cos(θ), r*np.sin(θ), 0) for θ in theta]
     f = [tuple(np.arange(0, n))]
     e = [(i, (i+1)%n) for i in np.arange(0, n)]
+
+    if n == 2:
+        e.pop(-1)
+        f = []
     return v, e, f
     
