@@ -3,7 +3,6 @@ Turtle module
 """
 import os
 import sys
-from functools import partial
 import numpy as np
 
 import bpy #pylint: disable=import-error
@@ -201,9 +200,7 @@ class Geom:
         self.translate(np.array(new_center)-np.array(self.center))
 
     def translate(self, delta=0, x=0, y=0, z=0):
-        """
-        Translate current vertices by delta.
-        """
+        """Translate current vertices by delta."""
         if 'numpy' in str(type(delta)):
             delta = tuple(delta)
         if delta == 0:
@@ -212,4 +209,21 @@ class Geom:
         delta = mathutils.Vector(delta)
         for v in self.v:
             v.co += delta
-    
+
+    def scale(self, delta, ref=None):
+        """
+        Scale current vertices by delta.
+        Center for scaling is given by ref.
+        If no value is specified, vertices are scaled around the geometry's center.
+        """
+        if isinstance(delta, (int, float)):
+            delta = np.array((1, 1, 1))*float(delta)
+        delta = np.array(delta)
+        if not ref:
+            ref = np.array(self.center)
+        else:
+            ref = np.array(ref)
+        self.translate(0-ref)
+        for v in self.v:
+            v.co = np.array(v.co)*delta
+        self.translate(ref)
