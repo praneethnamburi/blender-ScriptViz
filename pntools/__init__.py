@@ -502,10 +502,11 @@ def clean_kwargs(kwargs, kwargs_def, kwargs_alias=None):
     if not kwargs_alias:
         kwargs_alias = {key : [key] for key in kwargs_def.keys()}
     kwargs_fun = deepcopy(kwargs_def)
+    kwargs_out = deepcopy(kwargs)
     for k in kwargs_fun:
         for ka in kwargs_alias[k]:
             if ka in kwargs:
-                kwargs_fun[k] = kwargs.pop(ka)
+                kwargs_fun[k] = kwargs_out.pop(ka)
 
-    return kwargs_fun, kwargs
+    return kwargs_fun, kwargs_out
     
