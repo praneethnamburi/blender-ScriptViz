@@ -124,7 +124,7 @@ def zoo():
     bpn.new.cone(name='mycone3', seg=3, r1=3, r2=2, d=0, cap_ends=False, coll_name='zoo')
 
     bpn.new.polygon(name='hex', seg=6, coll_name='zoo')
-    bpn.new.ngon(name='circle', n=32, r1=1, r2=0, coll_name='zoo')
+    bpn.new.ngon(name='circle', n=32, r=1, coll_name='zoo')
 
     bpn.new.polygon(name='hex', seg=6, coll_name='zoo')
 

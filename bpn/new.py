@@ -124,9 +124,9 @@ def ngon(**kwargs):
     if not kwargs_fun['fill']:
         f = []
 
-    if 'bpn' in str(kwargs['return_type']) and 'Msh' in str(kwargs['return_type']):
+    if 'bpn' in str(kwargs_fun['return_type']) and 'Msh' in str(kwargs_fun['return_type']):
         return bpn.Msh(v=v, e=e, f=f, **kwargs_msh)
-    elif 'vef' in kwargs['return_type']:
+    elif 'vef' in kwargs_fun['return_type']:
         return v, e, f
 
 def _ngon_offset_deg(n):
