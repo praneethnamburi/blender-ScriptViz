@@ -22,7 +22,7 @@ if DEV_ROOT not in sys.path:
 import pntools as pn
 
 if __package__ is not None:
-    from . import new, env, demo, utils
+    from . import new, env, demo, utils, turtle, vef
     from .env import Props, ReportDelta
     from .turtle import Draw
     from .utils import apply_matrix
@@ -297,12 +297,7 @@ class Msh(pn.Track):
                 kwargs['v'] = [(xv, yv, z[ix][iy]) for iy, yv in enumerate(y) for ix, xv in enumerate(x)]
                 kwargs['f'] = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
             if len(np.shape(z)) == 1: # 3D plot!
-                n = np.shape(z)[0]
-                assert len(x) == n
-                assert len(y) == n
-                assert len(z) == n
-                kwargs['v'] = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
-                kwargs['e'] = [(i, i+1) for i in np.arange(0, n-1)]
+                kwargs['v'], kwargs['e'], _ = vef.xyz2vef(x, y, z)
 
         if 'v' in kwargs and ('f' in kwargs or 'e' in kwargs):
             if 'e' not in kwargs:

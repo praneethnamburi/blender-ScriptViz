@@ -11,11 +11,22 @@ def ngon(n=3, r=1, th_off_deg=0):
     """
     theta = np.linspace(0, 2*np.pi, n, False) + np.radians(th_off_deg)
     v = [(r*np.cos(θ), r*np.sin(θ), 0) for θ in theta]
-    f = [tuple(np.arange(0, n))]
     e = [(i, (i+1)%n) for i in np.arange(0, n)]
+    f = [tuple(np.arange(0, n))]
 
     if n == 2:
         e.pop(-1)
         f = []
     return v, e, f
-    
+
+def xyz2vef(x, y, z):
+    """
+    Convert 1-D arrays x, y, z into vertices and edges
+    """
+    n = len(x)
+    assert len(y) == n
+    assert len(z) == n
+    v = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
+    e = [(i, i+1) for i in np.arange(0, n-1)]
+    f = []
+    return v, e, f
