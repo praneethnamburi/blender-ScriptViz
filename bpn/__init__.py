@@ -400,8 +400,8 @@ class Msh(pn.Track):
         return np.mean(self.v, axis=0)
 
     @center.setter
-    def center(self, newCenter):
-        self.v = self.v + newCenter - self.center
+    def center(self, new_center):
+        self.v = self.v + new_center - self.center
 
     def delete(self):
         """Remove the mesh and corresponding objects from blender."""
