@@ -183,7 +183,7 @@ def draw_basic():
 def draw_atom():
     """Electron clouds-like structure."""
     a = bpn.Draw('cloud', coll_name='atom')
-    a.circle(n=2, r=0.1)
+    a.ngon(n=2, r=0.1)
     for vert in a.bm.verts[:]:
         vert.co += mathutils.Vector((0., -1., 0))
     a.spin(angle=np.pi, steps=24, axis='x', cent=(0., 0., 0.))
@@ -196,7 +196,7 @@ def draw_atom():
 def draw_link(n_u=6, n_v=16, l=1, r_v=1, r_u=0.2):
     """Draw one link of the chain. Same as the example in bmesh.ops page"""
     a = bpn.Draw('link')
-    u_start = a.circle(n=n_u, r=r_u)
+    u_start = a.ngon(n=n_u, r=r_u)
     for vert in u_start.v:
         vert.co += mathutils.Vector((0., -r_v, 0))
     u_end = a.spin(angle=np.pi, steps=n_v, axis='x', cent=(0., 0., 0.))

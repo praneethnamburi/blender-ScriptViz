@@ -29,7 +29,18 @@ reload(bpn)
 
 bpn.env.reset()
 
+pts = [(0, 0, 0), (0, 0, 1), (2, 0, 2)]
 
+a = bpn.Draw('follow')
+tc = a.ngon(n=4, r=1)
+for pt in pts[1:]:
+    tc = a.extrude(tc.e)
+    print(tc.vef)
+    tc.center = pt
+    
+print(a.all_geom)
+# out1 = bmesh.ops.create_circle(a.bm, cap_ends=False, radius=0.2, segments=10)
++a
 
 # for p in tor.bm.polygons:
 #     p.use_smooth = True

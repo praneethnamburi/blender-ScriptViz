@@ -8,6 +8,7 @@ import numpy as np
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 if DEV_ROOT not in sys.path:
@@ -16,6 +17,7 @@ if DEV_ROOT not in sys.path:
 import bpn
 import pntools as pn
 
+from . import new
 from .utils import clean_names
 
 class Draw:
@@ -25,23 +27,28 @@ class Draw:
     def __init__(self, name=None, **kwargs):
         self.names, _ = clean_names(name, kwargs, {'msh_name':'draw_msh', 'obj_name':'draw_obj', 'priority_obj':'new', 'priority_msh':'new'})
         self.bm = bmesh.new()
-        self.geom_last = ()
+        # self.geom_last = ()
+        self.all_geom = ()
     
-    # Creation functions - set self.geom_last and return it
-    def circle(self, **kwargs):
+    @property
+    def geom_last(self):
+        """Returns last created geometry."""
+        return self.all_geom[-1]
+
+    # Creation functions - set add to self.all_geom and return last 
+    # (or call a method that does this job)
+    def ngon(self, **kwargs):
         """
+        For basic polygon creation. 
+        See bpn.new.ngon for input management
+        See bpn.vef.ngon for math
+        Supercedes a circle because of stupid return type in a circle.
         a = Draw()
-        geom = a.circle(n=6, r=1)
+        geom = a.ngon(n=6, r=1)
         """
-        kwargs_def = {'segments':8, 'radius':1}
-        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'radius':['radius', 'r']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-        kwargs['cap_ends'] = False
-        kwargs['cap_tris'] = False
-
-        bmesh.ops.create_circle(self.bm, **kwargs)
-
-        self.geom_last = Geom(self.bm)
+        kwargs_current, kwargs_forward = pn.clean_kwargs(kwargs, {'return_type':'vef', 'fill':False}, {'fill':['fill'], 'return_type':['return_type', 'out']})
+        v, e, f = new.ngon(**{**kwargs_current, **kwargs_forward})
+        self.addvef(v, e, f)
         return self.geom_last
 
     # Operations
@@ -61,14 +68,14 @@ class Draw:
             if 'z' in axis:
                 ax[2] = 1
             axis = tuple(ax)
-        self.geom_last = Geom(bmesh.ops.spin(
+        self.all_geom += (Geom(bmesh.ops.spin(
             self.bm,
             geom=geom,
             angle=angle,
             steps=steps,
             axis=axis,
             cent=cent,
-            use_duplicate=use_duplicate)['geom_last'])
+            use_duplicate=use_duplicate)['geom_last']),)
         return self.geom_last
 
     def extrude(self, geom=None):
@@ -82,14 +89,14 @@ class Draw:
 
         # there are only edges present
         if geom.nE == geom.n:
-            self.geom_last = Geom(bmesh.ops.extrude_edge_only(
-                self.bm, edges=geom.e)['geom'])
+            self.all_geom += (Geom(bmesh.ops.extrude_edge_only(
+                self.bm, edges=geom.e)['geom']),)
             return self.geom_last
 
     def join(self, geom_edges):
         """Joining things. How to auto-detect loops? Add Weld vertices, etc here."""
         out = bmesh.ops.bridge_loops(self.bm, edges=geom_edges)
-        self.geom_last = Geom(out['edges'] + out['faces'])
+        self.all_geom += (Geom(out['edges'] + out['faces']),)
         return self.geom_last
 
     def addvef(self, v, e, f):
@@ -110,7 +117,7 @@ class Draw:
             face.index = len(self.bm.faces)-1
             out['faces'].append(face)
         self.bm.faces.ensure_lookup_table()
-        self.geom_last = Geom(out['verts'] + out['edges'] + out['faces'])
+        self.all_geom += (Geom(out['verts'] + out['edges'] + out['faces']),)
         return self.geom_last
 
     def __pos__(self):
@@ -183,3 +190,26 @@ class Geom:
     def all(self):
         """All vetices, edges and faces in one list"""
         return self.v + self.e + self.f
+
+    @property
+    def center(self):
+        """Center of the geometry."""
+        return mathutils.Vector(tuple(np.mean([np.array(tv.co) for tv in self.v], axis=0)))
+
+    @center.setter
+    def center(self, new_center):
+        self.translate(np.array(new_center)-np.array(self.center))
+
+    def translate(self, delta=0, x=0, y=0, z=0):
+        """
+        Translate current vertices by delta.
+        """
+        if 'numpy' in str(type(delta)):
+            delta = tuple(delta)
+        if delta == 0:
+            delta = (x, y, z)
+        assert len(delta) == 3
+        delta = mathutils.Vector(delta)
+        for v in self.v:
+            v.co += delta
+    

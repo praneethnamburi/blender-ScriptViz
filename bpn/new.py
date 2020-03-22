@@ -112,8 +112,8 @@ polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 
 
 def ngon(**kwargs):
     """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
-    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':-1, 'fill':True}
-    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
+    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':-1, 'fill':True, 'return_type':'bpn.Msh'}
+    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill'], 'return_type':['return_type', 'out']}
     kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
     # if offset isn't specified, compute it
@@ -124,7 +124,10 @@ def ngon(**kwargs):
     if not kwargs_fun['fill']:
         f = []
 
-    return bpn.Msh(v=v, e=e, f=f, **kwargs_msh)
+    if 'bpn' in str(kwargs['return_type']) and 'Msh' in str(kwargs['return_type']):
+        return bpn.Msh(v=v, e=e, f=f, **kwargs_msh)
+    elif 'vef' in kwargs['return_type']:
+        return v, e, f
 
 def _ngon_offset_deg(n):
     return ((n-2)*180/n)%90 if n%2 == 1 else 360/(2*n)
