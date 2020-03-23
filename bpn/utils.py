@@ -20,6 +20,25 @@ def apply_matrix(vert, mat):
     v4 = np.concatenate((vert, np.ones([np.shape(vert)[0], 1])), axis=1)
     return np.matmul(mat, v4.T).T[:, 0:3]
 
+def normal2tfmat(n):
+    """
+    Given a direction vector, create a transformation matrix that transforms a shape in the XY plane to the direction of the normal by first rotating along Y axis, and then along X axis.
+    n is a 3-element 1-D numpy array
+    """
+    n = np.array(n)
+    assert len(n) == 3
+    n = n/np.linalg.norm(n)
+    nx = n[0]
+    ny = n[1]
+    nz = n[2]
+    d = np.sqrt(1-nx**2)
+    m = np.array([\
+        [d, 0, nx],\
+        [-nx*ny/d, nz/d, ny],\
+        [-nx*nz/d, -ny/d, nz]\
+        ])
+    return m
+
 def new_name(name, curr_names):
     """
     Blender-style name conflict resolution.

@@ -3,6 +3,8 @@ Turtle module
 """
 import os
 import sys
+import inspect
+from copy import deepcopy
 import numpy as np
 
 import bpy #pylint: disable=import-error
@@ -17,7 +19,7 @@ import bpn
 import pntools as pn
 
 from . import new
-from .utils import clean_names
+from .utils import clean_names, normal2tfmat
 
 class Draw:
     """
@@ -26,7 +28,6 @@ class Draw:
     def __init__(self, name=None, **kwargs):
         self.names, _ = clean_names(name, kwargs, {'msh_name':'draw_msh', 'obj_name':'draw_obj', 'priority_obj':'new', 'priority_msh':'new'})
         self.bm = bmesh.new()
-        # self.geom_last = ()
         self.all_geom = ()
     
     @property
@@ -119,6 +120,31 @@ class Draw:
         self.all_geom += (Geom(out['verts'] + out['edges'] + out['faces']),)
         return self.geom_last
 
+    def skin(self, pts, **kwargs):
+        """
+        Apply skin to a path specified by pts.
+        :param pts: (2d numpy array of size nPtsx3)
+        """
+        normals = np.vstack((pts[1, :] - pts[0, :], pts[2:, :] - pts[:-2, :], pts[-1, :] - pts[-2, :]))
+        for i in range(np.shape(pts)[0]):
+            if i == 0:
+                tc = self.ngon(**kwargs)
+                vertpos_orig = []
+                for v in tc.v:
+                    vertpos_orig.append(deepcopy(v.co))
+            else:
+                tc = self.extrude(tc.e)
+            tfmat = normal2tfmat(normals[i, :])
+            for v, v_orig in zip(tc.v, vertpos_orig):
+                v.co = mathutils.Vector(tfmat@np.array(v_orig))
+            tc.center = pts[i, :]
+
+    def export(self):
+        """
+        Exports geometry from each of the sub-steps. 
+        """
+        return [geom.export() for geom in self.all_geom]
+
     def __pos__(self):
         """
         Create the object and add it to the scene.
@@ -139,12 +165,14 @@ class Draw:
 
 class Geom:
     """Simplifying BMesh geometry object."""
-    def __init__(self, geom):
+    def __init__(self, geom, tags=''):
         if isinstance(geom, bmesh.types.BMesh):
             self.geom = geom.verts[:]+geom.edges[:]+geom.faces[:]
         else:
             self.geom = geom
-    
+        self.call_stack = {k.function:k.filename for i, k in enumerate(inspect.stack()) if i in (1, 2, 3, 4)}
+        self.tags = tags
+
     @property
     def v(self):
         """Vertices"""
@@ -227,3 +255,156 @@ class Geom:
         for v in self.v:
             v.co = np.array(v.co)*delta
         self.translate(ref)
+
+    @property
+    def v_np(self):
+        """
+        Numpy-access to vertices. For exporting.
+        Returns: 
+            idx: index of the vertex within the mesh
+            pos: location in 3d
+        """
+        idx = np.zeros(self.nV, dtype=np.int32)
+        pos = np.zeros((self.nV, 3))
+        for iv, v in enumerate(self.v):
+            idx[iv] = v.index
+            pos[iv, :] = v.co
+        return {'v_idx': idx, 'v_pos': pos}
+
+    @property
+    def e_np(self):
+        """
+        Numpy-access to edges. For exporting.
+        Returns: 
+            idx: index of the edge within the mesh
+            vert_idx: index of vertices defining that edge
+        """
+        idx = np.zeros(self.nE, dtype=np.int32)
+        vert_idx = np.zeros((self.nE, 2), dtype=np.int32)
+        for ie, e in enumerate(self.e):
+            idx[ie] = e.index
+            for iv, v in enumerate(e.verts):
+                vert_idx[ie, iv] = v.index
+        return {'e_idx': idx, 'e_verts': vert_idx}
+    
+    @property
+    def f_np(self):
+        """
+        Numpy-access to faces. For exporting.
+        """
+        idx = np.zeros(self.nF, dtype=np.int32)
+        edge_idx = []
+        vert_idx = []
+        for fi, f in enumerate(self.f):
+            idx[fi] = f.index
+            edge_idx.append(np.array([e.index for e in f.edges], dtype=np.int32))
+            vert_idx.append(np.array([v.index for v in f.verts], dtype=np.int32))
+        return {'f_idx': idx, 'f_edges': np.array(edge_idx), 'f_verts': np.array(vert_idx)}
+
+    def export(self):
+        """
+        Exports geometry for later manipulation
+        """
+        return {'tags': self.tags, 'call_stack': self.call_stack, **self.v_np, **self.e_np, **self.f_np}
+
+class SubMsh:
+    """Parts of a mesh given by vertex, edge and face indices"""
+    def __init__(self, parent, **kwargs):
+        """
+        :param parent: (bpn.Msh)
+        :param vi: (1D int32 numpy array) indices of parent vertices
+        :param ei: (1D int32 numpy array) indices of parent edges
+        :param fi: (1D int32 numpy array) indices of parent faces
+        """
+        kwargs_def = {'vi': [], 'ei': [], 'fi': [], 'tags': [], 'call_stack': None}
+        kwargs_alias = {'vi': ['vi', 'v_idx'], 'ei': ['ei', 'e_idx'], 'fi': ['fi', 'f_idx'], 'tags': ['tags'], 'call_stack': ['call_stack']}
+        kwargs_curr, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        self.parent = parent
+        self.vi = kwargs_curr['vi']
+        self.ei = kwargs_curr['ei']
+        self.fi = kwargs_curr['fi']
+        self.tags = kwargs_curr['tags']
+        self.call_stack = kwargs_curr['call_stack']
+
+    @property
+    def v(self):
+        """Vertex positions of the sub mesh"""
+        return self.parent.v[self.vi, :]
+    
+    @v.setter
+    def v(self, this_coords):
+        """Update the parent vertices."""
+        v = self.parent.v
+        v[self.vi, :] = this_coords
+        self.parent.v = v
+
+    @property
+    def center(self):
+        """Center of all the vertices"""
+        return np.mean(self.v, axis=0)
+
+    @center.setter
+    def center(self, new_center):
+        new_center = np.array(new_center)
+        self.v = self.v + new_center - self.center
+
+    def translate(self, delta=0, x=0, y=0, z=0):
+        """Translate current vertices by delta."""
+        if 'numpy' in str(type(delta)):
+            delta = tuple(delta)
+        if delta == 0:
+            delta = (x, y, z)
+        assert len(delta) == 3
+        delta = np.array(delta)
+        self.v += delta
+
+    def scale(self, delta, ref=None):
+        """
+        Scale current vertices by delta.
+        Center for scaling is given by ref.
+        If no value is specified, vertices are scaled around the geometry's center.
+        """
+        if isinstance(delta, (int, float)):
+            delta = np.array((1, 1, 1))*float(delta)
+        delta = np.array(delta)
+        if not ref:
+            ref = np.array(self.center)
+        else:
+            ref = np.array(ref)
+        self.translate(0-ref)
+        self.v = self.v*delta
+        self.translate(ref)
+
+class DirectedSubMsh(SubMsh):
+    """
+    SubMsh that has a 'direction'
+    In general, this would make sense for sub-meshes whose vertices are all in the same plane.
+    But, it doesn't have to be! With great power comes great responsibility.
+
+    This direction is given by 'normal'
+    It is a good idea to control the sub-msh using normal. 
+    CAUTION: Changing vertex positions manually won't update the normal.
+    """
+    def __init__(self, parent, normal, **kwargs):
+        self._normal = normal
+        super().__init__(parent, **kwargs)
+
+    @property
+    def normal(self):
+        """Ensure a unit vector is returned."""
+        n = np.array(self._normal)
+        return n/np.linalg.norm(n)
+
+    @normal.setter
+    def normal(self, new_normal):
+        new_normal = np.array(new_normal)
+        assert len(new_normal) == 3
+
+        curr_center = self.center
+        m1 = normal2tfmat(self.normal)
+        m2 = normal2tfmat(new_normal)
+        crd = (self.v - curr_center).T
+        new_crd = m2@np.linalg.inv(m1)@crd
+        self.v = new_crd.T + curr_center
+        self._normal = new_normal
+    

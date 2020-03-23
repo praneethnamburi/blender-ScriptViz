@@ -6,6 +6,7 @@ This is a sandbox. Develop code here!
 import math
 import os
 import sys
+import inspect
 import numpy as np
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '.'))
@@ -14,6 +15,7 @@ if DEV_ROOT not in sys.path:
 
 # import pntools as pn
 import bpn # pylint: disable=unused-import
+import pntools as pn
 import bpy #pylint: disable=import-error
 
 bpn.env.reset()
@@ -30,44 +32,42 @@ reload(bpn)
 
 bpn.env.reset()
 
-def normal2tfmat(n):
-    n = n/np.linalg.norm(n)
-    nx = n[0]
-    ny = n[1]
-    nz = n[2]
-    d = np.sqrt(1-nx**2)
-    m = np.array([\
-        [d, 0, nx],\
-        [-nx*ny/d, nz/d, ny],\
-        [-nx*nz/d, -ny/d, nz]\
-        ])
-    return m
+class Tube(bpn.Msh):
+    def __init__(self, name=None, x=0, y=0, z=0, **kwargs):
+        names, kwargs = bpn.utils.clean_names(name, kwargs, {'msh_name':'tube_msh', 'obj_name':'tube_obj', 'priority_obj':'new', 'priority_msh':'new'})
+        kwargs_ngon, kwargs = pn.clean_kwargs(kwargs, {'n':6, 'r':0.3, 'theta_offset_deg':-1}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg']})
+        kwargs_this, kwargs_bpnmsh = pn.clean_kwargs(kwargs, {'shade':'smooth', 'subsurf':True, 'subsurf_levels':2, 'subsurf_render_levels':2})
+        
+        spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x, y, z)])
+        normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-θ = np.radians(np.arange(0, 360*2+40, 40))
-z = np.sin(θ)
-y = np.cos(θ)
-x = θ/2
+        a = bpn.Draw(**names)
+        a.skin(spine, **kwargs_ngon)
+        a_exp = a.export()
+        -a
+        super().__init__(**{**names, **kwargs_bpnmsh})
+        self.shade(kwargs_this['shade'])
+        if kwargs['subsurf']:
+            self.subsurf(kwargs_this['subsurf_levels'], kwargs_this['subsurf_render_levels'])
 
-pts = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x, y, z)])
+        self.xsec = [bpn.turtle.DirectedSubMsh(self, normals[i, :], **s) for i, s in enumerate(a_exp)]
 
-normals = np.vstack((pts[1, :] - pts[0, :], pts[2:, :] - pts[:-2, :], pts[-1, :] - pts[-2, :]))
+θ = np.radians(np.arange(0, 360+40, 40))
+z1 = np.sin(θ)
+y1 = np.cos(θ)
+x1 = θ/2
 
-a = bpn.Draw('follow')
-for i in range(np.shape(pts)[0]):
-    if i == 0:
-        tc = a.ngon(n=6, r=0.3)
-        vertpos_orig = []
-        for v in tc.v:
-            vertpos_orig.append(deepcopy(v.co))
-    else:
-        tc = a.extrude(tc.e)
-    tfmat = normal2tfmat(normals[i, :])
-    for v, v_orig in zip(tc.v, vertpos_orig):
-        v.co = mathutils.Vector(tfmat@np.array(v_orig))
-    tc.center = pts[i, :]
-strand = +a
-strand.shade('smooth')
-strand.subsurf(2, 2)
+t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='smooth', subsurf=True)
+t.xsec[0].normal = (0, 0, 1)
+t.xsec[-1].scale(3)
+t.xsec[-1].normal = (0, 0, 1)
+t.morph(frame_start=100)
+
+# b[0].center = (0, 1, 0)
+
+# print(a_exp[1].f_idx)
+# print(all_callers)
+# strand.v
 
 # pts = [(0, 0, 0), (0, 1, 1), (2, 2, 2)]
 
