@@ -28,6 +28,7 @@ from copy import deepcopy
 from importlib import reload
 
 reload(bpn.turtle)
+reload(bpn.utils)
 reload(bpn)
 
 bpn.env.reset()
@@ -101,15 +102,15 @@ z1 = np.sin(θ)
 y1 = np.cos(θ)
 x1 = θ/2
 
-t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='smooth', subsurf=True)
-t.xsec.all[-1].scale(3)
+t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
+t.xsec.all[-1].scale((3, 2, 1))
 t.xsec.all[-1].normal = (0, 0, 1)
+t.xsec.all[-1].twist(90)
+# t.xsec.centers = np.vstack((z1, y1, x1)).T
+# t.xsec.update_normals()
 
-t.xsec.centers = np.vstack((z1, y1, x1)).T
-t.xsec.update_normals()
-
-t.morph(frame_start=100)
-bpn.env.Key().goto(150)
+# t.morph(frame_start=100)
+# bpn.env.Key().goto(150)
 
 # print(t.xsec.centers)
 

@@ -19,6 +19,7 @@ import bpn
 import pntools as pn
 
 from . import new
+from . import utils
 from .utils import clean_names, normal2tfmat
 
 class Draw:
@@ -358,22 +359,22 @@ class SubMsh:
         delta = np.array(delta)
         self.v += delta
 
-    def scale(self, delta, ref=None):
-        """
-        Scale current vertices by delta.
-        Center for scaling is given by ref.
-        If no value is specified, vertices are scaled around the geometry's center.
-        """
-        if isinstance(delta, (int, float)):
-            delta = np.array((1, 1, 1))*float(delta)
-        delta = np.array(delta)
-        if not ref:
-            ref = np.array(self.center)
-        else:
-            ref = np.array(ref)
-        self.translate(0-ref)
-        self.v = self.v*delta
-        self.translate(ref)
+    # def scale(self, delta, ref=None):
+    #     """
+    #     Scale current vertices by delta.
+    #     Center for scaling is given by ref.
+    #     If no value is specified, vertices are scaled around the geometry's center.
+    #     """
+    #     if isinstance(delta, (int, float)):
+    #         delta = np.array((1, 1, 1))*float(delta)
+    #     delta = np.array(delta)
+    #     if not ref:
+    #         ref = np.array(self.center)
+    #     else:
+    #         ref = np.array(ref)
+    #     self.translate(0-ref)
+    #     self.v = self.v*delta
+    #     self.translate(ref)
 
 class DirectedSubMsh(SubMsh):
     """
@@ -384,6 +385,12 @@ class DirectedSubMsh(SubMsh):
     This direction is given by 'normal'
     It is a good idea to control the sub-msh using normal. 
     CAUTION: Changing vertex positions manually won't update the normal.
+
+    The internal 3d coordinate system of a directed SubMsh is as follows:
+        Normal specifies the 'z' direction
+        Projection of the vector from the center of the mesh to the first vertex defines the 'x' direction
+        90 degrees on the plane normal to the sub-mesh normal
+        Origin is the center of the sub-mesh
     """
     def __init__(self, parent, normal, **kwargs):
         self._normal = normal
@@ -408,3 +415,56 @@ class DirectedSubMsh(SubMsh):
         self.v = new_crd.T + curr_center
         self._normal = new_normal
     
+    k_hat = normal
+
+    @property
+    def j_hat(self):
+        """Y unit vector in local coordinate space."""
+        x = self.v[0, :] - self.center
+        y = np.cross(self.normal, x)
+        return y/np.linalg.norm(y)
+    
+    @property
+    def i_hat(self):
+        """X unit vector in local coordinate space."""
+        return np.cross(self.j_hat, self.normal)
+
+    def twist(self, theta_deg=45):
+        """Twist transform - clockwise rotation in local space."""
+        self.apply_transform(utils.twisttf(np.radians(theta_deg)))
+    
+    def scale(self, delta):
+        """Apply scaling along i_hat, j_hat, and k_hat."""
+        self.apply_transform(utils.scaletf(delta))
+
+    # def apply_local_transform(self, tf):
+    #     """
+    #     Apply 3x3 matrix (2d numpy array) transform.
+    #     Origin is the center of the mesh.
+    #     Coordinates axes are given by i_hat, j_hat and k_hat
+
+    #     np.linalg.inv(m)@crd -> brings coordinates into local space
+    #     tf@ -> applies transformation in current space
+    #     m@ -> moves coordinates into world space
+    #     """
+    #     origin = self.center
+    #     crd = (self.v - origin).T
+    #     m = normal2tfmat(self.normal)
+    #     new_crd = m@tf@np.linalg.inv(m)@crd
+    #     self.v = new_crd.T + origin
+
+    @property
+    def coord_system(self):
+        """Coordinate system of the current object."""
+        return utils.CoordSystem(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
+
+    def apply_transform(self, tf, coord_system=np.array([None])):
+        """
+        Apply transformation in a coordinate system defined by coord_system. 
+        In none is specified, then apply the transformation in the local coordinate frame.
+        """
+        if not all(coord_system):
+            coord_system = self.coord_system
+        assert isinstance(coord_system, utils.CoordSystem)
+        v = self.v
+        self.v = coord_system.apply_transform(v, tf)
