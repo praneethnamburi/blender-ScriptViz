@@ -18,6 +18,7 @@ Turtle module:
 """
 import os
 import sys
+import types
 import numpy as np
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
@@ -108,6 +109,67 @@ def arch():
         rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
         rf = bpn.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='Arch')
         rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
+
+def parabola():
+    """
+    Draws two parabolas.
+    You can use 
+    (vertices, faces) v=v1, f=f1, OR 
+    (x, y, z) like MATLAB surf, OR 
+    (function) xyfun=fun
+    """
+    # method 1: using the algebraic function
+    fun = lambda x, y: x*x+y*y
+    x1 = np.arange(-2, 2.5, 0.02)
+    y1 = np.arange(-2, 2.5, 0.2)
+    p_fun = bpn.Msh(xyfun=fun, x=x1, y=y1, name='parabola_fun', coll_name='surface')
+    p_fun.loc += mathutils.Vector((4.0, -4.0, 0.0))
+
+    def fun2mat(xyfun, tx=np.array([]), ty=np.array([])):
+        """
+        This functionality is already in the bpn module.
+        It is here only to illustrate the versatility of bpn.Msh creation
+        """
+        assert isinstance(xyfun, types.FunctionType)
+        assert xyfun.__code__.co_argcount == 2 # function has two input arguments
+        if tx is fun2mat.__defaults__[0]: # default ranges
+            tx = np.arange(-2, 2, 0.1)
+        if ty is fun2mat.__defaults__[1]:
+            ty = np.arange(-2, 2, 0.1)
+        return np.array([[xyfun(xv, yv) for yv in ty] for xv in tx])
+
+    # method 2: MATLAB-style surf, using a 2d matrix Z
+    z1 = fun2mat(fun, x1, y1)
+    p_xyz = bpn.Msh(x=x1, y=y1, z=z1, name='parabola_xyz', coll_name='surface')
+    p_xyz.loc += mathutils.Vector((-4.0, -4.0, 0.0))
+
+    def mat2mesh(tz, tx=np.array([]), ty=np.array([])):
+        """
+        z is a 2-D numpy array or a 2D list
+        returns:
+            v list of vertices
+            f list of faces
+        This is here only for demonstration. It is already in bpn module.
+        """
+        if tx is mat2mesh.__defaults__[0]:
+            tx = np.arange(0, np.shape(tz)[0])
+        if ty is mat2mesh.__defaults__[1]:
+            ty = np.arange(0, np.shape(tz)[1])
+
+        nX = len(tx)
+        nY = len(ty)
+
+        assert len(tx) == np.shape(tz)[0]
+        assert len(ty) == np.shape(tz)[1]
+        
+        v = [(xv, yv, tz[ix][iy]) for iy, yv in enumerate(ty) for ix, xv in enumerate(tx)]
+        f = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
+        return v, f
+
+    # method 3: by specifying the vertices and faces - this is here mainly for testing
+    v1, f1 = mat2mesh(z1, tx=x1, ty=y1)
+    p_vf = bpn.Msh(v=v1, f=f1, name='parabola_vf', coll_name='surface')
+    p_vf.loc += mathutils.Vector((0, 4.0, 0.0))
 
 def zoo():
     """
