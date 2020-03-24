@@ -349,6 +349,8 @@ class SubMsh:
         new_center = np.array(new_center)
         self.v = self.v + new_center - self.center
 
+    # Transformations inside an object are meaningless unless the object explicity has it's own coordinate system
+    # This object's coordinate system is defined by the world coordinate system! If not, then the vertex coordinates returned should be relative to the 'center'
     def translate(self, delta=0, x=0, y=0, z=0):
         """Translate current vertices by delta."""
         if 'numpy' in str(type(delta)):
@@ -436,22 +438,6 @@ class DirectedSubMsh(SubMsh):
     def scale(self, delta):
         """Apply scaling along i_hat, j_hat, and k_hat."""
         self.apply_transform(utils.scaletf(delta))
-
-    # def apply_local_transform(self, tf):
-    #     """
-    #     Apply 3x3 matrix (2d numpy array) transform.
-    #     Origin is the center of the mesh.
-    #     Coordinates axes are given by i_hat, j_hat and k_hat
-
-    #     np.linalg.inv(m)@crd -> brings coordinates into local space
-    #     tf@ -> applies transformation in current space
-    #     m@ -> moves coordinates into world space
-    #     """
-    #     origin = self.center
-    #     crd = (self.v - origin).T
-    #     m = normal2tfmat(self.normal)
-    #     new_crd = m@tf@np.linalg.inv(m)@crd
-    #     self.v = new_crd.T + origin
 
     @property
     def coord_system(self):

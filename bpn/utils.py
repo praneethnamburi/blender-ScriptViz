@@ -13,6 +13,7 @@ if DEV_ROOT not in sys.path:
 
 import pntools as pn
 
+### Transformations
 def apply_matrix(vert, mat):
     """
     Apply matrix transformation to a set of vertices.
@@ -25,11 +26,17 @@ class CoordSystem:
     """
     Coordinate frame defined by origin and unit vectors.
     Unit vectors are given in 'world' coordinates, where origin in zero, and matrix is eye(4)
+
+    For the bpn module, this class is meant to enforce the idea that every transformation is applied within the context of a give coordinate frame.
     """
     def __init__(self, **kwargs):
+        if not kwargs:
+            # return world coordinate system if no inputs are given
+            kwargs['m'] = np.eye(4)
+
         if 'm' in kwargs:
             kwargs['m'] = np.array(kwargs['m'])
-            assert np.shape(kwargs['m']) in ((3, 3), [4, 4])
+            assert np.shape(kwargs['m']) in ((3, 3), (4, 4))
             i = kwargs['m'][0:3, 0]
             j = kwargs['m'][0:3, 1]
             k = kwargs['m'][0:3, 2]
@@ -72,24 +79,63 @@ class CoordSystem:
     def origin(self, new_origin):
         assert len(new_origin) == 3
         self.m[0:3, 3] = new_origin
-    
     center = origin
 
+    @property
+    def i(self):
+        """X unit vector represented in world coordinates."""
+        return self.m[0:3, 0]
+
+    @property
+    def j(self):
+        """X unit vector represented in world coordinates."""
+        return self.m[0:3, 1]
+
+    @property
+    def k(self):
+        """X unit vector represented in world coordinates."""
+        return self.m[0:3, 2]
+
     def apply_transform(self, coord, tfmat):
-        """Apply transform in current coordinate frame."""
+        """
+        Apply transform in current coordinate frame.
+        Assume coord are coordinates in world frame.
+        np.linalg.inv(m)@crd -> brings coordinates into space defined by the current coordinate system
+        tfmat@ -> applies transformation in current space.
+        m@ -> moves coordinates back into world space.
+        CAUTION:
+            This ONLY works if input coordinates are in world space.
+            If they are in a different coordinate frame, bring first bring them to world coordinates
+
+        From the perspective of a directed sub-msh, 'world' coordinates are the mesh's 'local' coordinate system
+        When I mean world, I mean a reference coordinate system for all coordinate systems in 3D space.
+        """
         assert np.shape(coord)[1] == 3
         if np.shape(tfmat) == (3, 3):
             tmp = np.eye(4)
             tmp[0:3, 0:3] = tfmat
             tfmat = tmp
         assert np.shape(tfmat) == (4, 4)
-        return apply_matrix(coord, self.m@tfmat@np.linalg.inv(self.m))
+        v4 = np.concatenate((coord, np.ones([np.shape(coord)[0], 1])), axis=1)
+        mat = self.m@tfmat@np.linalg.inv(self.m)
+        return (mat@v4.T).T[:, 0:3]
 
 
 def normal2tfmat(n):
     """
     Given a direction vector, create a transformation matrix that transforms a shape in the XY plane to the direction of the normal by first rotating along Y axis, and then along X axis.
     n is a 3-element 1-D numpy array
+
+    n is assumed to be the new k_hat, and a two transformation matrices are computed at first:
+        RxRy (Rotate around Y-axis first, and then X)
+        RyRx (Rotate around X-axis first, and then Y)
+
+    Note that these are not the only two possible transformation matrices. My goal is to minimize twist.
+    (Intuitively, these minimize twist, but I am yet to prove this mathematically)
+
+    Of the two possible transformation matrices, the one that displaces x and y the least is chosen.
+
+    The output is still unique. Meaning, given a normal, the algorithm always spits out a unique transformation matrix.
     """
     n = np.array(n)
     assert len(n) == 3
@@ -97,13 +143,44 @@ def normal2tfmat(n):
     nx = n[0]
     ny = n[1]
     nz = n[2]
+
+    # rotate around y first, then x (RxRy)
     d = np.sqrt(1-nx**2)
-    m = np.array([\
+    RxRy = np.array([\
         [d, 0, nx],\
         [-nx*ny/d, nz/d, ny],\
         [-nx*nz/d, -ny/d, nz]\
         ])
-    return m
+    i_disp_RxRy = np.sqrt(2*(1-np.sqrt(1-nx**2)))
+    try:
+        tmp = 1/np.sqrt(1-nx**2)
+        j_disp_RxRy = np.sqrt(2*(1-nz/tmp))
+    except ZeroDivisionError: # if nx approaches 1, then j_disp_RxRy = 0 (by visualization)
+        j_disp_RxRy = 0
+    disp_RxRy = i_disp_RxRy + j_disp_RxRy
+
+    # rotate around x first, then y (RyRx)
+    d = np.sqrt(1-ny**2)
+    RyRx = np.array([\
+        [nz/d, -nx*ny/d, nx],\
+        [0, d, ny],\
+        [-nx/d, -nz*ny/d, nz]\
+        ])
+    try:
+        tmp = 1/np.sqrt(1-ny**2)
+        i_disp_RyRx = np.sqrt(2*(1-nz/tmp))
+    except ZeroDivisionError:
+        i_disp_RyRx = 0
+    j_disp_RyRx = np.sqrt(2*(1-np.sqrt(1-ny**2)))
+    disp_RyRx = i_disp_RyRx + j_disp_RyRx
+
+    # of the two possible transformations, return the one causing the least displacement in i, and j vectors. 
+    # Why not explicity comput i and j vectors that give the least amount of displacement?
+    # This code favors RxRy (if both produce equal displacements in i and j, then RxRy is picked
+    if disp_RxRy <= disp_RyRx:
+        return RxRy
+    else:
+        return RyRx
 
 def twisttf(θ):
     """Twist transform is simply a rotation transform around Z."""
@@ -126,6 +203,7 @@ def scaletf(s):
         ])
     return m
 
+### Name management
 def new_name(name, curr_names):
     """
     Blender-style name conflict resolution.

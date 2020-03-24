@@ -91,7 +91,6 @@ class Tube(bpn.Msh):
 
         @normals.setter
         def normals(self, new_normals):
-            """Set """
             new_normals = np.array(new_normals)
             assert np.shape(new_normals) == (self.n, 3)
             for i in range(np.shape(new_normals)[0]):
@@ -106,11 +105,14 @@ t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
 t.xsec.all[-1].scale((3, 2, 1))
 t.xsec.all[-1].normal = (0, 0, 1)
 t.xsec.all[-1].twist(90)
+t.xsec.all[-1].center = (4, 0, 1)
+t.xsec.update_normals()
+t.xsec.centers = np.vstack((x1, x1, x1)).T
 # t.xsec.centers = np.vstack((z1, y1, x1)).T
-# t.xsec.update_normals()
+t.xsec.update_normals()
 
-# t.morph(frame_start=100)
-# bpn.env.Key().goto(150)
+t.morph(frame_start=100)
+bpn.env.Key().goto(150)
 
 # print(t.xsec.centers)
 
