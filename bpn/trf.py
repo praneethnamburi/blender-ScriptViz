@@ -83,11 +83,16 @@ def apply_transform(tfmat, vert, vert_frame=np.eye(4), tf_frame=np.eye(4), out_f
     if isinstance(vert_frame, CoordSystem):
         vert_frame = vert_frame.m
     if isinstance(tf_frame, CoordSystem):
-        vert_frame = vert_frame.m
+        tf_frame = tf_frame.m
     if isinstance(out_frame, CoordSystem):
-        vert_frame = vert_frame.m
+        out_frame = out_frame.m
+    # ensure 4x4
+    vert_frame = m4(m=vert_frame)
+    tf_frame = m4(m=tf_frame)
+    out_frame = m4(m=out_frame)
     tfmat = m4(m=tfmat)
     inv = np.linalg.inv
+
     mat = inv(out_frame)@tf_frame@tfmat@inv(tf_frame)@vert_frame
     return apply_matrix(mat, vert)
 
