@@ -444,7 +444,7 @@ class DirectedSubMsh(SubMsh):
     @property
     def coord_system(self):
         """Coordinate system of the current object."""
-        return trf.CoordSystem(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
+        return trf.CoordFrame(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
 
     def apply_transform(self, tf, coord_system=np.array([None])):
         """
@@ -453,6 +453,6 @@ class DirectedSubMsh(SubMsh):
         """
         if not all(coord_system):
             coord_system = self.coord_system
-        assert isinstance(coord_system, trf.CoordSystem)
+        assert isinstance(coord_system, trf.CoordFrame)
         v = self.v
         self.v = coord_system.apply_transform(v, tf)

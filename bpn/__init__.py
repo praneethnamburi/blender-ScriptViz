@@ -25,7 +25,7 @@ if __package__ is not None:
     from . import new, env, demo, utils, turtle, vef, trf
     from .env import Props, ReportDelta
     from .turtle import Draw
-    from .trf import CoordSystem
+    from .trf import CoordFrame
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))

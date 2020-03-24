@@ -1,7 +1,7 @@
 """
 Transformations sub-module.
 
-In the spirit of developing hierarchical objects, this module introduces CoordSystem class.
+In the spirit of developing hierarchical objects, this module introduces CoordFrame class.
 A co-ordinate system in this context is defined by a 4x4 matrix, or an origin and three unit vectors. Origin and axes are specified with respect to world coordinates.
 
 Points in the world can be transformed:
@@ -15,7 +15,7 @@ Points and co-ordinates can be more 'tightly' bound, where the coordinate system
 
 import numpy as np
 
-class CoordSystem:
+class CoordFrame:
     """
     Coordinate frame defined by origin and unit vectors.
     Unit vectors are given in 'world' coordinates, where origin in zero, and matrix is eye(4)
@@ -80,11 +80,11 @@ def apply_transform(tfmat, vert, vert_frame=np.eye(4), tf_frame=np.eye(4), out_f
     #5. Bring vertices to out frame
     vert = out_frame.from_world(vert)
     """
-    if isinstance(vert_frame, CoordSystem):
+    if isinstance(vert_frame, CoordFrame):
         vert_frame = vert_frame.m
-    if isinstance(tf_frame, CoordSystem):
+    if isinstance(tf_frame, CoordFrame):
         tf_frame = tf_frame.m
-    if isinstance(out_frame, CoordSystem):
+    if isinstance(out_frame, CoordFrame):
         out_frame = out_frame.m
     # ensure 4x4
     vert_frame = m4(m=vert_frame)
