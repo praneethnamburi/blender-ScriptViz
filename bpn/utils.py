@@ -3,7 +3,6 @@ Utility functions
 """
 import os
 import sys
-import numpy as np
 
 import bpy # pylint: disable=import-error
 
@@ -12,15 +11,6 @@ if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
 import pntools as pn
-
-### Transformations
-def apply_matrix(vert, mat):
-    """
-    Apply matrix transformation to a set of vertices.
-    """
-    mat = np.array(mat) # mat in blender is of Matrix type, and I'm using numpy 2d arrays everywhere.
-    v4 = np.concatenate((vert, np.ones([np.shape(vert)[0], 1])), axis=1)
-    return (mat@v4.T).T[:, 0:3]
 
 ### Name management
 def new_name(name, curr_names):

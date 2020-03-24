@@ -12,6 +12,7 @@ Points in the world can be transformed:
 
 Points and co-ordinates can be more 'tightly' bound, where the coordinate system itself is defined with respect to the points. Consider the DirectedSubMsh for example. The normal, or k direction is set externally, but the X direction is set according to the vector from the center of the points in the mesh to the first point in the mesh.
 """
+
 import numpy as np
 
 class CoordSystem:
@@ -20,58 +21,20 @@ class CoordSystem:
     Unit vectors are given in 'world' coordinates, where origin in zero, and matrix is eye(4)
 
     For the bpn module, this class is meant to enforce the idea that every transformation is applied within the context of a give coordinate frame.
+
+    Applying a transformation in this frame:
+        new_crd = self.m@tfmat@np.linalg.inv(self.m)@crd
+        np.linalg.inv(m)@crd -> brings world coordinates into space defined by the current coordinate system
+        tfmat@ -> applies transformation in current space.
+        m@ -> moves coordinates back into world space.
     """
     def __init__(self, **kwargs):
-        if not kwargs:
-            # return world coordinate system if no inputs are given
-            kwargs['m'] = np.eye(4)
-
-        if 'm' in kwargs:
-            kwargs['m'] = np.array(kwargs['m'])
-            assert np.shape(kwargs['m']) in ((3, 3), (4, 4))
-            i = kwargs['m'][0:3, 0]
-            j = kwargs['m'][0:3, 1]
-            k = kwargs['m'][0:3, 2]
-            if np.shape(kwargs['m']) == (4, 4):
-                origin = kwargs['m'][0:3, 3]
-        # if conflicting input is given, individual assignments over-ride matrix assignment
-        if 'origin' in kwargs:
-            origin = kwargs['origin']
-        if 'center' in kwargs:
-            origin = kwargs['center']
-        if 'i' in kwargs:
-            i = kwargs['i']
-            assert len(i) == 3
-            i = np.array(i)/np.linalg.norm(i)
-        if 'j' in kwargs:
-            j = kwargs['j']
-            assert len(j) == 3
-            j = np.array(j)/np.linalg.norm(j)
-        if 'k' in kwargs:
-            k = kwargs['k']
-            assert len(k) == 3
-            k = np.array(k)/np.linalg.norm(k)
-        
-        if 'origin' not in locals():
-            origin = np.zeros(3) 
-        
-        self.m = np.array([\
-            [i[0], j[0], k[0], origin[0]],\
-            [i[1], j[1], k[1], origin[1]],\
-            [i[2], j[2], k[2], origin[2]],\
-            [0, 0, 0, 1]\
-            ])
+        self.m = m4(**kwargs)
 
     @property
     def origin(self):
         """Origin of the coordinate system."""
         return self.m[0:3, 3]
-    
-    @origin.setter
-    def origin(self, new_origin):
-        assert len(new_origin) == 3
-        self.m[0:3, 3] = new_origin
-    center = origin
 
     @property
     def i(self):
@@ -88,30 +51,109 @@ class CoordSystem:
         """X unit vector represented in world coordinates."""
         return self.m[0:3, 2]
 
-    def apply_transform(self, coord, tfmat):
-        """
-        Apply transform in current coordinate frame.
-        Assume coord are coordinates in world frame.
-        np.linalg.inv(m)@crd -> brings coordinates into space defined by the current coordinate system
-        tfmat@ -> applies transformation in current space.
-        m@ -> moves coordinates back into world space.
-        CAUTION:
-            This ONLY works if input coordinates are in world space.
-            If they are in a different coordinate frame, bring first bring them to world coordinates
+    def from_world(self, coord_world):
+        """Return coordinates in the current frame of reference."""
+        coord_local = apply_matrix(coord_world, np.linalg.inv(self.m))
+        return coord_local
+    
+    def to_world(self, coord_local):
+        """Return coordinates in the world frame."""
+        coord_world = apply_matrix(coord_local, self.m)
+        return coord_world
+    
+def apply_transform(tfmat, vert, vert_frame=np.eye(4), tf_frame=np.eye(4), out_frame=np.eye(4)):
+    """
+    Most general form of applying a transformation matrix.
 
-        From the perspective of a directed sub-msh, 'world' coordinates are the mesh's 'local' coordinate system
-        When I mean world, I mean a reference coordinate system for all coordinate systems in 3D space.
-        """
-        assert np.shape(coord)[1] == 3
-        if np.shape(tfmat) == (3, 3):
-            tmp = np.eye(4)
-            tmp[0:3, 0:3] = tfmat
-            tfmat = tmp
-        assert np.shape(tfmat) == (4, 4)
-        v4 = np.concatenate((coord, np.ones([np.shape(coord)[0], 1])), axis=1)
-        mat = self.m@tfmat@np.linalg.inv(self.m)
-        return (mat@v4.T).T[:, 0:3]
+    Apply transformation matrix tfmat on vertices with coordinates specified in vert_frame.
+    Apply the transformation in the coordinate frame given by tf_frame
+    Output the vertices in out_frame
 
+    #1. Bring vertices to world frame
+    vert = vert_frame.to_world(vert)
+    #2. Bring vertices to tf frame
+    vert = tf_frame.from_world(vert)
+    #3. Apply the transformation matrix in tf frame
+    vert = apply_matrix(tfmat, vert)
+    #4. Bring vertices to world frame
+    vert = tf_frame.to_world(vert)
+    #5. Bring vertices to out frame
+    vert = out_frame.from_world(vert)
+    """
+    if isinstance(vert_frame, CoordSystem):
+        vert_frame = vert_frame.m
+    if isinstance(tf_frame, CoordSystem):
+        vert_frame = vert_frame.m
+    if isinstance(out_frame, CoordSystem):
+        vert_frame = vert_frame.m
+    tfmat = m4(m=tfmat)
+    inv = np.linalg.inv
+    mat = inv(out_frame)@tf_frame@tfmat@inv(tf_frame)@vert_frame
+    return apply_matrix(mat, vert)
+
+def v4(vert):
+    """
+    coordinates (nVertex x 3) -> (nVertex x 4) for applying 4x4 transformation matrices.
+    """
+    assert np.shape(vert)[1] == 3
+    return np.concatenate((vert, np.ones([np.shape(vert)[0], 1])), axis=1)
+
+def m4(**kwargs):
+    """
+    Construct a 4x4 transformation matrix from various types of inputs.
+        m4(m=mat) mat is either 3x3 or 4x4 (2d numpy array, 2d list)
+        m4(i=i1, j=j1, k=k1, origin=o1) i, j, k vectors (doesn't have to be unit    vectors, they will be normalized in here) and origin
+        m4(i=i1, j=j1, k=k1) In this case, origin is assumed to be at world origin
+        m4() This will return a 4x4 identity matrix (world coordinate frame)
+    """
+    if not kwargs:
+        # return world coordinate system if no inputs are given
+        kwargs['m'] = np.eye(4)
+
+    if 'm' in kwargs:
+        kwargs['m'] = np.array(kwargs['m'])
+        assert np.shape(kwargs['m']) in ((3, 3), (4, 4))
+        i = kwargs['m'][0:3, 0]
+        j = kwargs['m'][0:3, 1]
+        k = kwargs['m'][0:3, 2]
+        if np.shape(kwargs['m']) == (4, 4):
+            origin = kwargs['m'][0:3, 3]
+
+    # if conflicting input is given, individual assignments over-ride matrix assignment
+    if 'origin' in kwargs:
+        origin = kwargs['origin']
+    if 'center' in kwargs:
+        origin = kwargs['center']
+    if 'i' in kwargs:
+        i = kwargs['i']
+        assert len(i) == 3
+        i = np.array(i)/np.linalg.norm(i)
+    if 'j' in kwargs:
+        j = kwargs['j']
+        assert len(j) == 3
+        j = np.array(j)/np.linalg.norm(j)
+    if 'k' in kwargs:
+        k = kwargs['k']
+        assert len(k) == 3
+        k = np.array(k)/np.linalg.norm(k)
+    
+    if 'origin' not in locals():
+        origin = np.zeros(3) 
+    
+    return np.array([\
+        [i[0], j[0], k[0], origin[0]],\
+        [i[1], j[1], k[1], origin[1]],\
+        [i[2], j[2], k[2], origin[2]],\
+        [0, 0, 0, 1]\
+        ])
+
+def apply_matrix(mat, vert):
+    """
+    Apply matrix transformation to a set of vertices.
+    :param mat: (2D numpy array) 4 x 4, or 3 x 3 transformation matrix
+    :param vert: (2D numpy array) nV x 3
+    """
+    return (m4(m=mat)@v4(vert).T).T[:, 0:3]
 
 def normal2tfmat(n):
     """

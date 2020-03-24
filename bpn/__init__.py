@@ -22,10 +22,10 @@ if DEV_ROOT not in sys.path:
 import pntools as pn
 
 if __package__ is not None:
-    from . import new, env, demo, utils, turtle, vef
+    from . import new, env, demo, utils, turtle, vef, trf
     from .env import Props, ReportDelta
     from .turtle import Draw
-    from .utils import apply_matrix
+    from .trf import CoordSystem
 
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
@@ -321,7 +321,7 @@ class Msh(pn.Track):
     def v_world(self):
         """Return world coordinates as nVx3 numpy array."""
         bpy.context.view_layer.update()
-        return apply_matrix(self.v, self.bo.matrix_world)
+        return trf.apply_matrix(self.bo.matrix_world, self.v) #apply_matrix from trf
 
     @property
     def vn(self):
@@ -601,7 +601,7 @@ class Msh(pn.Track):
         Note that this move will move the mesh center to origin.
         """
         self.vBkp = self.v # for undoing
-        self.v = apply_matrix(self.v, self.bo.matrix_world)
+        self.v = trf.apply_matrix(self.bo.matrix_world, self.v)
         self.bo.matrix_world = mathutils.Matrix(np.eye(4))
         bpy.context.view_layer.update()
         return self
