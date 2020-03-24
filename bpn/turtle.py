@@ -20,7 +20,9 @@ import pntools as pn
 
 from . import new
 from . import utils
-from .utils import clean_names, normal2tfmat
+from .utils import clean_names
+from . import trf
+from .trf import normal2tfmat
 
 class Draw:
     """
@@ -433,16 +435,16 @@ class DirectedSubMsh(SubMsh):
 
     def twist(self, theta_deg=45):
         """Twist transform - clockwise rotation in local space."""
-        self.apply_transform(utils.twisttf(np.radians(theta_deg)))
+        self.apply_transform(trf.twisttf(np.radians(theta_deg)))
     
     def scale(self, delta):
         """Apply scaling along i_hat, j_hat, and k_hat."""
-        self.apply_transform(utils.scaletf(delta))
+        self.apply_transform(trf.scaletf(delta))
 
     @property
     def coord_system(self):
         """Coordinate system of the current object."""
-        return utils.CoordSystem(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
+        return trf.CoordSystem(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
 
     def apply_transform(self, tf, coord_system=np.array([None])):
         """
@@ -451,6 +453,6 @@ class DirectedSubMsh(SubMsh):
         """
         if not all(coord_system):
             coord_system = self.coord_system
-        assert isinstance(coord_system, utils.CoordSystem)
+        assert isinstance(coord_system, trf.CoordSystem)
         v = self.v
         self.v = coord_system.apply_transform(v, tf)
