@@ -322,6 +322,13 @@ class Msh(pn.Track):
         """Return world coordinates as nVx3 numpy array."""
         bpy.context.view_layer.update()
         return trf.apply_matrix(self.bo.matrix_world, self.v) #apply_matrix from trf
+    
+    @property
+    def frame(self):
+        """
+        Unit frame of reference for the current mesh.
+        """
+        return trf.CoordFrame(m=self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
 
     @property
     def vn(self):

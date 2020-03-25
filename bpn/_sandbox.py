@@ -29,6 +29,7 @@ from importlib import reload
 
 reload(bpn.turtle)
 reload(bpn.utils)
+reload(bpn.trf)
 reload(bpn)
 
 bpn.env.reset()
@@ -59,7 +60,7 @@ class Tube(bpn.Msh):
     class XSec:
         """Cross sections of a tube: a collection of DirectedSubMsh's"""
         def __init__(self, parent, normals, draw_export):
-            self.all = [bpn.turtle.DirectedSubMsh(parent, normals[i, :], **s) for i, s in enumerate(draw_export)]
+            self.all = [bpn.turtle.CenteredSubMsh(parent, **s) for i, s in enumerate(draw_export)]
             self._normals = normals
 
         @property
@@ -67,34 +68,34 @@ class Tube(bpn.Msh):
             """Number of cross sections."""
             return len(self.all)
 
-        @property
-        def centers(self):
-            """The 'spine' of the tube. nCrossSections X 3 numpy array."""
-            return np.array([x.center for x in self.all])
+        # @property
+        # def centers(self):
+        #     """The 'spine' of the tube. nCrossSections X 3 numpy array."""
+        #     return np.array([x.center for x in self.all])
         
-        @centers.setter
-        def centers(self, new_centers):
-            new_centers = np.array(new_centers)
-            assert np.shape(new_centers) == (self.n, 3)
-            for i in range(self.n):
-                self.all[i].center = new_centers[i, :]
+        # @centers.setter
+        # def centers(self, new_centers):
+        #     new_centers = np.array(new_centers)
+        #     assert np.shape(new_centers) == (self.n, 3)
+        #     for i in range(self.n):
+        #         self.all[i].center = new_centers[i, :]
 
-        def update_normals(self):
-            """Update normals based on the location of the centers."""
-            spine = self.centers
-            self.normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
+        # def update_normals(self):
+        #     """Update normals based on the location of the centers."""
+        #     spine = self.centers
+        #     self.normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-        @property
-        def normals(self):
-            """Normals of each x-section"""
-            return np.array(self._normals)
+        # @property
+        # def normals(self):
+        #     """Normals of each x-section"""
+        #     return np.array(self._normals)
 
-        @normals.setter
-        def normals(self, new_normals):
-            new_normals = np.array(new_normals)
-            assert np.shape(new_normals) == (self.n, 3)
-            for i in range(np.shape(new_normals)[0]):
-                self.all[i].normal = new_normals[i, :]
+        # @normals.setter
+        # def normals(self, new_normals):
+        #     new_normals = np.array(new_normals)
+        #     assert np.shape(new_normals) == (self.n, 3)
+        #     for i in range(np.shape(new_normals)[0]):
+        #         self.all[i].normal = new_normals[i, :]
 
 θ = np.radians(np.arange(0, 360+40, 40))
 z1 = np.sin(θ)
@@ -102,17 +103,34 @@ y1 = np.cos(θ)
 x1 = θ/2
 
 t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
-t.xsec.all[-1].scale((3, 2, 1))
-t.xsec.all[-1].normal = (0, 0, 1)
-t.xsec.all[-1].twist(90)
-t.xsec.all[-1].center = (4, 0, 1)
-t.xsec.update_normals()
-t.xsec.centers = np.vstack((x1, x1, x1)).T
-# t.xsec.centers = np.vstack((z1, y1, x1)).T
-t.xsec.update_normals()
+a = bpn.trf.PointCloud(np.array([[0, 2, 0]]))
+x = t.xsec.all[1]
+# x_pt = bpn.trf.PointCloud(x.parent.v[x.vi, :], frame=x.parent.frame)
 
-t.morph(frame_start=100)
-bpn.env.Key().goto(150)
+# new_co = bpn.trf.transform(np.eye(4), x_pt.co, vert_frame_mat=x_pt.frame, tf_frame_mat=x_pt.frame, out_frame_mat=np.eye(4))
+# new_pts = x.pts.transform(np.array(mathutils.Matrix.Scale(2, 4)))
+# x.pts = new_pts
+# x.origin = bpn.trf.PointCloud([[0, 2, 1]], np.eye(4))
+tmp1 = np.eye(4)
+tmp1[0:3, -1] = (2, 2, 2)
+# x.frame = bpn.trf.CoordFrame(m=tmp1)
+this_pts = x.pts
+this_pts.co += 2
+x.pts = this_pts
+print(x._frame.m)
+# b = t.xsec.all[1].pts
+# print(b)
+# t.xsec.all[-1].scale((3, 2, 1))
+# t.xsec.all[-1].normal = (0, 0, 1)
+# t.xsec.all[-1].twist(90)
+# t.xsec.all[-1].center = (4, 0, 1)
+# t.xsec.update_normals()
+# t.xsec.centers = np.vstack((x1, x1, x1)).T
+# # t.xsec.centers = np.vstack((z1, y1, x1)).T
+# t.xsec.update_normals()
+
+# t.morph(frame_start=100)
+# bpn.env.Key().goto(150)
 
 # print(t.xsec.centers)
 

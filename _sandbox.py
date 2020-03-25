@@ -14,3 +14,19 @@ CAUTION: Use these modes only when debugger for blender is not active!
 
 import os
 os.chdir('D:\\Workspace\\blenderPython')
+
+class DummyClass:
+    def __init__(self, var):
+        self._var = var
+    
+    @property
+    def var(self):
+        return self._var
+        
+class DummyChildClass(DummyClass):
+    @DummyClass.var.setter #pylint: disable=no-member
+    def var(self, new_var):
+        self._var = new_var
+
+d = DummyClass(1)
+d2 = DummyChildClass(2)

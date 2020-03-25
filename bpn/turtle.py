@@ -19,7 +19,6 @@ import bpn
 import pntools as pn
 
 from . import new
-from . import utils
 from .utils import clean_names
 from . import trf
 from .trf import normal2tfmat
@@ -311,7 +310,16 @@ class Geom:
         return {'tags': self.tags, 'call_stack': self.call_stack, **self.v_np, **self.e_np, **self.f_np}
 
 class SubMsh:
-    """Parts of a mesh given by vertex, edge and face indices"""
+    """
+    Parts of a mesh given by vertex, edge and face indices.
+
+    This is the most generic sub-msh. Reference frame is anything set by user.
+    Defaults to parent (bpy.objects.msh)'s frame.
+    
+    Points and frame are not 'attached'. User freely manipulates points and the frame.
+
+    Every sub-mesh should have a frame property.
+    """
     def __init__(self, parent, **kwargs):
         """
         :param parent: (bpn.Msh)
@@ -319,8 +327,8 @@ class SubMsh:
         :param ei: (1D int32 numpy array) indices of parent edges
         :param fi: (1D int32 numpy array) indices of parent faces
         """
-        kwargs_def = {'vi': [], 'ei': [], 'fi': [], 'tags': [], 'call_stack': None}
-        kwargs_alias = {'vi': ['vi', 'v_idx'], 'ei': ['ei', 'e_idx'], 'fi': ['fi', 'f_idx'], 'tags': ['tags'], 'call_stack': ['call_stack']}
+        kwargs_def = {'vi': [], 'ei': [], 'fi': [], 'tags': [], 'call_stack': None, 'frame': None}
+        kwargs_alias = {'vi': ['vi', 'v_idx'], 'ei': ['ei', 'e_idx'], 'fi': ['fi', 'f_idx'], 'tags': ['tags'], 'call_stack': ['call_stack'], 'frame': ['frame', 'coord_frame', 'm']}
         kwargs_curr, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
         self.parent = parent
         self.vi = kwargs_curr['vi']
@@ -329,130 +337,159 @@ class SubMsh:
         self.tags = kwargs_curr['tags']
         self.call_stack = kwargs_curr['call_stack']
 
-    @property
-    def v(self):
-        """Vertex positions of the sub mesh"""
-        return self.parent.v[self.vi, :]
+        if not kwargs_curr['frame']:
+            self._frame = self.parent.frame
+        else:
+            if not isinstance(kwargs_curr['frame'], trf.CoordFrame):
+                self._frame = trf.CoordFrame(m=kwargs_curr['frame'])
+            else:
+                self._frame = kwargs_curr['frame']
     
-    @v.setter
-    def v(self, this_coords):
-        """Update the parent vertices."""
+    @property
+    def frame(self):
+        """Frame of the current sub-mesh."""
+        return self._frame
+    
+    @frame.setter
+    def frame(self, new_frame):
+        assert isinstance(new_frame, trf.CoordFrame)
+        self._frame = new_frame
+
+    @property
+    def nV(self):
+        """Number of vertices in the sub-mesh"""
+        return np.size(self.vi)
+
+    @property
+    def pts(self):
+        """Vertex positions in the parent mesh's frame of reference."""
+        return trf.PointCloud(self.parent.v[self.vi, :], frame=self.parent.frame)
+    
+    @pts.setter
+    def pts(self, ptcloud):
+        """Write points back into the parent mesh."""
+        self._write_to_parent(ptcloud)
+        
+    def _write_to_parent(self, ptcloud):
+        assert isinstance(ptcloud, trf.PointCloud)
+        assert ptcloud.n == self.nV
         v = self.parent.v
-        v[self.vi, :] = this_coords
+        v[self.vi, :] = ptcloud.in_frame(self.parent.frame).co
         self.parent.v = v
 
-    @property
-    def center(self):
-        """Center of all the vertices"""
-        return np.mean(self.v, axis=0)
-
-    @center.setter
-    def center(self, new_center):
-        new_center = np.array(new_center)
-        self.v = self.v + new_center - self.center
-
-    # Transformations inside an object are meaningless unless the object explicity has it's own coordinate system
-    # This object's coordinate system is defined by the world coordinate system! If not, then the vertex coordinates returned should be relative to the 'center'
-    def translate(self, delta=0, x=0, y=0, z=0):
-        """Translate current vertices by delta."""
-        if 'numpy' in str(type(delta)):
-            delta = tuple(delta)
-        if delta == 0:
-            delta = (x, y, z)
-        assert len(delta) == 3
-        delta = np.array(delta)
-        self.v += delta
-
-    # def scale(self, delta, ref=None):
-    #     """
-    #     Scale current vertices by delta.
-    #     Center for scaling is given by ref.
-    #     If no value is specified, vertices are scaled around the geometry's center.
-    #     """
-    #     if isinstance(delta, (int, float)):
-    #         delta = np.array((1, 1, 1))*float(delta)
-    #     delta = np.array(delta)
-    #     if not ref:
-    #         ref = np.array(self.center)
-    #     else:
-    #         ref = np.array(ref)
-    #     self.translate(0-ref)
-    #     self.v = self.v*delta
-    #     self.translate(ref)
-
-class DirectedSubMsh(SubMsh):
+class CenteredSubMsh(SubMsh):
     """
-    SubMsh that has a 'direction'
-    In general, this would make sense for sub-meshes whose vertices are all in the same plane.
-    But, it doesn't have to be! With great power comes great responsibility.
+    Sub-mesh whose origin is always at the center of the mesh.
 
-    This direction is given by 'normal'
-    It is a good idea to control the sub-msh using normal. 
-    CAUTION: Changing vertex positions manually won't update the normal.
-
-    The internal 3d coordinate system of a directed SubMsh is as follows:
-        Normal specifies the 'z' direction
-        Projection of the vector from the center of the mesh to the first vertex defines the 'x' direction
-        90 degrees on the plane normal to the sub-mesh normal
-        Origin is the center of the sub-mesh
+    User can freely set unit vectors without modifying points, and modify points without affecting unit vector directions.
+    Default frame is the unit vectors from parent.
     """
-    def __init__(self, parent, normal, **kwargs):
-        self._normal = normal
-        super().__init__(parent, **kwargs)
-
     @property
-    def normal(self):
-        """Ensure a unit vector is returned."""
-        n = np.array(self._normal)
-        return n/np.linalg.norm(n)
-
-    @normal.setter
-    def normal(self, new_normal):
-        new_normal = np.array(new_normal)
-        assert len(new_normal) == 3
-
-        curr_center = self.center
-        m1 = normal2tfmat(self.normal)
-        m2 = normal2tfmat(new_normal)
-        crd = (self.v - curr_center).T
-        new_crd = m2@np.linalg.inv(m1)@crd
-        self.v = new_crd.T + curr_center
-        self._normal = new_normal
-    
-    k_hat = normal
-
-    @property
-    def j_hat(self):
-        """Y unit vector in local coordinate space."""
-        x = self.v[0, :] - self.center
-        y = np.cross(self.normal, x)
-        return y/np.linalg.norm(y)
+    def origin(self):
+        """Origin of the mesh in world coordinates."""
+        return self.pts.in_world().center
     
     @property
-    def i_hat(self):
-        """X unit vector in local coordinate space."""
-        return np.cross(self.j_hat, self.normal)
+    def frame(self):
+        # ensure i, j, k are unit vectors, and origin is at the center of the points
+        return trf.CoordFrame(i=self._frame.i, j=self._frame.j, k=self._frame.k, origin=self.origin.co[0, :])
 
-    def twist(self, theta_deg=45):
-        """Twist transform - clockwise rotation in local space."""
-        self.apply_transform(trf.twisttf(np.radians(theta_deg)))
+    @origin.setter
+    def origin(self, new_origin):
+        # moving the origin for this type of mesh will move the points!
+        assert isinstance(new_origin, trf.PointCloud)
+        self.pts = self.pts.in_world().transform(np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin.co[0, :])))
     
-    def scale(self, delta):
-        """Apply scaling along i_hat, j_hat, and k_hat."""
-        self.apply_transform(trf.scaletf(delta))
+    @frame.setter
+    def frame(self, new_frame):
+        # user can manually change the reference frame. If the origin is different, then the points are going to move!
+        assert isinstance(new_frame, trf.CoordFrame)
+        # this line moves the points, and explicitly specifies that the new frame was specified in world coordinates.
+        self.origin = trf.PointCloud(np.array([new_frame.origin]), trf.CoordFrame())
+        self._frame = trf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin.co[0, :])
 
-    @property
-    def coord_system(self):
-        """Coordinate system of the current object."""
-        return trf.CoordFrame(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
+    @SubMsh.pts.setter #pylint: disable=no-member
+    def pts(self, ptcloud):
+        """Write points back into the parent mesh."""
+        self._write_to_parent(ptcloud)
+        # not sure this is serving a real purpose
+        # benefit: if you query the hidden variable _frame, without this, it won't reflect changes to the origin after setting new points
+        self._update_hidden_frame() 
 
-    def apply_transform(self, tf, coord_system=np.array([None])):
-        """
-        Apply transformation in a coordinate system defined by coord_system. 
-        In none is specified, then apply the transformation in the local coordinate frame.
-        """
-        if not all(coord_system):
-            coord_system = self.coord_system
-        assert isinstance(coord_system, trf.CoordFrame)
-        v = self.v
-        self.v = coord_system.apply_transform(v, tf)
+    def _update_hidden_frame(self):
+        self._frame = self.frame
+# class DirectedSubMsh(SubMsh):
+#     """
+#     SubMsh that has a 'direction'
+#     In general, this would make sense for sub-meshes whose vertices are all in the same plane.
+#     But, it doesn't have to be!
+
+#     This direction is given by 'normal'
+#     It is a good idea to control the sub-msh using normal. 
+#     CAUTION: Changing vertex positions manually won't update the normal.
+
+#     The internal 3d coordinate system of a directed SubMsh is as follows:
+#         Normal specifies the 'z' direction
+#         Projection of the vector from the center of the mesh to the first vertex defines the 'x' direction
+#         90 degrees on the plane normal to the sub-mesh normal
+#         Origin is the center of the sub-mesh
+#     """
+#     def __init__(self, parent, normal, twist, **kwargs):
+#         self._normal = normal
+#         self._twist = twist # twist angle in radians
+#         super().__init__(parent, **kwargs)
+
+#     @property
+#     def normal(self):
+#         """Ensure a unit vector is returned."""
+#         n = np.array(self._normal)
+#         return n/np.linalg.norm(n)
+
+#     @normal.setter
+#     def normal(self, new_normal):
+#         new_normal = np.array(new_normal)
+#         assert len(new_normal) == 3
+
+#         curr_center = self.center
+#         m1 = normal2tfmat(self.normal)
+#         m2 = normal2tfmat(new_normal)
+#         crd = (self.v - curr_center).T
+#         new_crd = m2@np.linalg.inv(m1)@crd
+#         self.v = new_crd.T + curr_center
+#         self._normal = new_normal
+    
+#     k_hat = normal
+
+#     @property
+#     def j_hat(self):
+#         """Y unit vector in local coordinate space."""
+#         x = self.v[0, :] - self.center
+#         y = np.cross(self.normal, x)
+#         return y/np.linalg.norm(y)
+    
+#     @property
+#     def i_hat(self):
+#         """X unit vector in local coordinate space."""
+#         return np.cross(self.j_hat, self.normal)
+
+#     def twist(self, theta_deg=45):
+#         """Twist transform - clockwise rotation in local space."""
+#         self.apply_transform(trf.twisttf(np.radians(theta_deg)))
+    
+#     def scale(self, delta):
+#         """Apply scaling along i_hat, j_hat, and k_hat."""
+#         self.apply_transform(trf.scaletf(delta))
+
+#     @property
+#     def coord_system(self):
+#         """Coordinate system of the current object."""
+#         crdmat = trf.m4(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
+#         return trf.CoordFrame(crdmat, None)
+
+#     def apply_transform(self, tf):
+#         """
+#         Apply transformation in a coordinate system defined by coord_system. 
+#         In none is specified, then apply the transformation in the local coordinate frame.
+#         """
+#         v = self.v
+#         self.v = trf.transform(tf, v, tf_frame_mat=self.coord_system)

@@ -27,6 +27,14 @@ class CoordFrame:
         np.linalg.inv(m)@crd -> brings world coordinates into space defined by the current coordinate system
         tfmat@ -> applies transformation in current space.
         m@ -> moves coordinates back into world space.
+
+    There are no 'setters' for the properties here on purpose.
+    This is meant to be used as a 'read-only' class.
+    Classes inheriting from CoordFrame can define setters based on the relationship between points and coordinate frame in that class.
+
+    REMEMBER:
+        The 'parent' of any CoordFrame object IS the world frame.
+        In other words, the columns of 'm', i.e., this frame's unit vectors, are defined in world frame.
     """
     def __init__(self, **kwargs):
         self.m = m4(**kwargs)
@@ -51,21 +59,85 @@ class CoordFrame:
         """X unit vector represented in world coordinates."""
         return self.m[0:3, 2]
 
+    # These two functions are here for clarity
     def from_world(self, coord_world):
-        """Return coordinates in the current frame of reference."""
-        coord_local = apply_matrix(coord_world, np.linalg.inv(self.m))
+        """Return point locations in the current frame of reference."""
+        coord_local = apply_matrix(np.linalg.inv(self.m), coord_world)
         return coord_local
     
     def to_world(self, coord_local):
-        """Return coordinates in the world frame."""
-        coord_world = apply_matrix(coord_local, self.m)
+        """Return point locations in the world frame."""
+        coord_world = apply_matrix(self.m, coord_local)
         return coord_world
+
+
+class PointCloud:
+    """
+    Encapsulate vertex locations with the reference frame.
+
+        v = PointCloud(vert, local_frame)
+        v.co    : coordinates in local reference frame, local_frame
+        v.frame : frame of reference for these coordinates
+    """
+    def __init__(self, vert, frame=np.eye(4)):
+        """
+        :param vert: (2d numpy array) size nV x 3 specifying locations of points
+        :param frame: (bpn.trf.CoordFrame) co-ordinate frame for the locations
+        """
+        if not isinstance(frame, CoordFrame):
+            frame = CoordFrame(m=frame)
+        vert = np.array(vert)
+        if np.shape(vert) == (3,): # only one point in the cloud
+            vert = np.array([vert])
+        assert np.shape(vert)[1] == 3
+        self.co = vert
+        self.frame = frame
     
-def apply_transform(tfmat, vert, vert_frame=np.eye(4), tf_frame=np.eye(4), out_frame=np.eye(4)):
+    @property
+    def n(self):
+        """Number of points in the cloud."""
+        return np.shape(self.co)[0]
+    
+    @property
+    def center(self):
+        """Center of the point cloud as a new pointcloud object"""
+        return PointCloud(np.mean(self.co, axis=0, keepdims=True), self.frame)
+
+    # The following methods all return a NEW point cloud.
+    # They DO NOT modify the coordinates of this point cloud.
+    # Modifying the point cloud in-place might make sense as meshes get bigger??
+    # Since point clouds are meant for sub-meshes (small ones), I'll leave this design choice be for now.
+    def in_frame(self, output_coord_system):
+        """Return point cloud in the given frame of reference (output_coord_system)."""
+        new_co = transform(np.eye(4), self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=output_coord_system)
+        return PointCloud(new_co, output_coord_system)
+
+    def in_world(self):
+        """
+        Return point cloud in world.
+        When the tf matrix becomes an identity matrix, this formula (see bpn.trf.transform):
+            tfmat = inv(out_frame)@tf_frame@tfmat@inv(tf_frame)@vert_frame
+        reduces to:
+            tfmat = inv(out_frame)@vert_frame
+        
+        Then, if out_frame is identity (world frame), then this further reduces to:
+            tfmat = vert_frame
+        """
+        out_frame_mat = np.eye(4)
+        world_co = transform(np.eye(4), self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=out_frame_mat)
+        return PointCloud(world_co, out_frame_mat)
+
+    def transform(self, tfmat):
+        """Apply a transform in the current frame of reference."""
+        co = transform(tfmat, self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=self.frame)
+        return PointCloud(co, self.frame)
+
+
+def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_frame_mat=None):
     """
     Most general form of applying a transformation matrix.
 
-    Apply transformation matrix tfmat on vertices with coordinates specified in vert_frame.
+    Apply transformation matrix tfmat on vertices with coordinates specified in vert_frame (current/input frame of reference).
     Apply the transformation in the coordinate frame given by tf_frame
     Output the vertices in out_frame
 
@@ -80,20 +152,26 @@ def apply_transform(tfmat, vert, vert_frame=np.eye(4), tf_frame=np.eye(4), out_f
     #5. Bring vertices to out frame
     vert = out_frame.from_world(vert)
     """
-    if isinstance(vert_frame, CoordFrame):
-        vert_frame = vert_frame.m
-    if isinstance(tf_frame, CoordFrame):
-        tf_frame = tf_frame.m
-    if isinstance(out_frame, CoordFrame):
-        out_frame = out_frame.m
+    # if output frame is not specified, set it to input frame.
+    if out_frame_mat is None:
+        out_frame_mat = vert_frame_mat
+    # if the frame of reference for transformation is not specified, perform transform in the vertex frame of reference.
+    if tf_frame_mat is None:
+        tf_frame_mat = vert_frame_mat
+    if isinstance(vert_frame_mat, CoordFrame):
+        vert_frame_mat = vert_frame_mat.m
+    if isinstance(tf_frame_mat, CoordFrame):
+        tf_frame_mat = tf_frame_mat.m
+    if isinstance(out_frame_mat, CoordFrame):
+        out_frame_mat = out_frame_mat.m
     # ensure 4x4
-    vert_frame = m4(m=vert_frame)
-    tf_frame = m4(m=tf_frame)
-    out_frame = m4(m=out_frame)
+    vert_frame_mat = m4(m=vert_frame_mat)
+    tf_frame_mat = m4(m=tf_frame_mat)
+    out_frame_mat = m4(m=out_frame_mat)
     tfmat = m4(m=tfmat)
     inv = np.linalg.inv
 
-    mat = inv(out_frame)@tf_frame@tfmat@inv(tf_frame)@vert_frame
+    mat = inv(out_frame_mat)@tf_frame_mat@tfmat@inv(tf_frame_mat)@vert_frame_mat
     return apply_matrix(mat, vert)
 
 def v4(vert):
@@ -129,18 +207,26 @@ def m4(**kwargs):
         origin = kwargs['origin']
     if 'center' in kwargs:
         origin = kwargs['center']
+    # by default, i, j, k are unit vectors
+    # This is my convention
+    # This is not the case for blender's matrix_world
+    if 'unit_vectors' not in kwargs: 
+        kwargs['unit_vectors'] = True
     if 'i' in kwargs:
         i = kwargs['i']
         assert len(i) == 3
-        i = np.array(i)/np.linalg.norm(i)
+        if kwargs['unit_vectors']:
+            i = np.array(i)/np.linalg.norm(i)
     if 'j' in kwargs:
         j = kwargs['j']
         assert len(j) == 3
-        j = np.array(j)/np.linalg.norm(j)
+        if kwargs['unit_vectors']:
+            j = np.array(j)/np.linalg.norm(j)
     if 'k' in kwargs:
         k = kwargs['k']
         assert len(k) == 3
-        k = np.array(k)/np.linalg.norm(k)
+        if kwargs['unit_vectors']:
+            k = np.array(k)/np.linalg.norm(k)
     
     if 'origin' not in locals():
         origin = np.zeros(3) 
