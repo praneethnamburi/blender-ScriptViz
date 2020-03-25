@@ -36,8 +36,8 @@ class CoordFrame:
         The 'parent' of any CoordFrame object IS the world frame.
         In other words, the columns of 'm', i.e., this frame's unit vectors, are defined in world frame.
     """
-    def __init__(self, **kwargs):
-        self.m = m4(**kwargs)
+    def __init__(self, m=None, **kwargs):
+        self.m = m4(m, **kwargs)
 
     @property
     def origin(self):
@@ -165,10 +165,10 @@ def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_fram
     if isinstance(out_frame_mat, CoordFrame):
         out_frame_mat = out_frame_mat.m
     # ensure 4x4
-    vert_frame_mat = m4(m=vert_frame_mat)
-    tf_frame_mat = m4(m=tf_frame_mat)
-    out_frame_mat = m4(m=out_frame_mat)
-    tfmat = m4(m=tfmat)
+    vert_frame_mat = m4(vert_frame_mat)
+    tf_frame_mat = m4(tf_frame_mat)
+    out_frame_mat = m4(out_frame_mat)
+    tfmat = m4(tfmat)
     inv = np.linalg.inv
 
     mat = inv(out_frame_mat)@tf_frame_mat@tfmat@inv(tf_frame_mat)@vert_frame_mat
@@ -181,26 +181,29 @@ def v4(vert):
     assert np.shape(vert)[1] == 3
     return np.concatenate((vert, np.ones([np.shape(vert)[0], 1])), axis=1)
 
-def m4(**kwargs):
+def m4(m=None, **kwargs):
     """
     Construct a 4x4 transformation matrix from various types of inputs.
         m4(m=mat) mat is either 3x3 or 4x4 (2d numpy array, 2d list)
         m4(i=i1, j=j1, k=k1, origin=o1) i, j, k vectors (doesn't have to be unit    vectors, they will be normalized in here) and origin
         m4(i=i1, j=j1, k=k1) In this case, origin is assumed to be at world origin
         m4() This will return a 4x4 identity matrix (world coordinate frame)
+        m4(mat)
+    CAUTION:
+        m4(mat, unit_vectors=False) default: unit_vectors=True
     """
-    if not kwargs:
+    if not kwargs and m is None:
         # return world coordinate system if no inputs are given
-        kwargs['m'] = np.eye(4)
+        return np.eye(4)
 
-    if 'm' in kwargs:
-        kwargs['m'] = np.array(kwargs['m'])
-        assert np.shape(kwargs['m']) in ((3, 3), (4, 4))
-        i = kwargs['m'][0:3, 0]
-        j = kwargs['m'][0:3, 1]
-        k = kwargs['m'][0:3, 2]
-        if np.shape(kwargs['m']) == (4, 4):
-            origin = kwargs['m'][0:3, 3]
+    if m is not None:
+        m = np.array(m)
+        assert np.shape(m) in ((3, 3), (4, 4))
+        i = m[0:3, 0]
+        j = m[0:3, 1]
+        k = m[0:3, 2]
+        if np.shape(m) == (4, 4):
+            origin = m[0:3, 3]
 
     # if conflicting input is given, individual assignments over-ride matrix assignment
     if 'origin' in kwargs:
@@ -210,6 +213,7 @@ def m4(**kwargs):
     # by default, i, j, k are unit vectors
     # This is my convention
     # This is not the case for blender's matrix_world
+    # to remove this restriction, pass unit_vectors=False as input
     if 'unit_vectors' not in kwargs: 
         kwargs['unit_vectors'] = True
     if 'i' in kwargs:
@@ -244,7 +248,7 @@ def apply_matrix(mat, vert):
     :param mat: (2D numpy array) 4 x 4, or 3 x 3 transformation matrix
     :param vert: (2D numpy array) nV x 3
     """
-    return (m4(m=mat)@v4(vert).T).T[:, 0:3]
+    return (m4(mat)@v4(vert).T).T[:, 0:3]
 
 def normal2tfmat(n):
     """
