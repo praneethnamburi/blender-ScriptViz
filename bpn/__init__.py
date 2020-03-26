@@ -11,14 +11,6 @@ import types
 import numpy as np
 import pandas as pd
 
-import bpy #pylint: disable=import-error
-import bmesh #pylint: disable=import-error
-import mathutils #pylint: disable=import-error
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
-
 import pntools as pn
 
 if __package__ is not None:
@@ -30,23 +22,25 @@ if __package__ is not None:
 PATH = {}
 PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
 PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
-PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '../..'))
+PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '..'))
 PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
 PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
 PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
 PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
-PATH['bpn'] = os.path.dirname(os.path.realpath(__file__))
 
 for path in PATH.values():
-    if path not in sys.path:
+    if path not in sys.path and path[0].lower()+path[1:] not in sys.path:
         sys.path.append(path)
 
-PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
-
+import bpy #pylint: disable=import-error
+import bmesh #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
-### add whatever you want to execute inside the blender terminal in _blenderwksp.py
-# Import bpy from bpn in all scripts from which you will launch blender
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
+
+### modify _blenderwksp.py for blender console setup
 loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), 'bpn\\_blenderwksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
 
 class Msh(pn.Track):

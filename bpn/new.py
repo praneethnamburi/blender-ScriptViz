@@ -2,13 +2,7 @@
 Creation submodule for bpn.
 """
 from functools import partial
-import os
-import sys
 import numpy as np
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
 
 import pntools as pn
 

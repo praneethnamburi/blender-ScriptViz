@@ -16,14 +16,9 @@ Turtle module:
     draw_atom  - Electron cloud-like structure
     draw_link  - One link of a chain
 """
-import os
 import sys
 import types
 import numpy as np
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
 
 import pntools as pn
 

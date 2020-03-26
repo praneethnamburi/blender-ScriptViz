@@ -5,20 +5,10 @@ To improve and integrate:
     demo_animateDNA - the old version of the demo is here
 """
 import functools
-import os
-import sys
-import math
 import numpy as np
 
 import bpy #pylint: disable=import-error
-import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
-
-import bpn
 
 def demo_animateDNA():
     """Old way of animating DNA. See demo.dna() for the new way"""

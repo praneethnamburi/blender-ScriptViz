@@ -4,25 +4,17 @@ This is a sandbox. Develop code here!
 """
 #-----------------
 import math
-import os
-import sys
 import inspect
 import numpy as np
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
 
 # import pntools as pn
 import bpn # pylint: disable=unused-import
 import pntools as pn
-import bpy #pylint: disable=import-error
 
 bpn.env.reset()
 #-----------------
 
 import bmesh #pylint: disable=import-error
-
 import mathutils #pylint: disable=import-error
 from copy import deepcopy
 from importlib import reload

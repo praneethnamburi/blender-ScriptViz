@@ -90,7 +90,9 @@ def writeBlenderStartupFile(fName_full):
         f = open(fName_full, 'w')
         f.write("import sys\n")
         f.write("import os\n")
-        f.write("sys.path.append(os.path.realpath('"+ pathToAppend +"'))\n")
+        f.write("path = '" + pathToAppend + "'\n")
+        f.write("if path not in sys.path and path[0].lower()+path[1:] not in sys.path:\n")
+        f.write("   sys.path.append(path)\n")
     finally:
         f.close()
 
