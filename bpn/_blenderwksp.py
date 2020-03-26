@@ -56,7 +56,7 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
     sys.path.append('__bpnModifyFilePath__')
 
 import bpn
-from bpn import env, new, demo # pylint: disable=unused-import
+from bpn import demo, env, new, trf, turtle # pylint: disable=unused-import
 import pntools as pn
 
 def reload_all(constraint='Workspace'):
