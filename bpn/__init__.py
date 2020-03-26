@@ -14,7 +14,7 @@ import pandas as pd
 import pntools as pn
 
 if __package__ is not None:
-    from . import new, env, demo, utils, turtle, vef, trf
+    from . import new, env, demo, utils, turtle, vef, trf, io
     from .env import Props, ReportDelta
     from .turtle import Draw
     from .trf import CoordFrame
@@ -196,7 +196,7 @@ class Msh(pn.Track):
         Import from an stl file. Note that the bpn object will be created from  the first object in the file.
         """
         assert os.path.isfile(stlfile)
-        s = loadSTL([stlfile])
+        s = io.loadSTL([stlfile])
         self.bm = s['meshes'][0] # bm - blender mesh bpy.data.meshes
         self.bo = s['objects'][0] # bo - blender object bpy.data.objects
         self.bc = s['objects'][0].users_collection[0] # bc - blender collection bpy.data.collections
@@ -817,30 +817,6 @@ def get(obj_name=None):
 
     return Msh(obj_name=obj_name)
 
-### Input-output functions
-@ReportDelta
-def loadSTL(files):
-    """
-    Load STL files from disk into a blender scene.
-    
-    :param files: list. Full file paths.
-    :param collection: str. Blender collection name to load the STL into.
-    :returns: report of scene change
-
-    Recommended use:
-        Instead of directly using this function, use 
-        p = bpn.Msh(stl=fname, name='mySTL', coll_name='myColl')
-    """
-    if isinstance(files, str):
-        files = [files]
-    for f in files:
-        if not os.path.exists(f):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
-        bpy.ops.import_mesh.stl(filepath=f)
-
-
-### Demo functions that demonstrate some ways to use this API
-# Animating DNA - re-do this part!
 
 ## Functions inspired by the anatomy project
 def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=('object', 'keyframe', 'attribute', 'value')):
