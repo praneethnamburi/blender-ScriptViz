@@ -614,3 +614,40 @@ myClass(plainClass)(plainInput1, plainInput2). myClass(plainClass)
 returns an instance of myClass. This object can be called! This is done
 using the magic method __call__. To retain the behavior of plainClass
 create a plainClass object, and return that.
+
+### ModeSet
+Not using this anymore, but it was a good exercise in creating
+decorators. So, I'm going to leave it here.
+```python
+class ModeSet:
+    """
+    Set the mode of blender's 3D viewport for executing a function func.
+    This class is primarily meant to be used as a decorator.
+    It can even be used for a setter like so:
+    @v.setter
+    @ModeSet(targetMode='OBJECT')
+    def v(self, thisCoords): # v is the func
+        # do stuff with thisCoords here
+
+    Using this in practice has so far caused problems.
+    **Archiving for now until the need for this decorator increases.**
+    """
+    def __init__(self, targetMode='OBJECT'):
+        self.targetMode = targetMode
+
+    def __call__(self, func):
+        functools.update_wrapper(self, func)
+        def wrapperFunc(*args, **kwargs):
+            modeChangeFlag = False
+            if not bpy.context.object.mode == self.targetMode:
+                current_mode = bpy.context.object.mode
+                modeChangeFlag = True
+                bpy.ops.object.mode_set(mode=self.targetMode)
+
+            funcOut = func(*args, **kwargs)
+
+            if modeChangeFlag:
+                bpy.ops.object.mode_set(mode=current_mode)
+            return funcOut
+        return wrapperFunc
+```
