@@ -6,12 +6,11 @@ import numpy as np
 
 import pntools as pn
 
-import bpn
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import vef, utils
+from . import vef, utils, core, turtle
 
 def collection(coll_name='Collection'):
     """
@@ -91,7 +90,7 @@ def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
             bm.to_mesh(msh)
             bm.free()
             msh.update()
-        return bpn.Msh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
+        return core.Msh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
     elif 'BMesh' in str(return_type):
         bm = bmesh.new()
         mshfunc(bm, **kwargs)
@@ -118,7 +117,7 @@ def ngon(**kwargs):
         f = []
 
     if 'bpn' in str(kwargs_fun['return_type']) and 'Msh' in str(kwargs_fun['return_type']):
-        return bpn.Msh(v=v, e=e, f=f, **kwargs_msh)
+        return core.Msh(v=v, e=e, f=f, **kwargs_msh)
     elif 'vef' in kwargs_fun['return_type']:
         return v, e, f
 
@@ -153,8 +152,8 @@ def torus(name=None, **kwargs):
     if kwargs['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
         kwargs['theta_offset_deg'] = _ngon_offset_deg(kwargs['n_u'])
 
-    a = bpn.Draw(**names)
-    v, e, _ = bpn.vef.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
+    a = turtle.Draw(**names)
+    v, e, _ = vef.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
     start = a.addvef(v, e, [])
     bmesh.ops.rotate(a.bm, verts=start.v, cent=(0, 0, 0), matrix=mathutils.Matrix.Rotation(np.radians(90.0), 3, 'Y'))
     for vert in start.v:
@@ -176,4 +175,4 @@ def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
     y = θ*np.cos(θ)/(np.pi*2)
     z = np.zeros_like(θ)
 
-    return bpn.Msh(x=x, y=y, z=z, **kwargs)
+    return core.Msh(x=x, y=y, z=z, **kwargs)
