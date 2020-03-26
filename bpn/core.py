@@ -11,19 +11,30 @@ import numpy as np
 # Peronal library
 import pntools as pn
 
-# This package
-from . import new, utils, vef, trf, io
-from .trf import CoordFrame as Frm
-from .utils import PATH
+PATH = {}
+PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
+PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
+PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '..'))
+PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
+PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
+PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
+PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
 
-for path in PATH:
-    if path not in sys.path:
-        sys.path.append(path)
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
+
+# for path in PATH:
+#     if path not in sys.path:
+#         sys.path.append(path)
 
 # Blender's library
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
+
+# This package
+from . import new, utils, vef, trf, io
+from .trf import CoordFrame as Frm
 
 class Msh(pn.Track):
     """

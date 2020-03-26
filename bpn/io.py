@@ -26,7 +26,7 @@ def loadSTL(files):
 
     Recommended use:
         Instead of directly using this function, use 
-        p = bpn.Msh(stl=fname, name='mySTL', coll_name='myColl')
+        p = bpn.core.Msh(stl=fname, name='mySTL', coll_name='myColl')
     """
     if isinstance(files, str):
         files = [files]
@@ -119,7 +119,7 @@ def animate_simple(anim_data, columns=None, propfunc=None):
     Example:
         (load skeletalSystem_originAtCenter_bkp02.blend)
         fname = 'D:\\Workspace\\blenderPython\\apps\\anatomy\\nutations.xlsx'
-        bpn.animate_simple(fname)
+        bpn.io.animate_simple(fname)
     """
     def get_obj_list(obj_name):
         prop_list = Props().get(obj_name) 

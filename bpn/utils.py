@@ -1,24 +1,11 @@
 """
 Utility functions
 """
-import os
-
 import bpy # pylint: disable=import-error
 
-import bpn
 import pntools as pn
 
-PATH = {}
-PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
-PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
-PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '..'))
-PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
-PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
-PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
-PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
+from .core import Msh
 
 # perhaps the most useful function
 def get(obj_name=None):
@@ -28,13 +15,13 @@ def get(obj_name=None):
     :param obj_name: (str) name of the object in blender's environment
     """
     if not obj_name: # return the last objects
-        return bpn.Msh(obj_name=[o.name for o in bpy.data.objects][-1])
+        return Msh(obj_name=[o.name for o in bpy.data.objects][-1])
 
     if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
         print('No object found with name: ' + obj_name)
         return []
 
-    return bpn.Msh(obj_name=obj_name)
+    return Msh(obj_name=obj_name)
 
 ### Name management
 def new_name(name, curr_names):
