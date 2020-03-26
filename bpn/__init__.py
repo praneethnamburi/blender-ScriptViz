@@ -1,6 +1,7 @@
 """
 Praneeth's blender python module
 """
+# Imports from the standard library
 import errno
 import functools
 import inspect
@@ -8,37 +9,33 @@ import math
 import os
 import sys
 import types
+
+# Installed using _requirements
 import numpy as np
 import pandas as pd
 
-import pntools as pn
-
-if __package__ is not None:
-    from . import new, env, demo, utils, turtle, vef, trf, io
-    from .env import Props, ReportDelta
-    from .turtle import Draw
-    from .trf import CoordFrame
-
-PATH = {}
-PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
-PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
-PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '..'))
-PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
-PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
-PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
-PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
-
-for path in PATH.values():
-    if path not in sys.path and path[0].lower()+path[1:] not in sys.path:
-        sys.path.append(path)
-
+# Blender's library
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
+# Peronal library
+import pntools as pn
+
+# This package
+if __package__ is not None:
+    # modules
+    from . import new, env, demo, utils, turtle, vef, trf, io
+    # classes
+    from .env import Props, ReportDelta
+    from .turtle import Draw
+    from .trf import CoordFrame as Frm
+    from .trf import PointCloud as PC
+    # functions
+    from .io import readattr, animate_simple
+    # variables
+    from .utils import PATH, DEV_ROOT
 
 ### For customizing workspace variables in blender's python console.
 loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), 'bpn\\_blenderwksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
@@ -322,7 +319,7 @@ class Msh(pn.Track):
         """
         Unit frame of reference for the current mesh.
         """
-        return trf.CoordFrame(m=self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
+        return Frm(m=self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
 
     @property
     def vn(self):

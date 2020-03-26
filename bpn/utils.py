@@ -1,9 +1,23 @@
 """
 Utility functions
 """
+import os
+
 import bpy # pylint: disable=import-error
 
 import pntools as pn
+
+PATH = {}
+PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
+PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
+PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '..'))
+PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
+PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
+PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
+PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
+
+DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
 
 ### Name management
 def new_name(name, curr_names):
