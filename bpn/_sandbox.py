@@ -60,7 +60,7 @@ class Tube(bpn.Msh):
     class XSec:
         """Cross sections of a tube: a collection of DirectedSubMsh's"""
         def __init__(self, parent, normals, draw_export):
-            self.all = [bpn.turtle.CenteredSubMsh(parent, **s) for i, s in enumerate(draw_export)]
+            self.all = [bpn.turtle.DirectedSubMsh(parent, normals[i, :], **s) for i, s in enumerate(draw_export)]
             self._normals = normals
 
         @property
@@ -102,22 +102,43 @@ z1 = np.sin(θ)
 y1 = np.cos(θ)
 x1 = θ/2
 
-t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
+spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
+normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
+
+t = Tube('myTube', z=np.zeros_like(θ), y=np.zeros_like(θ), x=θ/3, n=4, th=0, shade='flat', subsurf=True)
 a = bpn.trf.PointCloud(np.array([[0, 2, 0]]))
-x = t.xsec.all[1]
+x = t.xsec.all[-1]
+# print(x.pts.in_frame(x._frame).co)
+
+new_normal = bpn.trf.PointCloud([1, -1, 0]+x.origin.co[0, :], np.eye(4))
+x.normal = new_normal
+# frm = x._frame
+# inv_frm = bpn.trf.CoordFrame(np.linalg.inv(x._frame.m))
+# # print(new_normal.in_frame(inv_frm).co[0, :])
+# print(new_normal.in_frame(x._frame).co)
+
+# for ix, x in enumerate(t.xsec.all):
+#     x.origin = bpn.trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
+#     x.normal = bpn.trf.PointCloud(normals[ix, :], np.eye(4))
+# x.normal = bpn.trf.PointCloud((1, 0, 0), np.eye(4))
+# x.origin = bpn.trf.PointCloud((3, 0, 1), np.eye(4))
+# print(x.pts.in_world().co)
+# print(x.normal)
 # x_pt = bpn.trf.PointCloud(x.parent.v[x.vi, :], frame=x.parent.frame)
 
 # new_co = bpn.trf.transform(np.eye(4), x_pt.co, vert_frame_mat=x_pt.frame, tf_frame_mat=x_pt.frame, out_frame_mat=np.eye(4))
 # new_pts = x.pts.transform(np.array(mathutils.Matrix.Scale(2, 4)))
 # x.pts = new_pts
 # x.origin = bpn.trf.PointCloud([[0, 2, 1]], np.eye(4))
-tmp1 = np.eye(4)
-tmp1[0:3, -1] = (2, 2, 2)
-# x.frame = bpn.trf.CoordFrame(m=tmp1)
-this_pts = x.pts
-this_pts.co += 2
-x.pts = this_pts
-print(x._frame.m)
+# tmp1 = np.eye(4)
+# tmp1[0:3, -1] = (2, 2, 2)
+# # x.frame = bpn.trf.CoordFrame(m=tmp1)
+# this_pts = x.pts
+# # this_pts.co += 2
+# x.pts = this_pts
+
+# x_vec = x.pts.in_world().co[0, :] - x.pts.in_world().center.co[0, :]
+
 # b = t.xsec.all[1].pts
 # print(b)
 # t.xsec.all[-1].scale((3, 2, 1))

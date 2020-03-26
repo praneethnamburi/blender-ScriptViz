@@ -6,6 +6,7 @@ import sys
 import inspect
 from copy import deepcopy
 import numpy as np
+from numpy.linalg.linalg import inv, norm
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
@@ -344,6 +345,8 @@ class SubMsh:
                 self._frame = trf.CoordFrame(m=kwargs_curr['frame'])
             else:
                 self._frame = kwargs_curr['frame']
+        
+        self._frame = self.frame # run the getter! This might seem trivial for this class, but look at the inherited classes and it should make sense
     
     @property
     def frame(self):
@@ -368,9 +371,6 @@ class SubMsh:
     @pts.setter
     def pts(self, ptcloud):
         """Write points back into the parent mesh."""
-        self._write_to_parent(ptcloud)
-        
-    def _write_to_parent(self, ptcloud):
         assert isinstance(ptcloud, trf.PointCloud)
         assert ptcloud.n == self.nV
         v = self.parent.v
@@ -399,6 +399,7 @@ class CenteredSubMsh(SubMsh):
         # moving the origin for this type of mesh will move the points!
         assert isinstance(new_origin, trf.PointCloud)
         self.pts = self.pts.in_world().transform(np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin.co[0, :])))
+        self._frame = trf.CoordFrame(i=self._frame.i, j=self._frame.j, k=self._frame.k, origin=self.origin.co[0, :])
     
     @frame.setter
     def frame(self, new_frame):
@@ -406,44 +407,92 @@ class CenteredSubMsh(SubMsh):
         assert isinstance(new_frame, trf.CoordFrame)
         # this line moves the points, and explicitly specifies that the new frame was specified in world coordinates.
         self.origin = trf.PointCloud(np.array([new_frame.origin]), trf.CoordFrame())
+        # the orientation of the frame is simply taken from new_frame (vectors will be normalized!)
         self._frame = trf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin.co[0, :])
+    
 
-    @SubMsh.pts.setter #pylint: disable=no-member
-    def pts(self, ptcloud):
-        """Write points back into the parent mesh."""
-        self._write_to_parent(ptcloud)
-        # not sure this is serving a real purpose
-        # benefit: if you query the hidden variable _frame, without this, it won't reflect changes to the origin after setting new points
-        self._update_hidden_frame() 
+class DirectedSubMsh(CenteredSubMsh):
+    """
+    SubMsh that has a 'direction'
+    In general, this would make sense for sub-meshes whose vertices are all in the same plane.
+    But, it doesn't have to be!
 
-    def _update_hidden_frame(self):
+    This direction is given by 'normal'
+    It is a good idea to control the sub-msh using normal. 
+    CAUTION: Changing vertex positions manually won't update the normal.
+
+    The internal 3d coordinate system of a directed SubMsh is as follows:
+        Normal specifies the 'z' direction
+        Projection of the vector from the center of the mesh to the first vertex defines the 'x' direction
+        90 degrees on the plane normal to the sub-mesh normal
+        Origin is the center of the sub-mesh
+    """
+    def __init__(self, parent, normal, **kwargs):
+        super().__init__(parent, **kwargs)
+        # initalization sets _frame, but it needs to be modified
+        if not isinstance(normal, trf.PointCloud):
+            normal = trf.PointCloud(normal, self.parent.frame)
+        self.change_normal(normal)
+
+    @property
+    def frame(self):
+        # ensure i, j, k are unit vectors, and origin is at the center of the points
+        k_vec = self.normal
+        pts_in_world = self.pts.in_world()
+        x_vec = pts_in_world.co[0, :] - pts_in_world.center.co[0, :]
+        j_vec = np.cross(k_vec, x_vec)
+        i_vec = np.cross(j_vec, k_vec)
+        return trf.CoordFrame(i=i_vec, j=j_vec, k=k_vec, origin=self.origin.co[0, :], unit_vectors=True)
+
+    @frame.setter
+    def frame(self, new_frame):
+        # user can manually change the reference frame. If the origin is different, then the points are going to move!
+        assert isinstance(new_frame, trf.CoordFrame)
+        # this line moves the points, and explicitly specifies that the new frame was specified in world coordinates.
+        self.origin = trf.PointCloud(np.array([new_frame.origin]), trf.CoordFrame())
+        # points are currently in self._frame. Make them follow new frame
+        # The relative positions of the points don't change because the points are following the frame
+        curr_frame = self.frame
+        self.pts = trf.PointCloud(self.pts.in_frame(curr_frame).co, new_frame)
+        self._frame = new_frame
+        # self._frame = trf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin.co[0, :])
+
+    @property
+    def normal(self):
+        """By convention, the normal is the unit vector along k."""
+        return self._frame.k
+    
+    @normal.setter
+    def normal(self, new_normal):
+        """new_normal is a 'direction' in world coordinates."""
+        assert isinstance(new_normal, trf.PointCloud)
+        # normal2tfmat takes a unit vector (or normalizes it) and computes a transformation matrix required to transform the point (0, 0, 1) to nhat
+        n2tf = trf.m4(normal2tfmat(new_normal.in_frame(self.frame).co[0, :]))
+        # the new frame of reference is the transformed coordinate system pushed into the world.
+        new_frame = trf.CoordFrame(self.frame.m@n2tf)
+        self.frame = new_frame
+
+        # n2tf = normal2tfmat(new_normal.in_world().co[0, :])
+        # cf = self.frame.m[0:3, 0:3]
+        # new_frame = cf@n2tf@inv(cf)
+
+        # # print(trf.m4(n2tf))
+        # new_frame = self.frame.m@inv(trf.m4(normal2tfmat(new_normal.in_world().co[0, :])))
+        # print(new_frame)
+        
+        # self.frame = trf.CoordFrame(new_frame, origin=self.origin.co[0, :])
+        # curr_ptcloud = self.pts.in_frame(self._frame)
+        # self._frame = trf.CoordFrame(self._frame.m@trf.m4(normal2tfmat(new_normal.in_frame(self._frame).co[0, :])))
+        # self.pts = trf.PointCloud(curr_ptcloud.co, self._frame)
+
+        # remember that normal is usually specified as a DIRECTION specified in world coordinates.
+
+    def change_normal(self, new_normal):
+        """Change the normal WITHOUT moving the points."""
+        assert isinstance(new_normal, trf.PointCloud)
+        n = new_normal.in_world().co[0, :]
+        self._frame.m[0:3, 2] = n/norm(n)
         self._frame = self.frame
-# class DirectedSubMsh(SubMsh):
-#     """
-#     SubMsh that has a 'direction'
-#     In general, this would make sense for sub-meshes whose vertices are all in the same plane.
-#     But, it doesn't have to be!
-
-#     This direction is given by 'normal'
-#     It is a good idea to control the sub-msh using normal. 
-#     CAUTION: Changing vertex positions manually won't update the normal.
-
-#     The internal 3d coordinate system of a directed SubMsh is as follows:
-#         Normal specifies the 'z' direction
-#         Projection of the vector from the center of the mesh to the first vertex defines the 'x' direction
-#         90 degrees on the plane normal to the sub-mesh normal
-#         Origin is the center of the sub-mesh
-#     """
-#     def __init__(self, parent, normal, twist, **kwargs):
-#         self._normal = normal
-#         self._twist = twist # twist angle in radians
-#         super().__init__(parent, **kwargs)
-
-#     @property
-#     def normal(self):
-#         """Ensure a unit vector is returned."""
-#         n = np.array(self._normal)
-#         return n/np.linalg.norm(n)
 
 #     @normal.setter
 #     def normal(self, new_normal):

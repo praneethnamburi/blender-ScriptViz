@@ -14,6 +14,7 @@ Points and co-ordinates can be more 'tightly' bound, where the coordinate system
 """
 
 import numpy as np
+from numpy.linalg.linalg import inv, norm
 
 class CoordFrame:
     """
@@ -23,8 +24,8 @@ class CoordFrame:
     For the bpn module, this class is meant to enforce the idea that every transformation is applied within the context of a give coordinate frame.
 
     Applying a transformation in this frame:
-        new_crd = self.m@tfmat@np.linalg.inv(self.m)@crd
-        np.linalg.inv(m)@crd -> brings world coordinates into space defined by the current coordinate system
+        new_crd = self.m@tfmat@inv(self.m)@crd
+        inv(m)@crd -> brings world coordinates into space defined by the current coordinate system
         tfmat@ -> applies transformation in current space.
         m@ -> moves coordinates back into world space.
 
@@ -59,10 +60,15 @@ class CoordFrame:
         """X unit vector represented in world coordinates."""
         return self.m[0:3, 2]
 
+    def as_points(self):
+        """Return coordinate frame as a set of four points in world coordinates."""
+        v = np.vstack((self.origin, self.origin+self.i, self.origin+self.j, self.origin+self.k))
+        return PointCloud(v, np.eye(4))
+
     # These two functions are here for clarity
     def from_world(self, coord_world):
         """Return point locations in the current frame of reference."""
-        coord_local = apply_matrix(np.linalg.inv(self.m), coord_world)
+        coord_local = apply_matrix(inv(self.m), coord_world)
         return coord_local
     
     def to_world(self, coord_local):
@@ -98,15 +104,30 @@ class PointCloud:
         """Number of points in the cloud."""
         return np.shape(self.co)[0]
     
+    def as_frame(self):
+        """
+        Return point cloud as coordinate frame.
+        First point is treated as origin.
+        Unit vector from origin to second point is i
+        Unit vector from origin to second point is j
+        Unit vector from origin to second point is k
+        """
+        assert np.shape(self.co) == (4, 3)
+        o = self.co[0, :]
+        i = self.co[1, :] - o
+        j = self.co[2, :] - o
+        k = self.co[3, :] - o
+        return CoordFrame(i=i, j=j, k=k, origin=o, unit_vectors=True)
+    
+    # The following methods all return a NEW point cloud.
+    # They DO NOT modify the coordinates of this point cloud.
+    # Modifying the point cloud in-place might make sense as meshes get bigger??
+    # Since point clouds are meant for sub-meshes (small ones), I'll leave this design choice be for now.
     @property
     def center(self):
         """Center of the point cloud as a new pointcloud object"""
         return PointCloud(np.mean(self.co, axis=0, keepdims=True), self.frame)
 
-    # The following methods all return a NEW point cloud.
-    # They DO NOT modify the coordinates of this point cloud.
-    # Modifying the point cloud in-place might make sense as meshes get bigger??
-    # Since point clouds are meant for sub-meshes (small ones), I'll leave this design choice be for now.
     def in_frame(self, output_coord_system):
         """Return point cloud in the given frame of reference (output_coord_system)."""
         new_co = transform(np.eye(4), self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=output_coord_system)
@@ -169,7 +190,6 @@ def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_fram
     tf_frame_mat = m4(tf_frame_mat)
     out_frame_mat = m4(out_frame_mat)
     tfmat = m4(tfmat)
-    inv = np.linalg.inv
 
     mat = inv(out_frame_mat)@tf_frame_mat@tfmat@inv(tf_frame_mat)@vert_frame_mat
     return apply_matrix(mat, vert)
@@ -220,17 +240,17 @@ def m4(m=None, **kwargs):
         i = kwargs['i']
         assert len(i) == 3
         if kwargs['unit_vectors']:
-            i = np.array(i)/np.linalg.norm(i)
+            i = np.array(i)/norm(i)
     if 'j' in kwargs:
         j = kwargs['j']
         assert len(j) == 3
         if kwargs['unit_vectors']:
-            j = np.array(j)/np.linalg.norm(j)
+            j = np.array(j)/norm(j)
     if 'k' in kwargs:
         k = kwargs['k']
         assert len(k) == 3
         if kwargs['unit_vectors']:
-            k = np.array(k)/np.linalg.norm(k)
+            k = np.array(k)/norm(k)
     
     if 'origin' not in locals():
         origin = np.zeros(3) 
@@ -252,6 +272,11 @@ def apply_matrix(mat, vert):
 
 def normal2tfmat(n):
     """
+    normal2tfmat takes a unit vector (n) and computes a transformation matrix required to transform the point (0, 0, 1) to n.
+    If n is not a unit vector, it normalizes it.
+
+    Note that this transformation is not unique, and there is one free parameter.
+
     Given a direction vector, create a transformation matrix that transforms a shape in the XY plane to the direction of the normal by first rotating along Y axis, and then along X axis.
     n is a 3-element 1-D numpy array
 
@@ -268,7 +293,7 @@ def normal2tfmat(n):
     """
     n = np.array(n)
     assert len(n) == 3
-    n = n/np.linalg.norm(n)
+    n = n/norm(n)
     nx = n[0]
     ny = n[1]
     nz = n[2]
