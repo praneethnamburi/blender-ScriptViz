@@ -2,7 +2,6 @@
 import functools
 import math
 import os
-import sys
 import types
 
 # Installed using _requirements
@@ -23,10 +22,6 @@ PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
 
-# for path in PATH:
-#     if path not in sys.path:
-#         sys.path.append(path)
-
 # Blender's library
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
@@ -34,7 +29,6 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 # This package
 from . import new, utils, vef, trf, io
-from .trf import CoordFrame as Frm
 
 class Msh(pn.Track):
     """
@@ -315,7 +309,7 @@ class Msh(pn.Track):
         """
         Unit frame of reference for the current mesh.
         """
-        return Frm(m=self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
+        return trf.CoordFrame(m=self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
 
     @property
     def vn(self):

@@ -11,11 +11,10 @@ import pandas as pd
 
 import bpy #pylint: disable=import-error
 
-from . import new
-from .env import ReportDelta, Props
+from . import new, env
 
 # File IO
-@ReportDelta
+@env.ReportDelta
 def loadSTL(files):
     """
     Load STL files from disk into a blender scene.
@@ -68,17 +67,17 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
         attrs = [attrs]
 
     # make sure names has only valid things in it
-    names = [i for i in names if Props()(i)]
+    names = [i for i in names if env.Props()(i)]
 
     p = []
     for frame in frames:
         bpy.context.scene.frame_set(frame)
         for name in names:
-            thisProp = Props().get(name)[0]
+            thisProp = env.Props().get(name)[0]
             if isinstance(thisProp, bpy.types.Collection):
                 all_objects = bpy.data.collections[name].all_objects
             elif isinstance(thisProp, bpy.types.Object):
-                all_objects = Props().getChildren(name)
+                all_objects = env.Props().getChildren(name)
 
             all_objects = [o for o in all_objects if o.type == 'MESH']
             for obj in all_objects:
@@ -122,7 +121,7 @@ def animate_simple(anim_data, columns=None, propfunc=None):
         bpn.io.animate_simple(fname)
     """
     def get_obj_list(obj_name):
-        prop_list = Props().get(obj_name) 
+        prop_list = env.Props().get(obj_name) 
         if len(prop_list) > 1: # multiple props detected, only keep objects
             prop_list = [o for o in prop_list if isinstance(o, bpy.types.Object)]
         return prop_list

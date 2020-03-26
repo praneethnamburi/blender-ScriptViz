@@ -5,7 +5,7 @@ import bpy # pylint: disable=import-error
 
 import pntools as pn
 
-from .core import Msh
+from . import core
 
 # perhaps the most useful function
 def get(obj_name=None):
@@ -15,13 +15,13 @@ def get(obj_name=None):
     :param obj_name: (str) name of the object in blender's environment
     """
     if not obj_name: # return the last objects
-        return Msh(obj_name=[o.name for o in bpy.data.objects][-1])
+        return core.Msh(obj_name=[o.name for o in bpy.data.objects][-1])
 
     if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
         print('No object found with name: ' + obj_name)
         return []
 
-    return Msh(obj_name=obj_name)
+    return core.Msh(obj_name=obj_name)
 
 ### Name management
 def new_name(name, curr_names):

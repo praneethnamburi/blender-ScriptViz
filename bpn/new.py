@@ -11,8 +11,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import vef
-from .utils import clean_names
+from . import vef, utils
 
 def collection(coll_name='Collection'):
     """
@@ -56,7 +55,7 @@ def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
 
     Warning: Avoid empty creates such as new.sphere()!
     """
-    names, kwargs = clean_names(name, kwargs, {'priority_obj':'new', 'priority_msh':'current'})
+    names, kwargs = utils.clean_names(name, kwargs, {'priority_obj':'new', 'priority_msh':'current'})
 
     # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
@@ -145,7 +144,7 @@ def torus(name=None, **kwargs):
         t = thickness (radius)
         th = degrees to rotate the small circle
     """
-    names, kwargs = clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
+    names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
 
     kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':-1}
     kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}

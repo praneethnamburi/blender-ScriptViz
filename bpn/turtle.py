@@ -11,18 +11,14 @@ import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
-from .core import Msh
-from . import new
-from .utils import clean_names
-from . import trf
-from .trf import normal2tfmat
+from . import core, new, trf, utils
 
 class Draw:
     """
     Turtle-like access to bmesh functions.
     """
     def __init__(self, name=None, **kwargs):
-        self.names, _ = clean_names(name, kwargs, {'msh_name':'draw_msh', 'obj_name':'draw_obj', 'priority_obj':'new', 'priority_msh':'new'})
+        self.names, _ = utils.clean_names(name, kwargs, {'msh_name':'draw_msh', 'obj_name':'draw_obj', 'priority_obj':'new', 'priority_msh':'new'})
         self.bm = bmesh.new()
         self.all_geom = ()
     
@@ -129,8 +125,8 @@ class Draw:
                 tc = self.ngon(**kwargs)
             else:
                 tc = self.extrude(tc.e)
-            tfmat = normal2tfmat(normals[i+1, :], 'rxry')
-            tfmat_prev = normal2tfmat(normals[i, :], 'rxry')
+            tfmat = trf.normal2tfmat(normals[i+1, :], 'rxry')
+            tfmat_prev = trf.normal2tfmat(normals[i, :], 'rxry')
             for v in tc.v:
                 v.co = mathutils.Vector(tfmat@inv(tfmat_prev)@np.array(v.co))
             tc.center = pts[i, :]
@@ -147,7 +143,7 @@ class Draw:
         Returns bpn.core.Msh
         """
         self.__neg__()
-        return Msh(msh_name=self.names['msh_name'], obj_name=self.names['obj_name'], coll_name=self.names['coll_name'])
+        return core.Msh(msh_name=self.names['msh_name'], obj_name=self.names['obj_name'], coll_name=self.names['coll_name'])
 
     def __neg__(self):
         """
@@ -476,8 +472,8 @@ class DirectedSubMsh(SubMsh):
     def normal(self, new_normal):
         """new_normal is a 'direction' in world coordinates."""
         assert isinstance(new_normal, trf.PointCloud)
-        # normal2tfmat takes a unit vector (or normalizes it) and computes a transformation matrix required to transform the point (0, 0, 1) to nhat
-        n2tf = trf.m4(normal2tfmat(new_normal.in_frame(self.frame).co[0, :]))
+        # trf.normal2tfmat takes a unit vector (or normalizes it) and computes a transformation matrix required to transform the point (0, 0, 1) to nhat
+        n2tf = trf.m4(trf.normal2tfmat(new_normal.in_frame(self.frame).co[0, :]))
         # the new frame of reference is the transformed coordinate system pushed into the world.
         new_frame = trf.CoordFrame(self.frame.m@n2tf)
         self.frame = new_frame
