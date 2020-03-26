@@ -29,6 +29,8 @@ class Draw:
     @property
     def geom_last(self):
         """Returns last created geometry."""
+        if not self.all_geom:
+            return self.all_geom
         return self.all_geom[-1]
 
     # Creation functions - set add to self.all_geom and return last 
