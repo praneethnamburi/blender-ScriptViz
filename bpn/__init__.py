@@ -28,7 +28,7 @@ if __package__ is not None:
     # modules
     from . import new, env, demo, utils, turtle, vef, trf, io, core
     # classes
-    from .core import Msh, DummyClass
+    from .core import Msh
     from .env import Props, ReportDelta
     from .turtle import Draw
     from .trf import CoordFrame as Frm
