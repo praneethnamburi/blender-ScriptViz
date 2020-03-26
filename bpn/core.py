@@ -1,33 +1,19 @@
-# Imports from the standard library
+"""
+Core of the blender
+"""
 import functools
 import math
 import os
 import types
 
-# Installed using _requirements
 import numpy as np
 
-# Peronal library
 import pntools as pn
 
-PATH = {}
-PATH['blender'] = os.path.dirname(pn.locateCommand('blender', verbose=False))
-PATH['blender_python'] = os.path.dirname(pn.locateCommand('python', 'blender', verbose=False))
-PATH['blender_version'] = os.path.realpath(os.path.join(os.path.dirname(PATH['blender_python']), '..'))
-PATH['blender_scripts'] = os.path.join(PATH['blender_version'], 'scripts')
-PATH['blender_addons'] = os.path.join(PATH['blender_scripts'], 'addons')
-PATH['blender_addons_contrib'] = os.path.join(PATH['blender_scripts'], 'addons_contrib')
-PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
-PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
-
-# Blender's library
 import bpy #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
-# This package
 from . import new, utils, vef, trf, io
 
 class Msh(pn.Track):
@@ -445,8 +431,11 @@ class Msh(pn.Track):
         Vertex indices attached to vertex i, given edges e."""
         return [np.setdiff1d(k, i)[0] for k in e if i in k]
 
-    def export(self, fName=None, fPath=PATH['cache']):
+    def export(self, fName=None, fPath=None):
         """Export a Msh instance into an stl file."""
+        if fPath is None:
+            fPath = utils.PATH['cache']
+            
         if fName is None:
             fName = self.bm.name + '.stl'
 

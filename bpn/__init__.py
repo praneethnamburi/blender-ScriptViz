@@ -37,7 +37,7 @@ if __package__ is not None:
     from .io import readattr, animate_simple
     from .utils import get
     # variables
-    from .core import PATH, DEV_ROOT
+    from .utils import PATH, DEV_ROOT
 
 # For customizing workspace variables in blender's python console.
 loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), 'bpn\\_blenderwksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
