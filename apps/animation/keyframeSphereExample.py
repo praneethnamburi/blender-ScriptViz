@@ -5,10 +5,6 @@ Keyframe animation by reading data from an excel file.
 import os
 import sys
 
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
-
 from importlib import reload
 import numpy as np
 import copy

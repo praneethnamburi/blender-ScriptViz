@@ -1,10 +1,3 @@
-import os
-import sys
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
-
 import bpn # pylint: disable=unused-import
 
 bpy = bpn.bpy

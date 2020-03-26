@@ -1,16 +1,9 @@
 """
 Support for nutations.
 """
-
-import os
-import sys
 from importlib import reload
 import numpy as np # pylint: disable=unused-import
 # import pandas as pd 
-
-DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '../..'))
-if DEV_ROOT not in sys.path:
-    sys.path.append(DEV_ROOT)
 
 import bpn # pylint: disable=unused-import
 
