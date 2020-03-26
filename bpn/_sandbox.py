@@ -97,57 +97,32 @@ class Tube(bpn.Msh):
         #     for i in range(np.shape(new_normals)[0]):
         #         self.all[i].normal = new_normals[i, :]
 
+def test_skin():
+    θ = np.radians(np.arange(0, 360+40, 40))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/2
+
+    spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
+    a = bpn.Draw('testskin')
+    a.skin(spine, n=4, r=0.3)
+    +a
+    
 def test_tube_01():
     θ = np.radians(np.arange(0, 360+40, 40))
     z1 = np.sin(θ)
     y1 = np.cos(θ)
     x1 = θ/2
 
-    spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
-    normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
-
-    t = Tube('myTube', z=np.zeros_like(θ), y=np.zeros_like(θ), x=θ/3, n=4, th=0, shade='flat', subsurf=True)
-
-    for ix, x in enumerate(t.xsec.all):
-        x.origin = bpn.trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
-        x.normal = bpn.trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
-
-    t.loc = (0, 0, 1)
-    t.apply_matrix()
-
-    x.origin = bpn.trf.PointCloud((3, 2, 0), np.eye(4))
-
-    spine = t.xsec.centers
-    normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
-    for ix, x in enumerate(t.xsec.all):
-        x.normal = bpn.trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
+    t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
 
     x = t.xsec.all[5]
     x.scale((3, 8, 1))
     x.twist(-45)
 
-def test_tube_02():
-    # SKINNING IN TURTLE IS BROKEN! FIX IT!
-    θ = np.radians(np.arange(0, 360+40, 40))
-    z1 = np.sin(θ)
-    y1 = np.cos(θ)
-    x1 = θ/2
-
-    spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
-    normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
-
-    t = Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
-
-    for ix, x in enumerate(t.xsec.all):
-        x.origin = bpn.trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
-        x.normal = bpn.trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
-
-# test_tube_01()
-# test_tube_02()
-
 def test_tube_03_mobius():
     θ = np.radians(np.arange(0, 360+40, 40))
-    r = 2
+    r = 1.5
     x1 = r*np.cos(θ)
     y1 = r*np.sin(θ)
     z1 = np.zeros_like(θ)
@@ -155,7 +130,9 @@ def test_tube_03_mobius():
     spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
     normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-    t = Tube('myTube', x=θ/3, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0, shade='flat', subsurf=True)
+    t = Tube('mobius', x=θ/3, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0, shade='flat', subsurf=True)
+    t.scale(0.3)
+    t.apply_matrix()
 
     X = t.xsec.all
     nX = len(X)
@@ -167,8 +144,10 @@ def test_tube_03_mobius():
     
     for ix in (0, -1):
         X[ix].normal = bpn.trf.PointCloud(np.array([0, 1, 0])+X[ix].origin.co[0, :], np.eye(4))
-    
-test_tube_03_mobius()
+
+
+
+test_tube_01()
 
 # b = t.xsec.all[1].pts
 # print(b)

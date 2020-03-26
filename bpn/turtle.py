@@ -128,18 +128,16 @@ class Draw:
         Apply skin to a path specified by pts.
         :param pts: (2d numpy array of size nPtsx3)
         """
-        normals = np.vstack((pts[1, :] - pts[0, :], pts[2:, :] - pts[:-2, :], pts[-1, :] - pts[-2, :]))
+        normals = np.vstack(([0, 0, 1], pts[1, :] - pts[0, :], pts[2:, :] - pts[:-2, :], pts[-1, :] - pts[-2, :]))
         for i in range(np.shape(pts)[0]):
             if i == 0:
                 tc = self.ngon(**kwargs)
-                vertpos_orig = []
-                for v in tc.v:
-                    vertpos_orig.append(deepcopy(v.co))
             else:
                 tc = self.extrude(tc.e)
-            tfmat = normal2tfmat(normals[i, :])
-            for v, v_orig in zip(tc.v, vertpos_orig):
-                v.co = mathutils.Vector(tfmat@np.array(v_orig))
+            tfmat = normal2tfmat(normals[i+1, :], 'rxry')
+            tfmat_prev = normal2tfmat(normals[i, :], 'rxry')
+            for v in tc.v:
+                v.co = mathutils.Vector(tfmat@inv(tfmat_prev)@np.array(v.co))
             tc.center = pts[i, :]
 
     def export(self):
@@ -437,7 +435,7 @@ class DirectedSubMsh(SubMsh):
     """
     def __init__(self, parent, normal, **kwargs):
         super().__init__(parent, **kwargs)
-        # initalization sets _frame, but it needs to be modified
+        # initalization sets _frame, but it needs to be modified without bringing the points along
         if not isinstance(normal, trf.PointCloud):
             normal = trf.PointCloud(normal, self.parent.frame)
         self.change_normal(normal)

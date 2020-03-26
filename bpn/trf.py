@@ -270,7 +270,7 @@ def apply_matrix(mat, vert):
     """
     return (m4(mat)@v4(vert).T).T[:, 0:3]
 
-def normal2tfmat(n):
+def normal2tfmat(n, out=None):
     """
     normal2tfmat takes a unit vector (n) and computes a transformation matrix required to transform the point (0, 0, 1) to n.
     If n is not a unit vector, it normalizes it.
@@ -337,10 +337,18 @@ def normal2tfmat(n):
     # of the two possible transformations, return the one causing the least displacement in i, and j vectors. 
     # Why not explicity comput i and j vectors that give the least amount of displacement?
     # This code favors RxRy (if both produce equal displacements in i and j, then RxRy is picked
-    if disp_RxRy() <= disp_RyRx():
-        return RxRy()
+    if not out:
+        if disp_RxRy() <= disp_RyRx():
+            return RxRy()
+        else:
+            return RyRx()
     else:
-        return RyRx()
+        assert isinstance(out, str)
+        assert out.lower() in ('rxry', 'ryrx')
+        if out.lower() == 'rxry':
+            return RxRy()
+        else:
+            return RyRx()
 
 def twisttf(θ):
     """Twist transform is simply a rotation transform around Z."""
