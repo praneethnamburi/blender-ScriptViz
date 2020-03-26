@@ -299,42 +299,48 @@ def normal2tfmat(n):
     nz = n[2]
 
     # rotate around y first, then x (RxRy)
-    d = np.sqrt(1-nx**2)
-    RxRy = np.array([\
-        [d, 0, nx],\
-        [-nx*ny/d, nz/d, ny],\
-        [-nx*nz/d, -ny/d, nz]\
-        ])
-    i_disp_RxRy = np.sqrt(2*(1-np.sqrt(1-nx**2)))
-    try:
-        tmp = 1/np.sqrt(1-nx**2)
-        j_disp_RxRy = np.sqrt(2*(1-nz/tmp))
-    except ZeroDivisionError: # if nx approaches 1, then j_disp_RxRy = 0 (by visualization)
-        j_disp_RxRy = 0
-    disp_RxRy = i_disp_RxRy + j_disp_RxRy
+    def RxRy():
+        d = np.sqrt(1-nx**2)
+        return np.array([\
+            [d, 0, nx],\
+            [-nx*ny/d, nz/d, ny],\
+            [-nx*nz/d, -ny/d, nz]\
+            ])
+
+    def disp_RxRy():
+        i_disp_RxRy = np.sqrt(2*(1-np.sqrt(1-nx**2)))
+        try:
+            tmp = 1/np.sqrt(1-nx**2)
+            j_disp_RxRy = np.sqrt(2*(1-nz/tmp))
+        except ZeroDivisionError: # if nx approaches 1, then j_disp_RxRy = 0 (by visualization)
+            j_disp_RxRy = 0
+        return i_disp_RxRy + j_disp_RxRy
 
     # rotate around x first, then y (RyRx)
-    d = np.sqrt(1-ny**2)
-    RyRx = np.array([\
-        [nz/d, -nx*ny/d, nx],\
-        [0, d, ny],\
-        [-nx/d, -nz*ny/d, nz]\
-        ])
-    try:
-        tmp = 1/np.sqrt(1-ny**2)
-        i_disp_RyRx = np.sqrt(2*(1-nz/tmp))
-    except ZeroDivisionError:
-        i_disp_RyRx = 0
-    j_disp_RyRx = np.sqrt(2*(1-np.sqrt(1-ny**2)))
-    disp_RyRx = i_disp_RyRx + j_disp_RyRx
+    def RyRx():
+        d = np.sqrt(1-ny**2)
+        return np.array([\
+            [nz/d, -nx*ny/d, nx],\
+            [0, d, ny],\
+            [-nx/d, -nz*ny/d, nz]\
+            ])
+    
+    def disp_RyRx():
+        try:
+            tmp = 1/np.sqrt(1-ny**2)
+            i_disp_RyRx = np.sqrt(2*(1-nz/tmp))
+        except ZeroDivisionError:
+            i_disp_RyRx = 0
+        j_disp_RyRx = np.sqrt(2*(1-np.sqrt(1-ny**2)))
+        return i_disp_RyRx + j_disp_RyRx
 
     # of the two possible transformations, return the one causing the least displacement in i, and j vectors. 
     # Why not explicity comput i and j vectors that give the least amount of displacement?
     # This code favors RxRy (if both produce equal displacements in i and j, then RxRy is picked
-    if disp_RxRy <= disp_RyRx:
-        return RxRy
+    if disp_RxRy() <= disp_RyRx():
+        return RxRy()
     else:
-        return RyRx
+        return RyRx()
 
 def twisttf(θ):
     """Twist transform is simply a rotation transform around Z."""
