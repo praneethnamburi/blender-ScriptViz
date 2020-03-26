@@ -5,6 +5,7 @@ import os
 
 import bpy # pylint: disable=import-error
 
+from bpn import Msh
 import pntools as pn
 
 PATH = {}
@@ -18,6 +19,22 @@ PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
 
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
+
+# perhaps the most useful function
+def get(obj_name=None):
+    """
+    Create a bpn msh object from object name
+    bpn.obj('sphere')
+    :param obj_name: (str) name of the object in blender's environment
+    """
+    if not obj_name: # return the last objects
+        return Msh(obj_name=[o.name for o in bpy.data.objects][-1])
+
+    if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
+        print('No object found with name: ' + obj_name)
+        return []
+
+    return Msh(obj_name=obj_name)
 
 ### Name management
 def new_name(name, curr_names):

@@ -34,10 +34,11 @@ if __package__ is not None:
     from .trf import PointCloud as PC
     # functions
     from .io import readattr, animate_simple
+    from .utils import get
     # variables
     from .utils import PATH, DEV_ROOT
 
-### For customizing workspace variables in blender's python console.
+# For customizing workspace variables in blender's python console.
 loadStr = ''.join([line for line in open(os.path.join(str(DEV_ROOT), 'bpn\\_blenderwksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
 
 class Msh(pn.Track):
@@ -798,19 +799,3 @@ class Msh(pn.Track):
         if isinstance(msh_name, str):
             this_o.data.name = msh_name
         return Msh(obj_name=this_o.name)
-
-
-def get(obj_name=None):
-    """
-    Create a bpn msh object from object name
-    bpn.obj('sphere')
-    :param obj_name: (str) name of the object in blender's environment
-    """
-    if not obj_name: # return the last objects
-        return Msh(obj_name=[o.name for o in bpy.data.objects][-1])
-
-    if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
-        print('No object found with name: ' + obj_name)
-        return []
-
-    return Msh(obj_name=obj_name)
