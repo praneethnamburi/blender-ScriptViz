@@ -513,6 +513,7 @@ class Msh(pn.Track):
     def loc(self, new_loc):
         assert len(new_loc) == 3
         self.bo.location = new_loc
+        bpy.context.view_layer.update()
 
     @property
     def rot(self):
@@ -523,6 +524,7 @@ class Msh(pn.Track):
         self.bo.rotation_euler.x = theta[0]
         self.bo.rotation_euler.y = theta[1]
         self.bo.rotation_euler.z = theta[2]
+        bpy.context.view_layer.update()
 
     @property
     def scl(self):
@@ -531,6 +533,7 @@ class Msh(pn.Track):
     @scl.setter
     def scl(self, s):
         self.bo.scale = mathutils.Vector(s)
+        bpy.context.view_layer.update()
 
     # object transforms - update view_layer after any transform operating on the object (bo)
     def translate(self, delta=0, x=0, y=0, z=0):
