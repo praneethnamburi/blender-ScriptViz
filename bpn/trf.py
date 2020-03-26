@@ -91,7 +91,7 @@ class PointCloud:
         :param frame: (bpn.trf.CoordFrame) co-ordinate frame for the locations
         """
         if not isinstance(frame, CoordFrame):
-            frame = CoordFrame(m=frame)
+            frame = CoordFrame(frame)
         vert = np.array(vert)
         if np.shape(vert) == (3,): # only one point in the cloud
             vert = np.array([vert])
