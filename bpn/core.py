@@ -1,5 +1,9 @@
 """
-Core of the blender
+Core of the blender python module.
+
+Msh class is the heart of the module. Think of a Msh object as a group
+with a blender object (bpy.data.objects), mesh (bpy.data.meshes), and
+collection (bpy.data.collection).
 """
 import functools
 import math
@@ -351,7 +355,6 @@ class Msh(pn.Track):
         return np.shape(self.e)[0]
 
     @v.setter
-    # @ModeSet(targetMode='OBJECT') # causing problems - perhaps deselect everything before doing this
     def v(self, thisCoords):
         """
         Set vertex positions of a mesh using a numpy array of size nVertices x 3.
@@ -435,7 +438,7 @@ class Msh(pn.Track):
         """Export a Msh instance into an stl file."""
         if fPath is None:
             fPath = utils.PATH['cache']
-            
+
         if fName is None:
             fName = self.bm.name + '.stl'
 

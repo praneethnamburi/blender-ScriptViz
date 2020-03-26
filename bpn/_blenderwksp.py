@@ -21,13 +21,13 @@ console.
 Usage:
 1. Launch blender using blender.start command from the VSCode blender add-on.
 2. Type the following commands into the blender console.
->>> import bpn
->>> exec(bpn.loadStr)
+>>> from bpn.utils import LOAD
+>>> exec(LOAD)
 
 Testing:
 To check if the script worked as intended, inspect variables in
 blender's python console by comparing the output of dir() before and
-after executing the exec(bpy.loadStr) command
+after executing the exec(LOAD) command
 
 ! Caution:
 Don't call this function from the command line. This was causing some
@@ -56,7 +56,6 @@ if os.path.dirname('__bpnModifyFilePath__') not in sys.path:
     sys.path.append('__bpnModifyFilePath__')
 
 import bpn
-from bpn import demo, env, new, trf, turtle # pylint: disable=unused-import
 import pntools as pn
 
 def reload_all(constraint='Workspace'):
@@ -82,7 +81,9 @@ def clear_workSpace():
 
 clear_workSpace()
 del clear_workSpace
-del bpn.loadStr
+del LOAD #pylint:disable=undefined-variable
+
+from bpn import *
 
 # Don't add anything here to test. Add only things you want done every
 # time you load blender

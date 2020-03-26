@@ -20,6 +20,9 @@ PATH['blender_modules'] = os.path.join(PATH['blender_scripts'], 'modules')
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
 
+# For customizing workspace variables in blender's python console.
+LOAD = ''.join([line for line in open(os.path.join(str(DEV_ROOT), 'bpn\\_blenderwksp.py')) if not '__bpnRemovesThisLine__' in line]).replace('__bpnModifyFilePath__', str(DEV_ROOT).replace('\\', '\\\\'))
+
 # perhaps the most useful function
 def get(obj_name=None):
     """
