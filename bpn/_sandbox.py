@@ -3,28 +3,12 @@
 This is a sandbox. Develop code here!
 """
 #-----------------
-import math
-import inspect
-import numpy as np
-
-# import pntools as pn
-import bpn # pylint: disable=unused-import
-import pntools as pn
+import bpn
+from bpn import * # pylint: disable=wildcard-import, unused-wildcard-import
+bpn._reload() # pylint: disable=protected-access
 
 bpn.env.reset()
 #-----------------
-
-import bmesh #pylint: disable=import-error
-import mathutils #pylint: disable=import-error
-from copy import deepcopy
-from importlib import reload
-
-reload(bpn.turtle)
-reload(bpn.utils)
-reload(bpn.trf)
-reload(bpn)
-
-bpn.env.reset()
 
 class Tube(bpn.Msh):
     """
@@ -122,9 +106,10 @@ def test_tube_03_mobius():
     spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
     normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-    t = Tube('mobius', x=θ/3, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0, shade='flat', subsurf=True)
-    t.scale(0.3)
-    t.apply_matrix()
+    t = Tube('mobius', x=x1, y=y1, z=z1, n=8, th=0, shade='flat', subsurf=True)
+    t.subsurf(3, 3)
+    # t.scale(0.6)
+    # t.apply_matrix()
 
     X = t.xsec.all
     nX = len(X)
@@ -137,74 +122,4 @@ def test_tube_03_mobius():
     for ix in (0, -1):
         X[ix].normal = bpn.trf.PointCloud(np.array([0, 1, 0])+X[ix].origin.co[0, :], np.eye(4))
 
-
-
-test_tube_01()
-
-# b = t.xsec.all[1].pts
-# print(b)
-# t.xsec.all[-1].scale((3, 2, 1))
-# t.xsec.all[-1].normal = (0, 0, 1)
-# t.xsec.all[-1].twist(90)
-# t.xsec.all[-1].center = (4, 0, 1)
-# t.xsec.update_normals()
-# t.xsec.centers = np.vstack((x1, x1, x1)).T
-# # t.xsec.centers = np.vstack((z1, y1, x1)).T
-# t.xsec.update_normals()
-
-# t.morph(frame_start=100)
-# bpn.env.Key().goto(150)
-
-# print(t.xsec.centers)
-
-# b[0].center = (0, 1, 0)
-
-# print(a_exp[1].f_idx)
-# print(all_callers)
-# strand.v
-
-# pts = [(0, 0, 0), (0, 1, 1), (2, 2, 2)]
-
-# a = bpn.Draw('follow')
-# tc = a.ngon(n=4, r=0.5)
-# tc2 = a.extrude(tc.e)
-# p2 = np.array(pts[1])
-# p1 = np.array(pts[0])
-# tfmat = normal2tfmat(p2-p1)
-# for v in tc2.v:
-#     v.co = mathutils.Vector(tfmat@np.array(v.co))
-# tc2.center = pts[1]
-
-# tc2 = a.extrude(tc2.e)
-# tfmat = normal2tfmat(np.array(pts[2]) - np.array(pts[1]))
-# for v, v_orig in zip(tc2.v, tc.v):
-#     v.co = mathutils.Vector(tfmat@np.array(v_orig.co))
-# tc2.center = pts[2]
-
-# a.bm.faces.new(a.bm.verts[:])
-
-# # Now we have made a links of the chain, make a copy and rotate it
-# # (so this looks something like a chain)
-
-# ret = bmesh.ops.duplicate(
-#     a.bm,
-#     geom=a.bm.verts[:] + a.bm.edges[:] + a.bm.faces[:])
-# geom_dupe = ret["geom"]
-# verts_dupe = [ele for ele in geom_dupe if isinstance(ele, bmesh.types.BMVert)]
-# del ret
-
-# # position the new link
-# bmesh.ops.translate(
-#     a.bm,
-#     verts=verts_dupe,
-#     vec=(0.0, 0.0, 2.0))
-# bmesh.ops.rotate(
-#     a.bm,
-#     verts=verts_dupe,
-#     cent=(0.0, 1.0, 0.0),
-#     matrix=mathutils.Matrix.Rotation(math.radians(90.0), 3, 'Z'))
-
-# # test Draw - basic
-# a = bpn.Draw()
-# bmesh.ops.create_circle(a.bm, cap_ends=False, radius=0.2, segments=10)
-# -a
+test_tube_03_mobius()

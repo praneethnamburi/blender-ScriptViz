@@ -3,6 +3,8 @@ Praneeth's blender python module
 """
 # Imports from the standard library
 import os
+import inspect
+import importlib
 
 # Installed using _requirements
 import numpy as np
@@ -33,3 +35,15 @@ if __package__ is not None:
 # Convenience
 Matrix = mathutils.Matrix
 Vector = mathutils.Vector
+
+def _reload():
+    """
+    Reloads all sub-modules of this module.
+    Returns names of all the modules that were identified for reload.
+    usage: bpn._reload()
+    """
+    #pylint: disable=eval-used
+    all_mod = [obj for obj in globals() if inspect.ismodule(eval(obj)) and __package__ in str(eval(obj))] # pylint: disable=W0122
+    for modname in all_mod:
+        importlib.reload(eval(modname))
+    return all_mod
