@@ -297,41 +297,66 @@ def normal2tfmat(n, out=None):
     nx = n[0]
     ny = n[1]
     nz = n[2]
-
+    # machine_eps = 7./3 - 4./3 -1 # machine epsilon
+    eps = 1e-10 # blender's precision is low!
     # rotate around y first, then x (RxRy)
     def RxRy():
         d = np.sqrt(1-nx**2)
-        return np.array([\
+        if -eps < d < eps: # nx == 1
+            Rx = np.eye(3) # no rotation around x axis
+        else:
+            Rx = np.array([\
+                [1, 0, 0],\
+                [0, nz/d, ny/d],\
+                [0, -ny/d, nz/d]\
+                ])
+        Ry = np.array([\
             [d, 0, nx],\
-            [-nx*ny/d, nz/d, ny],\
-            [-nx*nz/d, -ny/d, nz]\
+            [0, 1, 0],\
+            [-nx, 0, d]\
             ])
+        return Rx@Ry
 
-    def disp_RxRy():
-        i_disp_RxRy = np.sqrt(2*(1-np.sqrt(1-nx**2)))
-        try:
-            tmp = 1/np.sqrt(1-nx**2)
-            j_disp_RxRy = np.sqrt(2*(1-nz/tmp))
-        except ZeroDivisionError: # if nx approaches 1, then j_disp_RxRy = 0 (by visualization)
+    def disp_RxRy(): # dispalcement in i and j vectors caused by this transformation
+        d = np.sqrt(1-nx**2)
+        i_disp_RxRy = np.sqrt(2*(1-d))
+        if -eps < d < eps: # nx == 1
             j_disp_RxRy = 0
+        else:
+            if -eps < 1-nz/d < 0:
+                j_disp_RxRy = 0
+            else:
+                j_disp_RxRy = np.sqrt(2*(1-nz/d))
         return i_disp_RxRy + j_disp_RxRy
 
     # rotate around x first, then y (RyRx)
     def RyRx():
         d = np.sqrt(1-ny**2)
-        return np.array([\
-            [nz/d, -nx*ny/d, nx],\
-            [0, d, ny],\
-            [-nx/d, -nz*ny/d, nz]\
+        if -eps < d < eps: # ny == 1
+            Ry = np.eye(3)
+        else:
+            Ry = np.array([\
+                [nz/d, 0, nx/d],\
+                [0, 1, 0],\
+                [nx/d, 0, nz/d]\
+                ])
+        Rx = np.array([\
+            [1, 0, 0],\
+            [0, d, -ny],\
+            [0, ny, d]\
             ])
+        return Ry@Rx # x first, then y
     
     def disp_RyRx():
-        try:
-            tmp = 1/np.sqrt(1-ny**2)
-            i_disp_RyRx = np.sqrt(2*(1-nz/tmp))
-        except ZeroDivisionError:
+        d = np.sqrt(1-ny**2)
+        if -eps < d < eps:
             i_disp_RyRx = 0
-        j_disp_RyRx = np.sqrt(2*(1-np.sqrt(1-ny**2)))
+        else:
+            if -eps < 1-nz/d < 0:
+                i_disp_RyRx = 0
+            else:
+                i_disp_RyRx = np.sqrt(2*(1-nz/d))
+        j_disp_RyRx = np.sqrt(2*(1-d))
         return i_disp_RyRx + j_disp_RyRx
 
     # of the two possible transformations, return the one causing the least displacement in i, and j vectors. 

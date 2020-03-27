@@ -106,17 +106,15 @@ def test_tube_03_mobius():
     spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
     normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-    t = Tube('mobius', x=x1, y=y1, z=z1, n=8, th=0, shade='flat', subsurf=True)
-    t.subsurf(3, 3)
-    # t.scale(0.6)
-    # t.apply_matrix()
+    t = Tube('mobius', x=θ, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0, shade='flat', subsurf=True)
+    t.scale((1, 1, 0.3))
+    t.apply_matrix()
 
     X = t.xsec.all
     nX = len(X)
     for ix, x in enumerate(X):
         x.origin = bpn.trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
         x.normal = bpn.trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
-        x.scale((0.3, 1, 1))
         x.twist(360*ix/(nX-1))
     
     for ix in (0, -1):
