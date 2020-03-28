@@ -12,7 +12,8 @@ bpn.env.reset()
 
 class Tube(bpn.Msh):
     """
-    Creates a 'Tube' object from a 3d plot.
+    Creates a 'Tube' object with a specified number of cross sections
+    and vertical sections.
     """
     def __init__(self, name=None, x=0, y=0, z=0, **kwargs):
         names, kwargs = bpn.utils.clean_names(name, kwargs, {'msh_name':'tube_msh', 'obj_name':'tube_obj', 'priority_obj':'new', 'priority_msh':'new'})
@@ -28,7 +29,7 @@ class Tube(bpn.Msh):
         -a
         super().__init__(**{**names, **kwargs_bpnmsh})
         self.shade(kwargs_this['shade'])
-        if kwargs['subsurf']:
+        if kwargs_this['subsurf']:
             self.subsurf(kwargs_this['subsurf_levels'], kwargs_this['subsurf_render_levels'])
 
         self.xsec = self.XSec(self, normals, a_exp)
@@ -49,32 +50,38 @@ class Tube(bpn.Msh):
             """The 'spine' of the tube. nCrossSections X 3 numpy array."""
             return np.array([x.origin.co[0, :] for x in self.all])
         
-        # @centers.setter
-        # def centers(self, new_centers):
-        #     new_centers = np.array(new_centers)
-        #     assert np.shape(new_centers) == (self.n, 3)
-        #     for i in range(self.n):
-        #         self.all[i].center = new_centers[i, :]
+        @centers.setter
+        def centers(self, new_centers):
+            new_centers = np.array(new_centers)
+            assert np.shape(new_centers) == (self.n, 3)
+            for i in range(self.n):
+                self.all[i].origin = trf.PointCloud(new_centers[i, :], np.eye(4))
 
         # def update_normals(self):
         #     """Update normals based on the location of the centers."""
         #     spine = self.centers
         #     self.normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-        # @property
-        # def normals(self):
-        #     """Normals of each x-section"""
-        #     return np.array(self._normals)
+        @property
+        def normals(self):
+            """
+            Normals of each x-section.
+            Returns direction in world
+            """
+            return np.array([self.all[i].normal for i in range(self.n)])
 
-        # @normals.setter
-        # def normals(self, new_normals):
-        #     new_normals = np.array(new_normals)
-        #     assert np.shape(new_normals) == (self.n, 3)
-        #     for i in range(np.shape(new_normals)[0]):
-        #         self.all[i].normal = new_normals[i, :]
+        @normals.setter
+        def normals(self, new_normal_dir):
+            """
+            Directions are origin-agnostic.
+            """
+            new_normal_dir = np.array(new_normal_dir)
+            assert np.shape(new_normal_dir) == (self.n, 3)
+            for i in range(np.shape(new_normal_dir)[0]):
+                self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin.co[0, :], np.eye(4))
 
 def test_skin():
-    θ = np.radians(np.arange(0, 360+40, 40))
+    θ = np.radians(np.arange(0, 360*6+40, 40))
     z1 = np.sin(θ)
     y1 = np.cos(θ)
     x1 = θ/2
@@ -83,6 +90,7 @@ def test_skin():
     a = bpn.Draw('testskin')
     a.skin(spine, n=4, r=0.3)
     +a
+    return bpn.get('testskin')
     
 def test_tube_01():
     θ = np.radians(np.arange(0, 360+40, 40))
@@ -113,11 +121,32 @@ def test_tube_03_mobius():
     X = t.xsec.all
     nX = len(X)
     for ix, x in enumerate(X):
-        x.origin = bpn.trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
-        x.normal = bpn.trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
+        x.origin = trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
+        x.normal = trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
         x.twist(360*ix/(nX-1))
     
     for ix in (0, -1):
-        X[ix].normal = bpn.trf.PointCloud(np.array([0, 1, 0])+X[ix].origin.co[0, :], np.eye(4))
+        X[ix].normal = trf.PointCloud(np.array([0, 1, 0])+X[ix].origin.co[0, :], np.eye(4))
+    
+    ## make a merge_XS feature
+    # bm = bmesh.new()
+    # bm.from_mesh(t.bm)
+    # bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0001)
+    # bm.to_mesh(t.bm)
+    # t.bm.update()
+    # bm.clear()
+    # bm.free()
 
-test_tube_03_mobius()
+    X[0].origin = PC((2, 0, 0), np.eye(4))
+    X[-1].origin = trf.PointCloud((2, 0, 0), np.eye(4))
+
+def spring():
+    θ = np.radians(np.arange(0, 360*6+40, 40))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/2
+    s = Tube('spring', x=x1, y=y1, z=z1)
+    s.xsec.centers = np.vstack((x1/2, y1, z1)).T
+    s.morph(frame_start=100)
+
+spring()
