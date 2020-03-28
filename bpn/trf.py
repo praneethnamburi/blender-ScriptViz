@@ -12,7 +12,7 @@ Points in the world can be transformed:
 
 Points and co-ordinates can be more 'tightly' bound, where the coordinate system itself is defined with respect to the points. Consider the DirectedSubMsh for example. The normal, or k direction is set externally, but the X direction is set according to the vector from the center of the points in the mesh to the first point in the mesh.
 """
-
+import math
 import numpy as np
 from numpy.linalg.linalg import inv, norm
 
@@ -240,17 +240,17 @@ def m4(m=None, **kwargs):
         i = kwargs['i']
         assert len(i) == 3
         if kwargs['unit_vectors']:
-            i = np.array(i)/norm(i)
+            i = norm_vec(i)
     if 'j' in kwargs:
         j = kwargs['j']
         assert len(j) == 3
         if kwargs['unit_vectors']:
-            j = np.array(j)/norm(j)
+            j = norm_vec(j)
     if 'k' in kwargs:
         k = kwargs['k']
         assert len(k) == 3
         if kwargs['unit_vectors']:
-            k = np.array(k)/norm(k)
+            k = norm_vec(k)
     
     if 'origin' not in locals():
         origin = np.zeros(3) 
@@ -291,18 +291,15 @@ def normal2tfmat(n, out=None):
 
     The output is still unique. Meaning, given a normal, the algorithm always spits out a unique transformation matrix.
     """
-    n = np.array(n)
     assert len(n) == 3
-    n = n/norm(n)
+    n = norm_vec(n)
     nx = n[0]
     ny = n[1]
     nz = n[2]
-    # machine_eps = 7./3 - 4./3 -1 # machine epsilon
-    eps = 1e-10 # blender's precision is low!
     # rotate around y first, then x (RxRy)
     def RxRy():
         d = np.sqrt(1-nx**2)
-        if -eps < d < eps: # nx == 1
+        if math.isclose(d, 0): # nx == 1
             Rx = np.eye(3) # no rotation around x axis
         else:
             Rx = np.array([\
@@ -320,10 +317,10 @@ def normal2tfmat(n, out=None):
     def disp_RxRy(): # dispalcement in i and j vectors caused by this transformation
         d = np.sqrt(1-nx**2)
         i_disp_RxRy = np.sqrt(2*(1-d))
-        if -eps < d < eps: # nx == 1
+        if math.isclose(d, 0): # nx == 1
             j_disp_RxRy = 0
         else:
-            if -eps < 1-nz/d < 0:
+            if math.isclose(1-nz/d, 0):
                 j_disp_RxRy = 0
             else:
                 j_disp_RxRy = np.sqrt(2*(1-nz/d))
@@ -332,7 +329,7 @@ def normal2tfmat(n, out=None):
     # rotate around x first, then y (RyRx)
     def RyRx():
         d = np.sqrt(1-ny**2)
-        if -eps < d < eps: # ny == 1
+        if math.isclose(d, 0): # ny == 1
             Ry = np.eye(3)
         else:
             Ry = np.array([\
@@ -349,10 +346,10 @@ def normal2tfmat(n, out=None):
     
     def disp_RyRx():
         d = np.sqrt(1-ny**2)
-        if -eps < d < eps:
+        if math.isclose(d, 0):
             i_disp_RyRx = 0
         else:
-            if -eps < 1-nz/d < 0:
+            if math.isclose(1-nz/d, 0):
                 i_disp_RyRx = 0
             else:
                 i_disp_RyRx = np.sqrt(2*(1-nz/d))
@@ -395,3 +392,9 @@ def scaletf(s):
         [0, 0, s[2]]\
         ])
     return m
+
+def norm_vec(vec):
+    """Return unit vector, and return zero for zero vector."""
+    if math.isclose(norm(vec), 0):
+        return np.array(vec)
+    return np.array(vec)/norm(vec)

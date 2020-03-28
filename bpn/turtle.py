@@ -482,7 +482,7 @@ class DirectedSubMsh(SubMsh):
         """Change the normal WITHOUT moving the points."""
         assert isinstance(new_normal, trf.PointCloud)
         n = new_normal.in_world().co[0, :]
-        self._frame.m[0:3, 2] = n/norm(n)
+        self._frame.m[0:3, 2] = trf.norm_vec(n)
         self._frame = self.frame
 
     def twist(self, theta_deg=45):
