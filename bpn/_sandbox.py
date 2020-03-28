@@ -3,14 +3,12 @@
 This is a sandbox. Develop code here!
 """
 #-----------------
-import bpn
-from bpn import * # pylint: disable=wildcard-import, unused-wildcard-import
-bpn._reload() # pylint: disable=protected-access
-
-bpn.env.reset()
+from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
+pn.reload()
+env.reset()
 #-----------------
 
-class Tube(bpn.Msh):
+class Tube(core.Msh):
     """
     Creates a 'Tube' object with a specified number of cross sections
     and vertical sections.
@@ -23,7 +21,7 @@ class Tube(bpn.Msh):
         spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x, y, z)])
         normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-        a = bpn.Draw(**names)
+        a = Draw(**names)
         a.skin(spine, **kwargs_ngon)
         a_exp = a.export()
         -a
@@ -87,10 +85,10 @@ def test_skin():
     x1 = θ/2
 
     spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
-    a = bpn.Draw('testskin')
+    a = Draw('testskin')
     a.skin(spine, n=4, r=0.3)
     +a
-    return bpn.get('testskin')
+    return get('testskin')
     
 def test_tube_01():
     θ = np.radians(np.arange(0, 360+40, 40))
@@ -149,4 +147,4 @@ def spring():
     s.xsec.centers = np.vstack((x1/2, y1, z1)).T
     s.morph(frame_start=100)
 
-spring()
+test_tube_03_mobius()

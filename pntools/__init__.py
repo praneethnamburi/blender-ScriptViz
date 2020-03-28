@@ -510,3 +510,19 @@ def clean_kwargs(kwargs, kwargs_def, kwargs_alias=None):
 
     return kwargs_fun, kwargs_out
     
+def reload(constraint='Workspace'):
+    """
+    Reloads all sub-modules of this module.
+    Returns names of all the modules that were identified for reload.
+    """
+    all_mod = [mod for key, mod in sys.modules.items() if constraint in str(mod)]
+    reloaded_mod = []
+    for mod in all_mod:
+        try:
+            importlib.reload(mod)
+            reloaded_mod.append(mod.__name__)
+        except: # pylint: disable=bare-except 
+            #Using a specific exception creates a problem when developing with runpy (Blender development plugin workflow)
+            if '<run_path>' not in  mod.__name__:
+                print('Could not reload ' + mod.__name__)
+    return reloaded_mod

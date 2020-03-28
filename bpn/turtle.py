@@ -3,7 +3,7 @@ Turtle module
 """
 import inspect
 import numpy as np
-from numpy.linalg.linalg import inv, norm
+from numpy.linalg.linalg import inv
 
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
