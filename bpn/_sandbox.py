@@ -46,7 +46,7 @@ class Tube(core.Msh):
         @property
         def centers(self):
             """The 'spine' of the tube. nCrossSections X 3 numpy array."""
-            return np.array([x.origin.co[0, :] for x in self.all])
+            return np.array([x.origin for x in self.all])
         
         @centers.setter
         def centers(self, new_centers):
@@ -76,7 +76,7 @@ class Tube(core.Msh):
             new_normal_dir = np.array(new_normal_dir)
             assert np.shape(new_normal_dir) == (self.n, 3)
             for i in range(np.shape(new_normal_dir)[0]):
-                self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin.co[0, :], np.eye(4))
+                self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
 
 def test_skin():
     θ = np.radians(np.arange(0, 360*6+40, 40))
@@ -120,11 +120,11 @@ def test_tube_03_mobius():
     nX = len(X)
     for ix, x in enumerate(X):
         x.origin = trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
-        x.normal = trf.PointCloud(normals[ix, :]+x.origin.co[0, :], np.eye(4))
+        x.normal = trf.PointCloud(normals[ix, :]+x.origin, np.eye(4))
         x.twist(360*ix/(nX-1))
     
     for ix in (0, -1):
-        X[ix].normal = trf.PointCloud(np.array([0, 1, 0])+X[ix].origin.co[0, :], np.eye(4))
+        X[ix].normal = trf.PointCloud(np.array([0, 1, 0])+X[ix].origin, np.eye(4))
     
     ## make a merge_XS feature
     # bm = bmesh.new()
@@ -147,4 +147,4 @@ def spring():
     s.xsec.centers = np.vstack((x1/2, y1, z1)).T
     s.morph(frame_start=100)
 
-test_tube_03_mobius()
+spring()

@@ -384,18 +384,18 @@ class CenteredSubMsh(SubMsh):
     @property
     def origin(self):
         """Origin of the mesh in world coordinates."""
-        return self.pts.in_world().center
+        return self.pts.in_world().center.co[0, :]
     
     @property
     def frame(self):
         # ensure i, j, k are unit vectors, and origin is at the center of the points
-        return trf.CoordFrame(i=self._frame.i, j=self._frame.j, k=self._frame.k, origin=self.origin.co[0, :])
+        return trf.CoordFrame(i=self._frame.i, j=self._frame.j, k=self._frame.k, origin=self.origin)
 
     @origin.setter
     def origin(self, new_origin):
         # moving the origin for this type of mesh will move the points!
         assert type(new_origin).__name__ == 'PointCloud'
-        self.pts = self.pts.in_world().transform(np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin.co[0, :])))
+        self.pts = self.pts.in_world().transform(np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin)))
         self._frame = self.frame
     
     @frame.setter
@@ -405,7 +405,7 @@ class CenteredSubMsh(SubMsh):
         # this line moves the points, and explicitly specifies that the new frame was specified in world coordinates.
         self.origin = trf.PointCloud(np.array([new_frame.origin]), trf.CoordFrame())
         # the orientation of the frame is simply taken from new_frame (vectors will be normalized!)
-        self._frame = trf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin.co[0, :])
+        self._frame = trf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin)
     
 
 class DirectedSubMsh(SubMsh):
@@ -434,7 +434,7 @@ class DirectedSubMsh(SubMsh):
     @property
     def origin(self):
         """Origin of the mesh in world coordinates."""
-        return self.pts.in_world().center
+        return self.pts.in_world().center.co[0, :]
 
     @property
     def frame(self):
@@ -444,7 +444,7 @@ class DirectedSubMsh(SubMsh):
         x_vec = pts_in_world.co[0, :] - pts_in_world.center.co[0, :]
         j_vec = np.cross(k_vec, x_vec)
         i_vec = np.cross(j_vec, k_vec)
-        return trf.CoordFrame(i=i_vec, j=j_vec, k=k_vec, origin=self.origin.co[0, :], unit_vectors=True)
+        return trf.CoordFrame(i=i_vec, j=j_vec, k=k_vec, origin=self.origin, unit_vectors=True)
 
     @property
     def normal(self):
@@ -455,7 +455,7 @@ class DirectedSubMsh(SubMsh):
     def origin(self, new_origin):
         # moving the origin for this type of mesh will move the points!
         assert type(new_origin).__name__ == 'PointCloud'
-        tfmat = np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin.co[0, :]))
+        tfmat = np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin))
         new_frame = trf.CoordFrame(tfmat@self.frame.m)
         self.frame = new_frame
  
