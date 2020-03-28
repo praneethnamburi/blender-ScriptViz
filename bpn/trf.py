@@ -152,6 +152,19 @@ class PointCloud:
         """Apply a transform in the current frame of reference."""
         co = transform(tfmat, self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=self.frame)
         return PointCloud(co, self.frame)
+    
+    # syntactic ease
+    def __call__(self):
+        """
+        Calling a point cloud returns the coordinates in world frame.
+        If there is only one point in the cloud, a 1-D array is returned.
+        Convenient for origins - 
+            o = PointCloud([a, b, c], frm)
+            o() instead of o.co[0, :]
+        """
+        if self.n == 1:
+            return self.in_world().co[0, :]
+        return self.in_world().co
 
 
 def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_frame_mat=None):
