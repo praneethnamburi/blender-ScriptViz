@@ -192,7 +192,7 @@ def reset():
                 # traceback.print_exc()
                 pass
     # only worry about data in the startup scene
-    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes, bpy.data.collections):
+    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes, bpy.data.collections, bpy.data.grease_pencils, bpy.data.materials):
         # may not work for collections - blender bug
         for id_data in bpy_data_iter:
             try:
