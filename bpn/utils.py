@@ -54,7 +54,7 @@ def new_name(name, curr_names):
         tmp_name = name + '.{:03d}'.format(i)
     return tmp_name
 
-def clean_names(name, kwargs, kwargs_def=None):
+def clean_names(name, kwargs, kwargs_def=None, mode='msh'):
     """
     Use this for name cleanup!
     Splits keyword arguments into names as used by the bpn module, and other keyword arguments to be used by the function.
@@ -69,17 +69,21 @@ def clean_names(name, kwargs, kwargs_def=None):
         Draw class in bpn.turtle
         torus function in bpn.new
     """
+    assert mode in ('gp', 'msh')
     if isinstance(name, str):
-        kwargs['msh_name'] = name if 'msh_name' not in kwargs else kwargs['msh_name']
+        kwargs[mode+'_name'] = name if mode+'_name' not in kwargs else kwargs[mode+'_name']
         kwargs['obj_name'] = name if 'obj_name' not in kwargs else kwargs['obj_name']
 
     kwargs_defdef = {
-        'msh_name' : 'new_msh', 
+        mode+'_name' : 'new_'+mode, 
         'obj_name' : 'new_obj',
         'coll_name': 'Collection',
         'priority_obj': 'new',
-        'priority_msh': 'current',
+        'priority_'+mode: 'current',
     }
+    if mode == 'gp':
+        kwargs_defdef['layer_name'] = 'new_layer'
+
     if not kwargs_def:
         kwargs_def = {}
 
@@ -90,7 +94,13 @@ def clean_names(name, kwargs, kwargs_def=None):
     if kwargs_names['priority_obj'] == 'new':
         kwargs_names['obj_name'] = new_name(kwargs_names['obj_name'], [o.name for o in bpy.data.objects])
     
-    if kwargs_names['priority_msh'] == 'new':
-        kwargs_names['msh_name'] = new_name(kwargs_names['msh_name'], [m.name for m in bpy.data.meshes])
+    if mode == 'msh':
+        if kwargs_names['priority_msh'] == 'new':
+            kwargs_names['msh_name'] = new_name(kwargs_names['msh_name'], [m.name for m in bpy.data.meshes])
+    if mode == 'gp':
+        if kwargs_names['priority_gp'] == 'new':
+            kwargs_names['gp_name'] = new_name(kwargs_names['gp_name'], [g.name for g in bpy.data.grease_pencils])
 
     return kwargs_names, kwargs_other
+
+# material libraries

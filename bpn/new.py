@@ -46,6 +46,24 @@ def obj(msh, col, obj_name='newObj'):
         col.objects.link(o)
     return o
 
+def mesh(msh_name='newMsh'):
+    """
+    Creates a new blender mesh.
+    Returns a reference to the mesh if it already exists.
+    """
+    if msh_name in [m.name for m in bpy.data.meshes]:
+        return bpy.data.meshes[msh_name]
+    return bpy.data.meshes.new(msh_name)
+
+def greasepencil(gp_name='newGP'):
+    """
+    Creates a new blender grease pencil.
+    Returns a reference to existing grease pencil if it already exists.
+    """
+    if gp_name in [g.name for g in bpy.data.grease_pencils]:
+        return bpy.data.grease_pencils[gp_name]
+    return bpy.data.grease_pencils.new(gp_name)
+
 # easy object creation
 def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
     """
