@@ -30,7 +30,7 @@ import bpn
 # modules
 from bpn import new, env, demo, utils, turtle, vef, trf, io, core
 # classes
-from bpn.core import Msh
+from bpn.core import Msh, GP
 from bpn.env import Props, ReportDelta
 from bpn.turtle import Draw
 from bpn.trf import CoordFrame as Frm
