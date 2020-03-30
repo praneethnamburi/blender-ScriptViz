@@ -2,6 +2,9 @@
 Utility functions
 """
 import os
+
+import numpy as np
+
 import bpy # pylint: disable=import-error
 
 import pntools as pn
@@ -103,4 +106,43 @@ def clean_names(name, kwargs, kwargs_def=None, mode='msh'):
 
     return kwargs_names, kwargs_other
 
-# material libraries
+# common color palettes
+def color_palette(name='MATLAB', prefix='', alpha=0.8):
+    """
+    Commonly used color palettes for plotting.
+    """
+    def rgba2dict(rgba, names):
+        n = np.shape(rgba)[0] # number of colors in the palette
+        if isinstance(names, str): # names is a prefix instead of an array
+            ndec = len(str(n))+1 # number of decimal places
+            fstr = '{:0'+str(ndec)+'d}'
+            names = [names+fstr.format(i) for i in range(n)]
+        assert len(names) == n
+        return {names[i] : rgba[i, :] for i in range(n)}
+
+    alpha_broadcast = lambda n: alpha*np.ones(n) if isinstance(alpha, (int, float)) else alpha
+    
+    if name == 'MATLAB':
+        α = alpha_broadcast(7)
+        rgba = np.array([
+            [0.000, 0.447, 0.741, α[0]],
+            [0.850, 0.325, 0.098, α[1]],
+            [0.929, 0.694, 0.125, α[2]],
+            [0.494, 0.184, 0.556, α[3]],
+            [0.466, 0.674, 0.188, α[4]],
+            [0.301, 0.745, 0.933, α[5]],
+            [0.635, 0.078, 0.184, α[6]],
+        ])
+        if not prefix:
+            prefix = 'MATLAB_'
+        return rgba2dict(rgba, prefix) 
+
+    if name == 'blender_ax':
+        α = alpha_broadcast(3)
+        return {
+            prefix+'crd_i': [1.000, 0.125, 0.400, α[0]],
+            prefix+'crd_j': [0.400, 0.850, 0.125, α[1]],
+            prefix+'crd_k': [0.055, 0.500, 1.000, α[2]],
+        }
+
+    return None
