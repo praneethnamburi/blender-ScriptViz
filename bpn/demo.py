@@ -15,6 +15,15 @@ Turtle module:
     draw_basic - Spring-like structure
     draw_atom  - Electron cloud-like structure
     draw_link  - One link of a chain
+    draw_spring - Illustrates skinning in the turtle module
+
+Grease pencil drawing and animation:
+    grease_pencil - spirals, strokes with varying transparency and thickness.
+
+Tube class:
+    bulge_tube - tube with a bulge in the middle
+    spring - animating a spring using the Tube class
+    mobius - make a mobius strip
 """
 import sys
 import types
@@ -26,7 +35,7 @@ import bpy #pylint: disable=import-error
 import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import core, new, env, turtle, trf
+from . import core, new, env, turtle, trf, utils
 
 def spheres():
     """
@@ -267,10 +276,23 @@ def draw_link(n_u=6, n_v=16, l=1, r_v=1, r_u=0.2):
     a.join(u_start.e + n_end.e)
     return +a
 
+def draw_spring():
+    """Illustrates how to skin a curve using the Draw class."""
+    θ = np.radians(np.arange(0, 360*6+40, 40))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/2
+
+    spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
+    a = turtle.Draw('testskin')
+    a.skin(spine, n=4, r=0.3)
+    +a # pylint:disable=pointless-statement
+    return utils.get('testskin')
+
 def grease_pencil():
     """Illustrate making animated 2d plots with grease pencil."""
     # equivalent of MATLAB's figure()
-    gp = core.GP(gp_name='myGP', obj_name='myGPobj', coll_name='myColl', layer_name='sl1')
+    gp = core.GP(gp_name='myGP', obj_name='myGPobj', coll_name='GP', layer_name='sl1')
 
     θ = np.radians(np.arange(0, 360*2+1, 1))
     z1 = np.sin(θ)
@@ -293,6 +315,68 @@ def grease_pencil():
     gp.stroke(trf.PointCloud(pcf.co[[0, 1]]), color='crd_i', line_width=80)
     gp.stroke(trf.PointCloud(pcf.co[[0, 2]]), color='crd_j', line_width=80)
     gp.stroke(trf.PointCloud(pcf.co[[0, 3]]), color='crd_k', line_width=80)
+    return gp
+
+def bulge_tube():
+    θ = np.radians(np.arange(0, 360+40, 40))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/2
+
+    t = new.Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
+
+    x = t.xsec.all[5]
+    x.scale((3, 8, 1))
+    x.twist(-45)
+
+def spring():
+    """Animating a spring using the Tube class."""
+    θ = np.radians(np.arange(0, 360*6+40, 40))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/2
+    s = new.Tube('spring', x=x1, y=y1, z=z1)
+    s.xsec.centers = np.vstack((x1/2, y1, z1)).T
+    s.morph(frame_start=100)
+    return s
+
+def mobius():
+    """Makes a mobius strip using the Tube class"""
+    θ = np.radians(np.arange(0, 360+40, 40))
+    r = 1.5
+    x1 = r*np.cos(θ)
+    y1 = r*np.sin(θ)
+    z1 = np.zeros_like(θ)
+
+    spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
+    normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
+
+    t = new.Tube('mobius', x=θ, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0, shade='flat', subsurf=True)
+    t.scale((1, 1, 0.3))
+    t.apply_matrix()
+
+    X = t.xsec.all
+    nX = len(X)
+    for ix, x in enumerate(X):
+        x.origin = trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
+        x.normal = trf.PointCloud(normals[ix, :]+x.origin, np.eye(4))
+        x.twist(360*ix/(nX-1))
+    
+    for ix in (0, -1):
+        X[ix].normal = trf.PointCloud(np.array([0, 1, 0])+X[ix].origin, np.eye(4))
+    
+    ## make a merge_XS feature
+    # bm = bmesh.new()
+    # bm.from_mesh(t.bm)
+    # bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0001)
+    # bm.to_mesh(t.bm)
+    # t.bm.update()
+    # bm.clear()
+    # bm.free()
+
+    X[0].origin = trf.PointCloud((2, 0, 0), np.eye(4))
+    X[-1].origin = trf.PointCloud((2, 0, 0), np.eye(4))
+
 
 def main():
     """
