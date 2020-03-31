@@ -318,6 +318,10 @@ def grease_pencil():
     return gp
 
 def bulge_tube():
+    """
+    Draws a tube with a bulge in the middle.
+    Introduction to the Tube class.
+    """
     θ = np.radians(np.arange(0, 360+40, 40))
     z1 = np.sin(θ)
     y1 = np.cos(θ)
