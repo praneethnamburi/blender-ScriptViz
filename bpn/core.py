@@ -921,7 +921,7 @@ class GP:
             self.g.materials.append(mtrl)
         return mtrl
     
-    def stroke(self, ptcloud, color=None, layer=None, keyframe=None, line_width=40):
+    def stroke(self, ptcloud, **kwargs):
         """
         Make a new stroke 
             1) in the current layer, 
@@ -931,18 +931,41 @@ class GP:
         (which change the current settings)
         Add pressure and strength arrays
         """
-        if layer is not None:
-            self.layer = layer
-        if color is not None:
-            self.color = color
-        if keyframe is not None:
-            self.keyframe = keyframe
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'pressure': 1.0, 
+            'strength': 1.0, 
+            'line_width': 40, 
+            'layer': None, # defaults to layer in self._layer
+            'color': None, # defaults to current color self._color
+            'keyframe': None, # defaults to self._keyframe
+            'display_mode': '3DSPACE'
+            })
+
+        # set where, when and color
+        if kwargs['layer'] is not None:
+            self.layer = kwargs['layer']
+        if kwargs['keyframe'] is not None:
+            self.keyframe = kwargs['keyframe']
+        if kwargs['color'] is not None:
+            self.color = kwargs['color']
+
         assert type(ptcloud).__name__ == 'PointCloud'
         gp_stroke = self.keyframe.strokes.new()
-        gp_stroke.display_mode = '3DSPACE'
+        gp_stroke.display_mode = kwargs['display_mode']
 
         gp_stroke.points.add(count=ptcloud.n)
         gp_stroke.points.foreach_set('co', tuple(ptcloud.in_world().co.flatten())) # more efficient
         gp_stroke.material_index = self.color_index
-        gp_stroke.line_width = line_width
+        gp_stroke.line_width = kwargs['line_width']
+        n_pts = len(gp_stroke.points[:])
+
+        for attr in ('pressure', 'strength'):
+            if isinstance(kwargs[attr], (int, float)):
+                kwargs[attr] = kwargs[attr]*np.ones(n_pts)
+            else:
+                assert len(kwargs[attr]) == n_pts
+            gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
         return gp_stroke
+
+        # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
+        # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes

@@ -26,7 +26,7 @@ import bpy #pylint: disable=import-error
 import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import core, new, env, turtle
+from . import core, new, env, turtle, trf
 
 def spheres():
     """
@@ -266,6 +266,33 @@ def draw_link(n_u=6, n_v=16, l=1, r_v=1, r_u=0.2):
     n_end = a.spin(angle=np.pi, steps=n_v, axis='x', cent=(0., 0., l))
     a.join(u_start.e + n_end.e)
     return +a
+
+def grease_pencil():
+    """Illustrate making animated 2d plots with grease pencil."""
+    # equivalent of MATLAB's figure()
+    gp = core.GP(gp_name='myGP', obj_name='myGPobj', coll_name='myColl', layer_name='sl1')
+
+    θ = np.radians(np.arange(0, 360*2+1, 1))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/2
+
+    # equivalent of plot
+    pc1 = trf.PointCloud(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((1, 1, 1)))
+    pc2 = trf.PointCloud(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((0, 0, 1)))
+    gp.stroke(pc1, color=2, layer='sl1', keyframe=0)
+    # pressure controls thickness of individual points
+    gp.stroke(pc2, color=1, layer='sl3', keyframe=10, pressure=np.linspace(0, 3, len(θ)))
+    # strength seems to control transparencu of individual points
+    gp.stroke(pc1, color=2, layer='sl1', keyframe=20, strength=np.linspace(0, 1, len(θ)))
+    gp.keyframe = 30
+
+    # show the frame for point cloud 1
+    pcf = pc1.frame.as_points()
+    gp.layer = 'crd'
+    gp.stroke(trf.PointCloud(pcf.co[[0, 1]]), color='crd_i', line_width=80)
+    gp.stroke(trf.PointCloud(pcf.co[[0, 2]]), color='crd_j', line_width=80)
+    gp.stroke(trf.PointCloud(pcf.co[[0, 3]]), color='crd_k', line_width=80)
 
 def main():
     """
