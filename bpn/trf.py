@@ -16,6 +16,9 @@ import math
 import numpy as np
 from numpy.linalg.linalg import inv, norm
 
+import pntools as pn
+from . import core, utils
+
 class CoordFrame:
     """
     Coordinate frame defined by origin and unit vectors.
@@ -29,36 +32,68 @@ class CoordFrame:
         tfmat@ -> applies transformation in current space.
         m@ -> moves coordinates back into world space.
 
-    There are no 'setters' for the properties here on purpose.
-    This is meant to be used as a 'read-only' class.
-    Classes inheriting from CoordFrame can define setters based on the relationship between points and coordinate frame in that class.
-
-    REMEMBER:
+    Convention for this module:
         The 'parent' of any CoordFrame object IS the world frame.
         In other words, the columns of 'm', i.e., this frame's unit vectors, are defined in world frame.
     """
     def __init__(self, m=None, **kwargs):
-        self.m = m4(m, **kwargs)
+        self._m = m4(m, **kwargs)
+        if 'name' in kwargs:
+            self.name = kwargs['name']
+        else:
+            self.name = None
+        self.gp = None # store reference to greasepencil object after using show.
+
+    @property
+    def m(self):
+        """4x4 transformation matrix to bring points from this frame to the world."""
+        return self._m
+
+    @m.setter
+    def m(self, new_m):
+        self._m = new_m
+        if self.gp is not None:
+            self.show()
 
     @property
     def origin(self):
         """Origin of the coordinate system."""
-        return self.m[0:3, 3]
+        return self._m[0:3, 3]
+    @origin.setter
+    def origin(self, new_origin):
+        new_origin = np.array(new_origin)
+        assert len(new_origin) == 3
+        self._m[0:3, 3] = new_origin
 
     @property
     def i(self):
         """X unit vector represented in world coordinates."""
-        return self.m[0:3, 0]
+        return self._m[0:3, 0]
+    @i.setter
+    def i(self, new_i):
+        new_i = np.array(new_i)
+        assert len(new_i) == 3 # not enforcing i to be a unit vector!
+        self._m[0:3, 0] = new_i
 
     @property
     def j(self):
         """X unit vector represented in world coordinates."""
-        return self.m[0:3, 1]
+        return self._m[0:3, 1]
+    @j.setter
+    def j(self, new_j):
+        new_j = np.array(new_j)
+        assert len(new_j) == 3
+        self._m[0:3, 1] = new_j
 
     @property
     def k(self):
         """X unit vector represented in world coordinates."""
-        return self.m[0:3, 2]
+        return self._m[0:3, 2]
+    @k.setter
+    def k(self, new_k):
+        new_k = np.array(new_k)
+        assert len(new_k) == 3
+        self._m[0:3, 2] = new_k
 
     def as_points(self):
         """Return coordinate frame as a set of four points in world coordinates."""
@@ -75,6 +110,41 @@ class CoordFrame:
         """Return point locations in the world frame."""
         coord_world = apply_matrix(self.m, coord_local)
         return coord_world
+    
+    def show(self, name=None, **kwargs):
+        """
+        Display the coordinate frame.
+        Create one if it does not exist.
+        Update if it exists.
+        """
+        if self.gp is not None: # update 
+            pcf = self.as_points()
+            self.gp.strokes['crd_i'].points.foreach_set('co', pcf.co[[0, 1]].flatten())
+            self.gp.strokes['crd_j'].points.foreach_set('co', pcf.co[[0, 2]].flatten())
+            self.gp.strokes['crd_k'].points.foreach_set('co', pcf.co[[0, 3]].flatten())
+            self.gp.g.update_tag()
+        else:
+            # create
+            names, kwargs = utils.clean_names(name, kwargs, {
+                'gp_name': 'Frame',
+                'obj_name': 'CoordFrame',
+                'coll_name': 'CoordFrames',
+                'layer_name': 'crd',
+                'priority_obj': 'new',
+                'priority_gp': 'new'
+                }, 'gp')
+            kwargs, _ = pn.clean_kwargs(kwargs, {
+                'palette_list': ['blender_ax'], 
+                'palette_prefix': [''], 
+                'palette_alpha': [0.8],
+                })
+            self.gp = core.GP(name, **{**names, **kwargs})
+            self.name = names['obj_name']
+            pcf = self.as_points()
+            self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=80, name='crd_i')
+            self.gp.stroke(PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=80, name='crd_j')
+            self.gp.stroke(PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=80, name='crd_k')
+        return self.gp
 
 
 class PointCloud:

@@ -72,6 +72,14 @@ def spheres():
     
     env.Key().auto_lim()
 
+    s5 = new.sphere('sphere5', msh_name='sph', coll_name='Spheres')
+    sf = s5.frame
+    sf.show('sphere5_CoordFrame', coll_name='Spheres')
+
+    s5.loc = (-2, -2, -1)
+    s5.rotate((30, 90, 0))
+    sf.m = s5.frame.m
+
 def dna():
     """
     Animate two strands of DNA
@@ -310,12 +318,13 @@ def grease_pencil():
     gp.keyframe = 30
 
     # show the frame for point cloud 1
-    pcf = pc1.frame.as_points()
-    gp.layer = 'crd'
-    gp.stroke(trf.PointCloud(pcf.co[[0, 1]]), color='crd_i', line_width=80)
-    gp.stroke(trf.PointCloud(pcf.co[[0, 2]]), color='crd_j', line_width=80)
-    gp.stroke(trf.PointCloud(pcf.co[[0, 3]]), color='crd_k', line_width=80)
-    return gp
+    # pcf = pc1.frame.as_points()
+    # gp.layer = 'crd'
+    # gp.stroke(trf.PointCloud(pcf.co[[0, 1]]), color='crd_i', line_width=80)
+    # gp.stroke(trf.PointCloud(pcf.co[[0, 2]]), color='crd_j', line_width=80)
+    # gp.stroke(trf.PointCloud(pcf.co[[0, 3]]), color='crd_k', line_width=80)
+    gp_coord = pc1.frame.show()
+    return gp, gp_coord
 
 def bulge_tube():
     """
@@ -332,6 +341,11 @@ def bulge_tube():
     x = t.xsec.all[5]
     x.scale((3, 8, 1))
     x.twist(-45)
+
+    # show coordinate frames
+    for i, x in enumerate(t.xsec.all):
+        x.frame.show(name=str(i), coll_name='bulge_tube_frames')
+    return t
 
 def spring():
     """Animating a spring using the Tube class."""
@@ -380,7 +394,7 @@ def mobius():
 
     X[0].origin = trf.PointCloud((2, 0, 0), np.eye(4))
     X[-1].origin = trf.PointCloud((2, 0, 0), np.eye(4))
-
+    return t
 
 def main():
     """
