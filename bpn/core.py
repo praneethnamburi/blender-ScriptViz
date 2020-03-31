@@ -825,6 +825,7 @@ class GP:
         
         self._color = None # name of the current material
         self.color = 0 # initalize to the first one
+        self.strokes = {} # easy access to stroke data
     
     @property
     def color_index(self):
@@ -938,7 +939,8 @@ class GP:
             'layer': None, # defaults to layer in self._layer
             'color': None, # defaults to current color self._color
             'keyframe': None, # defaults to self._keyframe
-            'display_mode': '3DSPACE'
+            'display_mode': '3DSPACE',
+            'name': 'stroke'
             })
 
         # set where, when and color
@@ -951,6 +953,7 @@ class GP:
 
         assert type(ptcloud).__name__ == 'PointCloud'
         gp_stroke = self.keyframe.strokes.new()
+        kwargs['name'] = utils.new_name(kwargs['name'], list(self.strokes.keys()))
         gp_stroke.display_mode = kwargs['display_mode']
 
         gp_stroke.points.add(count=ptcloud.n)
@@ -965,6 +968,7 @@ class GP:
             else:
                 assert len(kwargs[attr]) == n_pts
             gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
+        self.strokes[kwargs['name']] = gp_stroke
         return gp_stroke
 
         # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
