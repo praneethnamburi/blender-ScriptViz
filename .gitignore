@@ -1,6 +1,5 @@
 *.pyc
 __pycache__/
-*.code-workspace
 .vscode/.ropeproject/
 _auth/
 _temp/
