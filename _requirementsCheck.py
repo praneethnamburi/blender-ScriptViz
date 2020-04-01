@@ -131,64 +131,26 @@ def main():
         return
 
     print('(over)writing blender startup file:')
-    blenderStartupPath = my.ospath(str(os.path.join(Path(pythonPath).parents[2], 'scripts', 'startup')))
+    blenderBaseDir = str(Path(blenderPath).parents[0])
+    dirs = next(os.walk(blenderBaseDir))[1]
+    blenderVersionDirName = [o for o in dirs if o.replace('.', '', 1).isdigit()]
+    if not blenderVersionDirName:
+        return
+    assert len(blenderVersionDirName) == 1
+    blenderStartupPath = my.ospath(str(os.path.join(blenderBaseDir, blenderVersionDirName[0], 'scripts', 'startup')))
     if not blenderStartupPath:
         return
     writeBlenderStartupFile(os.path.join(blenderStartupPath, 'pnStartup.py'))
 
-    print('Looking for pip in blender:')
-    pipPath = my.locateCommand('pip', 'blender')
-    if not pipPath:
-        print('Installing pip:')
-        getPipPath = my.ospath(os.path.join('_ext', 'get-pip.py'), 'pip installer')
-        if not getPipPath:
-            return
-        pipInstallCmd = pythonPath + ' ' + getPipPath
-        print(pipInstallCmd)
-        os.system(pipInstallCmd)
-
-    # Get list of installed packages
-    currPkgs, currPkgNames, _ = my.pkgList()
-
-    # Read from _requirements.txt if it is there
-    reqFile = my.ospath('_requirements.txt', 'requirements file. Use pip freeze > _requirements.txt to make one')
-    print('Reading requirements file:')
-    reqPkgs = [line.rstrip('\n') for line in open('_requirements.txt') if line.rstrip('\n')]  # 'if' part to discard empty lines
-    if not reqFile:
-        return
-    reqPkgNames = [m[0] for m in [k.split('==') for k in reqPkgs]]
-
-    # If some packages are not listed, ask for uninstall
-    extraPkgsIncVerChg = list(set(currPkgs) - set(reqPkgs))
-
-    # Exclude version changes from this list
-    _, currMinusReq = listDiff(currPkgNames, reqPkgNames)
-    extraPkgs = [k for i, k in enumerate(currPkgs) if currMinusReq[i]]
-    for pkgName in extraPkgs:
-        thisCmd = 'pip uninstall ' + pkgName
-        os.system(thisCmd)
-
-    # which packages changed versions?
-    # this has the old version number in it
-    verChangePkgs = list(set(extraPkgsIncVerChg) - set(extraPkgs))
-
-    # If there are missing packages, install them
-    missingPkgs = list(set(reqPkgs) - set(currPkgs))
-    for pkgName in missingPkgs:
-        thisCmd = 'pip install ' + pkgName
-        os.system(thisCmd)
-
-    # summarize changes
-    print('Requirements update summmary:')
-    print('Version changes (shows uninstalled version):')
-    print(verChangePkgs)
-    print('New installs including version changes (shows installed version): ')
-    print(missingPkgs)
-    print('These packages were in the uninstall list: ')
-    print(extraPkgs)
-
-    # update _requirements file after install process!
-    os.system('pip freeze > ' + reqFile)
+    # Anaconda-specific things
+    # conda env create -f _requirements.yml
+    # To do this, use 
+    # conda list --revisions
+    # conda install --rev <rev number>
+    # defaultEnvName = 'blender'+str(Path(blenderPath).parents[0]).split(os.sep)[-1].replace('.', '')
+    # os.system('conda activate ' + defaultEnvName)
+    # os.system('conda env update --file _requirements.yml')
+    os.system('conda env export > _requirements.yml')
 
 if __name__ == '__main__' or __name__ == '<run_path>':
     main()

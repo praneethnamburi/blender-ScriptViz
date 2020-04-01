@@ -2,72 +2,66 @@
 
 The goal of this project is to ease the process of 3D scientific data visualization.
 
-We aim to achieve this by:
+We aim to bring together blender's powerful visualization toolkit with Anaconda's scientific computing and package management capabilities.
 
-1. Easing the burden that python's package management system puts on
-   blender python developers because blender comes bundled with python.
-2. Providing a way to clean up and inject modules into blender's python
-   console.
-3. Providing instructions on how to set up a development workflow using
-   blender, python and VSCode.
-4. How do I use the python debugger as much as possible?
-   - Simple use case: visualization in blender not required during debugging
-   - Visualization is required in blender while debugging
+## Setting up blender+Anaconda+VSCode
 
-## Installation instructions
+1. Download blender (get the zip file, NOT a binary installer), or just follow this link: <https://builder.blender.org/download/>
+2. Unzip to C:\blender\2.83.0 (which has a folder called 2.83)
+3. Open the python console within blender, and check the python version 
+   - e.g. 3.7.4
+4. Delete the python folder and all its contents (C:\blender\2.83.0\2.83\python)
+5. Install Anaconda, and open anaconda prompt with admin privileges
+6. conda create -n blender2830 python=3.7.4 ptvsd flask requests
+   - install the same version as blender's python
+   - env name is dictated by the main folder name (C:\blender\2.83.0)
+   - ptvsd, flask and requests are required for remote debugging with VSCode
+7. conda activate blender2830
+8. Install VSCode
+9. Add these settings in VSCode (to your workspace)
+   -  "settings": {
+         "terminal.integrated.env.windows": {
+            "PATH": "C:\\blender\\2.83.0;C:\\Users\\Praneeth\\.conda\\envs\\blender2830;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\mingw-w64\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\usr\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Scripts;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\bin;C:\\ProgramData\\Anaconda3\\condabin;*OTHER THINGS IN YOUR PATH*,
+         },
+         "python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
+      },
+10. Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
+    - blender.exe --env-system-python 'C:\Users\Praneeth\.conda\envs\blender2830'
+11. If this works, you're good to go! Install packages using conda, and you should be able to import them in the blender console. Keep going to set up debugging.
+12. Install Blender Development add-on for VSCode.
+13. *Modify* the add-on's source code. The add-on launches blender with a custom-written script to enable debugging. We need the add-on to pass an additional --env-system-python argument. 
+    - Locate the blender_executable.js file in the add-on install folder.
+    - C:\Users\Praneeth\.vscode\extensions\jacqueslucke.blender-development-0.0.12\out\blender_executable.js
+    - Modify the getBlenderLaunchArgs function
+    - return ['--env-system-python', 'C:\\Users\\Praneeth\\.conda\\envs\\blender2830', '--python', paths_1.launchPath];
+    - Within the function testIfPathIsBlender, in the if-else clause contained within the Promise, change the if condition to if (false)
+    - This is so it does not throw 'A simple check to test...'
+    - (There is probably a much more elegant way to do this)
+    - Restart VSCode (for some reason it took 2 re-starts for me)
+14. Troubleshooting:
+    - A useful tip is to check if you're able to find the correct python, pip, conda and blender commands from your command prompt.
+    - Use 'where blender' in the windows command prompt inside VSCode
+    - Result: C:\blender\2.83.0\blender.exe
+    - where python
+    - C:\Users\Praneeth\.conda\envs\blender2830\python.exe
+    - where conda
+    - C:\ProgramData\Anaconda3\condabin\conda.bat
 
-1. Download blender (get the 2.80 beta, and get the zip file, NOT a binary installer), or just follow this link: <https://builder.blender.org/download/>
-2. Unzip into ~/blender, OR C:\blender. OSX users:
-   - Create a folder "blender" in your home directory
-   - Move the Contents folder inside blender application into the "blender" folder
-4. Make sure that the path string to the blender executable has the
-   string 'blender' in it
-5. Set paths to blender and packaged python executables in blender
-   - Check using terminal that when you do where/which blender and where/which python, you get the correct executables
-   OSX users:
-   - in VSCode: cmd+shift+P -> Install 'code' command in PATH
-   - Go to the VSCode integrated terminal, and type code /etc/paths
-   - Add the blender executable (within the package) and python executable (within the blender.app package) to the top of this directory.
-   - example: /Users/younah/blender/Contents/MacOS
-              /Users/younah/blender/Contents/Resources/2.80/python/bin
-   - which blender and which python3.7m should point to the correct files inside your terminal
-        - example: /Users/younah/blender/Contents/MacOS/blender
-                   /Users/younah/blender/Contents/Resources/2.80/python/bin/python3.7m
-6. Install JacquesLucke's blender development extension for VSCode
-7. Set up keyboard shortcuts and settings in VSCode
-8. Set blender executable path, environment path, in VSCode inside settings.JSON (or, in your *.code-workspace) folder
-9. Install nodejs (to interface with firebase)
-10. Git clone this repository
-   - either from Praneeth's dropbox githosting, or
-   - <https://github.com/issalab/praneethTutorial.git>
-11. Run python _requirementsCheck.py, which should:
+
+## Using this software
+
+1. Clone the repository to your workspace (D:\Workspace\blenderPython)
+2. Install additional requirements using the _requirements.yml file
+   - In the terminal, navigate to the workspace folder, activate your blender anaconda environment and update it from _requirements.yml
+   - conda activate blender2830
+   - conda env update --file _requirements.yml
+3. Run python _requirementsCheck.py in the terminal. It will:
    1. Check if blender, and the correct python executables are visible to the terminal
-   2. Make a startup file in blender's startup directory (for customizing blender's workspace variables)
-   3. Install pip inside blender if it doesn't exist
-   4. Use _requirements.txt to download and install packages into blender
-   5. Print a summary of these changes, and update the _requirements.txt file
-12. Setting up VSCode for blender python development
-13. Add-ons
-14. Edit your settings JSON file
-   - set python interpreter path
-   - set blender executable path (to the app or the executable inside the app?)
-   - example:
-    {
-        "python.pythonPath": "/Users/younah/blender/Contents/Resources/2.80/python/bin/python3.7m",
-        "git.autofetch": true,
-        "git.enableSmartCommit": true,
-        "blender.executables": [
-            {
-                "path": "/Users/younah/blender/Contents/MacOS/blender",
-                "name": "",
-                "isDebug": false
-            }
-        ]
-    }
-14. (optional?) Save your VSCode workspace
-15. In the terminal, type which python3.7m (double-checking!)
-16. If this is the python inside blender, then type python3.7m _requirementsCheck.py to install required packages into blender's python
-17. In VSCode's command palette, type Blender: start (automate using multi-command)
+   2. Make a startup file in blender's startup directory
+   3. Update _requirements.yml file (e.g. with your installs)
+4. From VSCode's command palette, use the command Blender: start
+   - Some of this can be automated using the multicommand add-on for VSCode
+
 
 ## Development workflow
 
@@ -78,27 +72,19 @@ We aim to achieve this by:
    _requirementsCheck.py)
 5. Start blender using VSCode extension
    - automated 3, 4, and 5 using the multi-command extension
-6. Clean up workspace by typing exec(bpy.loadStr) into blender's python console. This will work if _requirementsCheck.py completed successfully.
+6. Import this software into the python console within blender using 'from bpn_init import *'. This will work if _requirementsCheck.py completed successfully.
 7. Run scripts (blender extension, add shortcut f6) and develop!
 8. During development, update documentation, notes and readme.md
 9. git Commit and push
 10. Sync VSCode settings (automated this using the extension setting)
 
+
 ## Current workflow
 
 1. Start VSCode
-2. Press shift+f6 to start a sesstion
+2. Press shift+f6 to start a sesstion (multicommand automation)
 3. Start coding! Use f6 to run scripts
 
-Don't use system exits! This will terminate blender as well
-
-## Setting up VSCode for blender + python development
-
-Environment variables: add paths to env variables so that blender and
-python bundled with blender show up when you query blender and python,
-and the corresponding pip
-
-## Using the bpn module
 
 ## Folder structure
 
@@ -116,15 +102,10 @@ developing with multiple people, but this will eventually disappear from
 distribution. So, only put things that you don't want to enventually
 distribute.
 
-### _ext: External dependencies
-
-Keep this very selective.
-
 ### _temp: Temporary folder
 
 Local cache for storing intermediate data generated by the software.
 
-### node_modules
+### apps
 
-Dependencies for node (listed in package-lock.json). Keep the
-node_modules folder out of source control.
+Applications that use the main package bpn, and supporting package pntools.
