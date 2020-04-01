@@ -300,7 +300,7 @@ def draw_spring():
 def grease_pencil():
     """Illustrate making animated 2d plots with grease pencil."""
     # equivalent of MATLAB's figure()
-    gp = core.GP(gp_name='myGP', obj_name='myGPobj', coll_name='GP', layer_name='sl1')
+    gp = core.Pencil(gp_name='myGP', obj_name='myGPobj', coll_name='Pencil', layer_name='sl1')
 
     θ = np.radians(np.arange(0, 360*2+1, 1))
     z1 = np.sin(θ)

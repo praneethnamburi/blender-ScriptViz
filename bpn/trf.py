@@ -138,7 +138,7 @@ class CoordFrame:
                 'palette_prefix': [''], 
                 'palette_alpha': [0.8],
                 })
-            self.gp = core.GP(name, **{**names, **kwargs})
+            self.gp = core.Pencil(name, **{**names, **kwargs})
             self.name = names['obj_name']
             pcf = self.as_points()
             self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=80, name='crd_i')

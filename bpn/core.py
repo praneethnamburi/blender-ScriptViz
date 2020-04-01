@@ -782,7 +782,7 @@ class Msh(pn.Track):
         return Msh(obj_name=this_o.name)
 
 
-class GP:
+class Pencil:
     """
     Does a fine job creating a new grease pencil custom object.
     What if I want to make one from an existing grease pencil object?
@@ -796,7 +796,7 @@ class GP:
         pc1 = PC(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((1, 1, 1)))
         pc2 = PC(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((0, 0, 1)))
 
-        gp = GP(gp_name='myGP', obj_name='myGPobj', coll_name='myColl', layer_name='sl1')
+        gp = Pencil(gp_name='myGP', obj_name='myGPobj', coll_name='myColl', layer_name='sl1')
         gp.stroke(pc1, color=2, layer='sl1', keyframe=0)
         gp.stroke(pc2, color=1, layer='sl3', keyframe=10)
         gp.stroke(pc1, color=2, layer='sl1', keyframe=20, line_width=100)
