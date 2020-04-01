@@ -18,3 +18,7 @@ ipython, jupyter
 
 # for documentation
 sphinx
+
+# simulators
+pymunk, pyspice
+neuron (installed separately)
