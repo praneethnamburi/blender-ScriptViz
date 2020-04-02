@@ -100,6 +100,17 @@ class CoordFrame:
         v = np.vstack((self.origin, self.origin+self.i, self.origin+self.j, self.origin+self.k))
         return PointCloud(v, np.eye(4))
 
+    def transform(self, tfmat, tf_frame=None):
+        """
+        Transform the coordinate frame in reference frame tf_frame (defaults to world frame).
+        Returns a CoordFrame object (a new one)
+
+        This is used for "change frame, keep point relationships the frame" transform
+        """
+        tfmat = np.array(tfmat)
+        assert np.shape(tfmat) == (4, 4)
+        return self.as_points().transform(tfmat, tf_frame).as_frame()
+
     # These two functions are here for clarity
     def from_world(self, coord_world):
         """Return point locations in the current frame of reference."""
@@ -137,13 +148,15 @@ class CoordFrame:
                 'palette_list': ['blender_ax'], 
                 'palette_prefix': [''], 
                 'palette_alpha': [0.8],
+                'line_width': 80,
+                'scale': 1
                 })
             self.gp = core.Pencil(name, **{**names, **kwargs})
             self.name = names['obj_name']
-            pcf = self.as_points()
-            self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=80, name='crd_i')
-            self.gp.stroke(PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=80, name='crd_j')
-            self.gp.stroke(PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=80, name='crd_k')
+            pcf = self.as_points().transform(scaletf(kwargs['scale']), self.m)
+            self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=kwargs['line_width']*kwargs['scale'], name='crd_i')
+            self.gp.stroke(PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=kwargs['line_width']*kwargs['scale'], name='crd_j')
+            self.gp.stroke(PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=kwargs['line_width']*kwargs['scale'], name='crd_k')
         return self.gp
 
 
@@ -154,13 +167,15 @@ class PointCloud:
         v = PointCloud(vert, local_frame)
         v.co    : coordinates in local reference frame, local_frame
         v.frame : frame of reference for these coordinates
+    
+    Remember: A coordinate frame IS a point cloud
     """
     def __init__(self, vert, frame=np.eye(4)):
         """
         :param vert: (2d numpy array) size nV x 3 specifying locations of points
         :param frame: (bpn.trf.CoordFrame) co-ordinate frame for the locations
         """
-        if not isinstance(frame, CoordFrame):
+        if type(frame).__name__ != 'CoordFrame':
             frame = CoordFrame(frame)
         vert = np.array(vert)
         if np.shape(vert) == (3,): # only one point in the cloud
@@ -187,7 +202,7 @@ class PointCloud:
         i = self.co[1, :] - o
         j = self.co[2, :] - o
         k = self.co[3, :] - o
-        return CoordFrame(i=i, j=j, k=k, origin=o, unit_vectors=True)
+        return CoordFrame(i=i, j=j, k=k, origin=o, unit_vectors=False)
     
     # The following methods all return a NEW point cloud.
     # They DO NOT modify the coordinates of this point cloud.
@@ -218,10 +233,28 @@ class PointCloud:
         world_co = transform(np.eye(4), self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=out_frame_mat)
         return PointCloud(world_co, out_frame_mat)
 
-    def transform(self, tfmat):
-        """Apply a transform in the current frame of reference."""
-        co = transform(tfmat, self.co, vert_frame_mat=self.frame, tf_frame_mat=self.frame, out_frame_mat=self.frame)
+    def transform(self, tfmat, tf_frame=None):
+        """
+        Apply a transform in the frame of reference tf_frame.
+        Defaults to applying a transform in the current frame of refrence.
+        Returns:
+            PointCloud
+
+        This is "keep frame, change points relationships to the frame" transform
+        """
+        if tf_frame is None:
+            tf_frame = self.frame
+        co = transform(tfmat, self.co, vert_frame_mat=self.frame, tf_frame_mat=tf_frame, out_frame_mat=self.frame)
         return PointCloud(co, self.frame)
+
+    def reframe(self, new_frame):
+        """
+        Re-frame the points. This maintains point locations in the world
+        frame, but changes the current frame of reference.
+        """
+        # note that tf_frame_mat is meaningless when tfmat is an identity matrix
+        co = transform(np.eye(4), self.co, vert_frame_mat=self.frame, tf_frame_mat=np.eye(4), out_frame_mat=new_frame)
+        return PointCloud(co, new_frame)
     
     # syntactic ease
     def __call__(self):

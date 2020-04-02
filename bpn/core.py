@@ -299,7 +299,31 @@ class Msh(pn.Track):
         """
         Unit frame of reference for the current mesh.
         """
-        return trf.CoordFrame(m=self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
+        return trf.CoordFrame(self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
+
+    @frame.setter
+    def frame(self, new_frame):
+        """Points go with the frame! Simply changes matrix_world."""
+        if type(new_frame).__name__ == 'CoordFrame':
+            new_frame = new_frame.m
+        self.bo.matrix_world = mathutils.Matrix(new_frame)
+        bpy.context.view_layer.update()
+
+    @property
+    def pts(self):
+        """Return vertices as a trf.PointCloud object."""
+        return trf.PointCloud(self.v, self.frame)
+
+    @pts.setter
+    def pts(self, new_pts):
+        """
+        Set the vertices AND the frame. In other words, transform the
+        point cloud into the desired frame of reference before putting
+        it here.
+        """
+        assert type(new_pts).__name__ == 'PointCloud'
+        self.v = new_pts.co
+        self.frame = new_pts.frame
 
     @property
     def vn(self):
@@ -365,7 +389,8 @@ class Msh(pn.Track):
         self.vBkp = self.v # for undo
         for vertexCount, vertex in enumerate(self.bm.vertices):
             vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
-
+        bpy.context.view_layer.update()
+        
     @property
     def center(self):
         """Return mesh center"""
