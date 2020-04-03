@@ -28,7 +28,7 @@ import pntools as pn
 import bpn
 
 # modules
-from bpn import new, env, demo, utils, turtle, vef, trf, io, core
+from bpn import new, env, demo, utils, turtle, vef, trf, io, core, resources
 # classes
 from bpn.core import Msh, Pencil
 from bpn.env import Props, ReportDelta

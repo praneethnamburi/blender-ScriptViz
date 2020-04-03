@@ -13,7 +13,6 @@ import functools
 import numpy as np
 
 import bpy #pylint: disable=import-error
-# import traceback
 
 PROP_FIELDS = [k for k in dir(bpy.data) if 'bpy_prop_collection' in str(type(getattr(bpy.data, k)))]
 
@@ -183,24 +182,41 @@ def reset():
 
     This is extremely useful for clearing the scene programatically during iterative development.
     """
-    # bpy.ops.wm.read_factory_settings()
     for scene in bpy.data.scenes:
         for obj in scene.objects:
             try:
                 scene.objects.unlink(obj)
             except AttributeError:
+                # import traceback
                 # traceback.print_exc()
                 pass
-    # only worry about data in the startup scene
-    for bpy_data_iter in (bpy.data.objects, bpy.data.meshes, bpy.data.collections, bpy.data.grease_pencils, bpy.data.materials):
-        # may not work for collections - blender bug
+
+    exclusion_list = ['brushes', 'images', 'screens', 'window_managers', 'workspaces', 'scenes', 'worlds', 'palettes', 'linestyles']
+    all_prop_coll = [pc for pc in dir(bpy.data) if type(getattr(bpy.data, pc)).__name__ == 'bpy_prop_collection']
+    rem_prop_coll = [pc for pc in all_prop_coll if pc not in exclusion_list]
+    clear(rem_prop_coll)
+
+    # clear frame change handlers (perhaps clear all handlers?)
+    bpy.app.handlers.frame_change_pre.clear()
+    bpy.app.handlers.frame_change_post.clear()
+
+def clear(clist=None):
+    """
+    Clear specific things from prop collection.
+    Example:
+        env.clear('actions') will remove all actions
+    """
+    if clist is None:
+        clist = []
+    if isinstance(clist, str):
+        clist = [clist]
+    assert isinstance(clist, list)
+    for bpy_data_iter in [getattr(bpy.data, citem) for citem in clist]:
         for id_data in bpy_data_iter:
             try:
                 bpy_data_iter.remove(id_data)
             except AttributeError:
                 pass
-    # clear frame change handlers (perhaps clear all handlers?)
-    bpy.app.handlers.frame_change_pre.clear()
 
 def shade(shading='WIREFRAME', area='Layout'):
     """

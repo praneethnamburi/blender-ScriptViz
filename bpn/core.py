@@ -15,6 +15,7 @@ import numpy as np
 import pntools as pn
 
 import bpy #pylint: disable=import-error
+import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
@@ -390,7 +391,7 @@ class Msh(pn.Track):
         for vertexCount, vertex in enumerate(self.bm.vertices):
             vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
         bpy.context.view_layer.update()
-        
+
     @property
     def center(self):
         """Return mesh center"""
@@ -805,6 +806,16 @@ class Msh(pn.Track):
         if isinstance(msh_name, str):
             this_o.data.name = msh_name
         return Msh(obj_name=this_o.name)
+
+    def update_normals(self):
+        """Update face normals (for example, when updating the point locations!)"""
+        bm = bmesh.new()
+        bm.from_mesh(self.bm)
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(self.bm)
+        bm.clear()
+        self.bm.update()
+        bm.free()
 
 
 class Pencil:

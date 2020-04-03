@@ -1,16 +1,49 @@
 """
 Transformations sub-module.
 
-In the spirit of developing hierarchical objects, this module introduces CoordFrame class.
-A co-ordinate system in this context is defined by a 4x4 matrix, or an origin and three unit vectors. Origin and axes are specified with respect to world coordinates.
+In the spirit of developing hierarchical objects, this module introduces
+CoordFrame class. A co-ordinate system in this context is defined by a
+4x4 matrix, or an origin and three unit vectors. Origin and axes are
+specified with respect to world coordinates.
 
 Points in the world can be transformed:
 1) with respect to a coordinate frame, OR
-    - These operations do not affect the coordinate frame wrt to the world frame.
+    - These operations do not affect the coordinate frame wrt to the
+      world frame.
 2) by 'binding' them to a coordinate frame, and transforming the frame.
-    - Affecting the coordinate frame changes the location of the points in the world frame.
+    - Affecting the coordinate frame changes the location of the points
+      in the world frame.
 
-Points and co-ordinates can be more 'tightly' bound, where the coordinate system itself is defined with respect to the points. Consider the DirectedSubMsh for example. The normal, or k direction is set externally, but the X direction is set according to the vector from the center of the points in the mesh to the first point in the mesh.
+Points and co-ordinates can be more 'tightly' bound, where the
+coordinate system itself is defined with respect to the points. Consider
+the DirectedSubMsh for example. The normal, or k direction is set
+externally, but the X direction is set according to the vector from the
+center of the points in the mesh to the first point in the mesh.
+
+The 'general' matrix transformation function is given by trf.transform.
+It allows you to specify "I have locations of points pts in a frame
+pt_frame. Apply the transformation matrix to these points, in a
+transformation frame tf_frame, and return the locations in the frame
+out_frame."
+
+It is useful to categorize transforms into three types:
+1) Keep the frame, and transform points within the frame
+   (PointCloud.transform).
+2) Transform the frame, and keep relative locations of the points
+   (PointCloud.CoordFrame.transform).
+3) Re-frame the points in a new coordinate frame (PointCloud.reframe).
+
+PointCloud.transform is useful for transforming point locations in a
+given frame, while keeping the frame. 
+
+CoordFrame.transform is useful for moving around coordinate frames. When
+a PointCloud's frame is transformed using this method, point locations
+relative to the frame don't change. In other words, points move around
+in world frame, but the locations within their frame (basis) does not
+change.
+
+PointCloud.reframe is used for maintaining the locations of points in
+world frame, but assigning a new basis!
 """
 import math
 import numpy as np
