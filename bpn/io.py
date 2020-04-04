@@ -77,7 +77,7 @@ def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animati
             if isinstance(thisProp, bpy.types.Collection):
                 all_objects = bpy.data.collections[name].all_objects
             elif isinstance(thisProp, bpy.types.Object):
-                all_objects = env.Props().getChildren(name)
+                all_objects = env.Props().get_children(name)
 
             all_objects = [o for o in all_objects if o.type == 'MESH']
             for obj in all_objects:

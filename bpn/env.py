@@ -99,12 +99,12 @@ class Props:
             return {k:v for k, v in allNames.items() if v}
         else:
             return allNames
-    def getChildren(self, obj_name):
+    def get_children(self, obj_name):
         """
         Return children of a given object.
         Note that this function will only return children at the bottom most level.
         Example:
-            c = bpn.Props().getChildren('Foot_Bones_R')
+            c = Props().get_children('Foot_Bones_R')
         """
         if not self.get(obj_name):
             return set() # return empty set if the object isn't found

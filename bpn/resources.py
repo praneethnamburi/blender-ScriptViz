@@ -4,7 +4,10 @@ e.g. skeletal system.
 """
 import os
 
+import numpy as np
+
 import bpy #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 from . import new, utils
 
@@ -41,3 +44,114 @@ def load_rig(rig='circularRig'):
     for col in data_to.collections:
         if col is not None:
             bpy.context.scene.collection.children.link(col)
+
+class CircularRig:
+    """
+    Easily control a camera and lights rig.
+    Set the positions of the camera and lights, and animate.
+
+    Use these properties for initializing the rig:
+        theta - angle of the camera in the XY plane (in radians)
+        center - center of the camera path (defined as the center of the rig)
+
+    Example:
+        c = CircularRig()
+        c.theta = -np.pi/2
+    """
+    def __init__(self):
+        self.rig_name = 'circularRig'
+        if self.rig_name not in [c.name for c in bpy.data.collections]:
+            load_rig(self.rig_name)
+        self.key_rel_theta = -np.pi/4
+        self.fill_rel_theta = np.pi/3
+        self.back_rel_theta = 5*np.pi/6
+        self._set_theta()
+        self.key_rel_loc = np.array((0, 0, 0.15))
+        self.fill_rel_loc = np.array((0, 0, 0.15))
+        self.back_rel_loc = np.array((0, 0, 1))
+
+    @property
+    def theta(self):
+        """Camera angle in the XY plane."""
+        return self.offset2theta(bpy.data.objects['Container_camera'].constraints[0].offset_factor)
+
+    @theta.setter
+    def theta(self, new_theta):
+        bpy.data.objects['Container_camera'].constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
+        self._set_theta()
+
+    def _set_theta(self):
+        key_offset = self.theta2offset((self.theta + self.key_rel_theta)%(2*np.pi))
+        bpy.data.objects['Container_keyLight'].constraints[0].offset_factor = key_offset
+        fill_offset = self.theta2offset((self.theta + self.fill_rel_theta)%(2*np.pi))
+        bpy.data.objects['Container_fillLight'].constraints[0].offset_factor = fill_offset
+        back_offset = self.theta2offset((self.theta + self.back_rel_theta)%(2*np.pi))
+        bpy.data.objects['Container_backLight'].constraints[0].offset_factor = back_offset
+
+    @property
+    def center(self):
+        """Center of the rig. Defined as the center of the camera path."""
+        return np.array(bpy.data.objects['BezierCircle_camera'].location)
+
+    @center.setter
+    def center(self, new_center):
+        new_center = np.array(new_center)
+        assert len(new_center) == 3
+        bpy.data.objects['BezierCircle_camera'].location = mathutils.Vector(new_center)
+        self._set_loc()
+    
+    def _set_loc(self):
+        bpy.data.objects['BezierCircle_keyLight'].location = mathutils.Vector(self.center + self.key_rel_loc)
+        bpy.data.objects['BezierCircle_fillLight'].location = mathutils.Vector(self.center + self.fill_rel_loc)
+        bpy.data.objects['BezierCircle_backLight'].location = mathutils.Vector(self.center + self.back_rel_loc)
+
+    @property
+    def target(self):
+        """Location of the object that the camera and lights point to."""
+        return np.array(bpy.data.objects['Target'].location)
+
+    @target.setter
+    def target(self, new_target):
+        new_target = np.array(new_target)
+        assert len(new_target) == 3
+        bpy.data.objects['Target'].location = mathutils.Vector(new_target)
+
+    @property
+    def fov(self):
+        """Horizontal field of view of the camera."""
+        return 2*np.arctan(0.5*bpy.data.cameras['Main'].sensor_width/bpy.data.cameras['Main'].lens)*180/np.pi
+
+    @fov.setter
+    def fov(self, hor_angle_deg):
+        bpy.data.cameras['Main'].lens = 0.5*bpy.data.cameras['Main'].sensor_width/np.tan(hor_angle_deg*np.pi/360)
+
+    def key(self, frame=None, targ='lens', value=None):
+        if frame is None:
+            frame = bpy.context.scene.frame_current
+        else:
+            assert isinstance(frame, int)
+        if value is None:
+            value = bpy.data.cameras['Main'].lens if targ in ('lens', 'fov') else value 
+            value = self.target if targ == 'target' else value
+
+        if targ in ('lens', 'fov'):
+            if targ == 'lens':
+                bpy.data.cameras['Main'].lens = value
+            else:
+                self.fov = value
+            bpy.data.cameras['Main'].keyframe_insert(data_path='lens', frame=frame)
+        
+        if targ == 'target':
+            self.target = value
+            bpy.data.objects['Target'].keyframe_insert(data_path='location', frame=frame)
+
+    @staticmethod
+    def theta2offset(theta):
+        """theta in radians"""
+        return (0.75 - theta/(2*np.pi))%1.0
+    
+    @staticmethod
+    def offset2theta(offset):
+        """offset sets relative rig locations"""
+        assert 0 <= offset <= 1
+        return (3*np.pi/2 - 2*np.pi*offset)%(2*np.pi)

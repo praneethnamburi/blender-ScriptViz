@@ -48,6 +48,7 @@ world frame, but assigning a new basis!
 import math
 import numpy as np
 from numpy.linalg.linalg import inv, norm
+from sklearn.decomposition import PCA
 
 import pntools as pn
 from . import core, utils
@@ -289,6 +290,46 @@ class PointCloud:
         co = transform(np.eye(4), self.co, vert_frame_mat=self.frame, tf_frame_mat=np.eye(4), out_frame_mat=new_frame)
         return PointCloud(co, new_frame)
     
+    def reframe_pca(self, **mapping):
+        """
+        Re-frame the point cloud by changing directions according to principal components.
+        Convention for the body:
+            z_dir = 1 : up is positive
+            z_dir = -1 : down is positive (for arm bones for example)
+            x_dir positive is facing forward
+            y_dir = z_dir x x_dir (vector satisfying the right hand rule)
+        :param mapping: (dict) {'i':1, 'j':2} implies:
+            i-direction of the new frame uses PC1
+            j-direction of the new frame uses PC2
+            Supply only two. The third one will be automatically computed assuming a right handed frame.
+        """
+        if not mapping:
+            mapping = {'i':3, 'k':1}
+        assert len(mapping) == 2
+        pca = PCA(n_components=3)
+        pca.fit(self.in_world().co)
+        # pc1_dir = pca.components_.T[:, 0]
+        # pc3_dir = pca.components_.T[:, 2]
+        # z_dir = pc1_dir if z_dir123*pc1_dir[-1] > 0 else -pc1_dir
+        # x_dir = pc3_dir if pc3_dir[0] > 0 else -pc3_dir
+        # y_dir = np.cross(z_dir, x_dir)
+        if 'i' in mapping:
+            x_dir = pca.components_.T[:, np.abs(mapping['i'])-1]
+            x_dir = x_dir if np.sign(mapping['i'])*x_dir[0] > 0 else -x_dir # prioritize 'front' of anatomy with positive i in mapping
+        if 'j' in mapping:
+            y_dir = pca.components_.T[:, np.abs(mapping['j'])-1]
+            y_dir = y_dir if np.sign(mapping['j'])*y_dir[1] > 0 else -y_dir
+        if 'k' in mapping:
+            z_dir = pca.components_.T[:, np.abs(mapping['k'])-1]
+            z_dir = z_dir if np.sign(mapping['k'])*z_dir[2] > 0 else -z_dir # prioritize 'down' facing with a negative k in mapping (e.g. arm bones)
+        if 'i' not in mapping:
+            x_dir = np.cross(y_dir, z_dir)
+        if 'j' not in mapping:
+            y_dir = np.cross(z_dir, x_dir)
+        if 'k' not in mapping:
+            z_dir = np.cross(x_dir, y_dir)
+        return self.reframe(CoordFrame(i=x_dir, j=y_dir, k=z_dir, origin=self.frame.origin))
+
     # syntactic ease
     def __call__(self):
         """
