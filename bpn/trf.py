@@ -308,11 +308,6 @@ class PointCloud:
         assert len(mapping) == 2
         pca = PCA(n_components=3)
         pca.fit(self.in_world().co)
-        # pc1_dir = pca.components_.T[:, 0]
-        # pc3_dir = pca.components_.T[:, 2]
-        # z_dir = pc1_dir if z_dir123*pc1_dir[-1] > 0 else -pc1_dir
-        # x_dir = pc3_dir if pc3_dir[0] > 0 else -pc3_dir
-        # y_dir = np.cross(z_dir, x_dir)
         if 'i' in mapping:
             x_dir = pca.components_.T[:, np.abs(mapping['i'])-1]
             x_dir = x_dir if np.sign(mapping['i'])*x_dir[0] > 0 else -x_dir # prioritize 'front' of anatomy with positive i in mapping

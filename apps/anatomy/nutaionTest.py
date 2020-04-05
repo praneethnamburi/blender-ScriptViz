@@ -45,6 +45,15 @@ for this_obj in bpy.data.objects:
         # o.pts = o.pts.transform(tfmat, np.eye(4))
         # o.apply_matrix()
         # setOriginToCenter(this_obj.name)
+
+# reframe bones in PCA space of each bone
+arm_bone_names = [b.name for b in list(Props().get_children('Arm_Bones_L')) + list(Props().get_children('Arm_Bones_R'))]
+for this_obj in bpy.data.objects:
+    if this_obj.type == 'MESH':
+        o = get(this_obj.name)
+        o.pts = o.pts.reframe_pca(i=3, k=1-2*int(this_obj.name in arm_bone_names)) # down for arm bones
+        o.update_normals()
+
 # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem.blend", display_file_selector=False)
 # initBones()
 

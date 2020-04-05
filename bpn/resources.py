@@ -65,7 +65,7 @@ class CircularRig:
         self.key_rel_theta = -np.pi/4
         self.fill_rel_theta = np.pi/3
         self.back_rel_theta = 5*np.pi/6
-        self._set_theta()
+        self._set_lights_theta()
         self.key_rel_loc = np.array((0, 0, 0.15))
         self.fill_rel_loc = np.array((0, 0, 0.15))
         self.back_rel_loc = np.array((0, 0, 1))
@@ -77,15 +77,20 @@ class CircularRig:
 
     @theta.setter
     def theta(self, new_theta):
-        bpy.data.objects['Container_camera'].constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
-        self._set_theta()
+        self._set_camera_theta(new_theta)
+        self._set_lights_theta()
 
-    def _set_theta(self):
-        key_offset = self.theta2offset((self.theta + self.key_rel_theta)%(2*np.pi))
+    def _set_camera_theta(self, new_theta):
+        bpy.data.objects['Container_camera'].constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
+
+    def _set_lights_theta(self, new_theta=None):
+        if new_theta is None:
+            new_theta = self.theta
+        key_offset = self.theta2offset((new_theta + self.key_rel_theta)%(2*np.pi))
         bpy.data.objects['Container_keyLight'].constraints[0].offset_factor = key_offset
-        fill_offset = self.theta2offset((self.theta + self.fill_rel_theta)%(2*np.pi))
+        fill_offset = self.theta2offset((new_theta + self.fill_rel_theta)%(2*np.pi))
         bpy.data.objects['Container_fillLight'].constraints[0].offset_factor = fill_offset
-        back_offset = self.theta2offset((self.theta + self.back_rel_theta)%(2*np.pi))
+        back_offset = self.theta2offset((new_theta + self.back_rel_theta)%(2*np.pi))
         bpy.data.objects['Container_backLight'].constraints[0].offset_factor = back_offset
 
     @property
@@ -126,6 +131,7 @@ class CircularRig:
         bpy.data.cameras['Main'].lens = 0.5*bpy.data.cameras['Main'].sensor_width/np.tan(hor_angle_deg*np.pi/360)
 
     def key(self, frame=None, targ='lens', value=None):
+        """Camera and target keyframe insertion."""
         if frame is None:
             frame = bpy.context.scene.frame_current
         else:
@@ -133,6 +139,7 @@ class CircularRig:
         if value is None:
             value = bpy.data.cameras['Main'].lens if targ in ('lens', 'fov') else value 
             value = self.target if targ == 'target' else value
+            value = self.theta if targ == 'camera_angle' else value
 
         if targ in ('lens', 'fov'):
             if targ == 'lens':
@@ -144,6 +151,10 @@ class CircularRig:
         if targ == 'target':
             self.target = value
             bpy.data.objects['Target'].keyframe_insert(data_path='location', frame=frame)
+        
+        if targ == 'camera_angle':
+            self._set_camera_theta(value)
+            bpy.data.objects['Container_camera'].constraints[0].keyframe_insert('offset_factor', frame=frame)
 
     @staticmethod
     def theta2offset(theta):
