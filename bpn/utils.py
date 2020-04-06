@@ -64,7 +64,7 @@ def clean_names(name, kwargs, kwargs_def=None, mode='msh'):
         Draw class in bpn.turtle
         torus function in bpn.new
     """
-    assert mode in ('gp', 'msh')
+    assert mode in ('gp', 'msh', 'curve')
     if isinstance(name, str):
         kwargs[mode+'_name'] = name if mode+'_name' not in kwargs else kwargs[mode+'_name']
         kwargs['obj_name'] = name if 'obj_name' not in kwargs else kwargs['obj_name']
@@ -95,7 +95,9 @@ def clean_names(name, kwargs, kwargs_def=None, mode='msh'):
     if mode == 'gp':
         if kwargs_names['priority_gp'] == 'new':
             kwargs_names['gp_name'] = new_name(kwargs_names['gp_name'], [g.name for g in bpy.data.grease_pencils])
-
+    if mode == 'curve':
+        if kwargs_names['priority_curve'] == 'new':
+            kwargs_names['curve_name'] = new_name(kwargs_names['curve_name'], [g.name for g in bpy.data.curves])
     return kwargs_names, kwargs_other
 
 # common color palettes

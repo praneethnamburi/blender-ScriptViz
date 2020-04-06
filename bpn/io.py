@@ -11,7 +11,9 @@ import pandas as pd
 
 import bpy #pylint: disable=import-error
 
-from . import new, env
+import pntools as pn
+
+from . import new, env, utils
 
 # File IO
 @env.ReportDelta
@@ -34,6 +36,93 @@ def loadSTL(files):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
         bpy.ops.import_mesh.stl(filepath=f)
 
+def loadSVG(svgfile, name=None, **kwargs):
+    """
+    import an svg file into the blender scene.
+    Originally created to import latex text into blender.
+    Create text using the commands:
+        pdflatex testdoc.tex
+        pdftocairo -svg testdoc.pdf testdoc.svg
+    
+    Example:
+        io.loadSVG(os.path.join(utils.PATH['cache'], 'testdoc.svg'), color=utils.color_palette('blender_ax')['crd_k'])
+    """
+    if name is None:
+        name = os.path.splitext(os.path.basename(svgfile))[0]
+    kwargs_names, kwargs = utils.clean_names(name, kwargs, {'coll_name': 'my_svg'}, mode='curve')
+    kwargs_def = {
+        'remove_default_coll': True,
+        'scale': (100, 100, 100), # svg imports are really small
+        'color': (1.0, 1.0, 1.0, 1.0),
+        'combine_curves': True, # this may not work!!
+        }
+    kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def)
+
+    @env.ReportDelta
+    def _loadSVG(files):
+        """
+        Import an SVG file into the blender scene.
+        Hidden. Use loadSVG.
+        """
+        if isinstance(files, str):
+            files = [files]
+        for f in files:
+            if not os.path.exists(f):
+                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
+            bpy.ops.import_curve.svg(filepath=f)
+
+    s = _loadSVG(svgfile)
+    col_def = s['collections'][0]
+    col = new.collection(kwargs_names['coll_name'])
+
+    if kwargs['combine_curves']:
+        copied_curves = []
+        base_obj = s['objects'][0]
+        base_curve = base_obj.data
+        attrs_pts = ['co', 'handle_left', 'handle_right', 'handle_left_type', 'handle_right_type']
+        attrs_spline = ['order_u', 'order_v', 'resolution_u', 'resolution_v', 'tilt_interpolation', 'use_bezier_u', 'use_bezier_v', 'use_cyclic_u', 'use_cyclic_v', 'use_endpoint_u', 'use_endpoint_v', 'use_smooth']
+        for obj in s['objects'][1:]:
+            curve = obj.data
+            copied_curves.append(curve)
+            for spl in curve.splines:
+                if spl.type != 'BEZIER':
+                    continue # only bezier splines are copied for now!
+                spl_targ = base_curve.splines.new(type='BEZIER')
+                spl_targ.bezier_points.add(len(spl.bezier_points)-1)
+                for pt_targ, pt in zip(spl_targ.bezier_points[:], spl.bezier_points[:]):
+                    for attr in attrs_pts:
+                        setattr(pt_targ, attr, getattr(pt, attr))
+                for attr in attrs_spline:
+                    setattr(spl_targ, attr, getattr(spl, attr))
+        
+        # cleanup
+        for obj in s['objects'][1:]:
+            bpy.data.objects.remove(obj)
+        for curve in copied_curves:
+            bpy.data.curves.remove(curve)
+        base_materials = [ml.name for ml in base_curve.materials]
+        for mtrl in s['materials']:
+            if mtrl.name not in base_materials:
+                bpy.data.materials.remove(mtrl)
+
+        base_obj.name = kwargs_names['obj_name']
+        base_curve.name = kwargs_names['curve_name']
+        col.objects.link(base_obj)
+        col_def.objects.unlink(base_obj)
+        base_obj.scale = kwargs['scale']
+        for mtrl in base_curve.materials:
+            mtrl.diffuse_color = kwargs['color']
+    else:
+        for obj in s['objects']:
+            col.objects.link(obj)
+            col_def.objects.unlink(obj)
+            obj.scale = kwargs['scale']
+
+        for mtrl in s['materials']:
+            mtrl.diffuse_color = kwargs['color']
+
+    if kwargs['remove_default_coll']:
+        bpy.data.collections.remove(col_def)
 
 # Save manual work to excel, or read it in as a pandas dataframe (e.g. nutations in the anatomy project)
 def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=('object', 'keyframe', 'attribute', 'value')):
