@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import bpy #pylint: disable=import-error
+import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
@@ -36,6 +37,7 @@ def loadSTL(files):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
         bpy.ops.import_mesh.stl(filepath=f)
 
+@env.ReportDelta
 def loadSVG(svgfile, name=None, **kwargs):
     """
     import an svg file into the blender scene.
@@ -55,6 +57,8 @@ def loadSVG(svgfile, name=None, **kwargs):
         'scale': (100, 100, 100), # svg imports are really small
         'color': (1.0, 1.0, 1.0, 1.0),
         'combine_curves': True, # this may not work!!
+        'halign' : 'center', # 'center', 'left', 'right', None
+        'valign' : 'middle', # 'top', 'middle', 'bottom', None
         }
     kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def)
 
@@ -112,11 +116,15 @@ def loadSVG(svgfile, name=None, **kwargs):
         base_obj.scale = kwargs['scale']
         for mtrl in base_curve.materials:
             mtrl.diffuse_color = kwargs['color']
+        
+        # curve alignment
+        utils.align_curve(base_obj.data, halign=kwargs['halign'], valign=kwargs['valign'])
     else:
         for obj in s['objects']:
             col.objects.link(obj)
             col_def.objects.unlink(obj)
             obj.scale = kwargs['scale']
+            utils.align_curve(obj.data, halign=kwargs['halign'], valign=kwargs['valign'])
 
         for mtrl in s['materials']:
             mtrl.diffuse_color = kwargs['color']

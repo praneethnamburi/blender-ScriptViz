@@ -6,6 +6,7 @@ import os
 import numpy as np
 
 import bpy # pylint: disable=import-error
+import mathutils # pylint: disable=import-error
 
 import pntools as pn
 
@@ -140,3 +141,36 @@ def color_palette(name='MATLAB', prefix='', alpha=0.8):
         }
 
     return None
+
+def align_curve(bez_curve, halign='center', valign='middle'):
+    """
+    Align a bezier curve.
+    In the future, if there is a bezier curve class, this will move there.
+    """
+    all_pt = []
+    for spl in bez_curve.splines:
+        for pt in spl.bezier_points:
+            all_pt.append(np.array(pt.co))
+    all_pt = np.array(all_pt)
+    
+    trans = np.array([0., 0., 0.]) # amount of translation
+    if halign == 'center':
+        trans[0] = np.mean(all_pt[:, 0])
+    if halign == 'left':
+        trans[0] = np.min(all_pt[:, 0])
+    if halign == 'right':
+        trans[0] = np.max(all_pt[:, 0])
+
+    if valign == 'middle':
+        trans[1] = np.mean(all_pt[:, 1])
+    if valign == 'bottom':
+        trans[1] = np.min(all_pt[:, 1])
+    if valign == 'top':
+        trans[1] = np.max(all_pt[:, 1])
+
+    trans = mathutils.Vector(trans)
+    for spl in bez_curve.splines:
+        for pt in spl.bezier_points:
+            pt.co -= trans
+            pt.handle_left -= trans
+            pt.handle_right -= trans

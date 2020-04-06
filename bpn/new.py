@@ -287,6 +287,8 @@ def text(expr, name=None, **kwargs):
             'scale': (100, 100, 100), # svg imports are really small
             'color': (1.0, 1.0, 1.0, 1.0), # rgba
             'combine_curves': True, # this may not work!!
+            'halign' : 'center', # 'center', 'left', 'right', None
+            'valign' : 'middle', # 'top', 'middle', 'bottom', None
     """
     if name is None:
         name = utils.new_name('new_text', [o.name for o in bpy.data.objects])
@@ -294,6 +296,7 @@ def text(expr, name=None, **kwargs):
         try:
             f = open(fname, 'w')
             f.write(r"\documentclass{standalone}" + "\n")
+            f.write(r"\usepackage{amsthm, amssymb, amsfonts}" + "\n")
             f.write(r"\begin{document}" + "\n")
             f.write(expr + "\n")
             f.write(r"\end{document}" + "\n")
@@ -309,4 +312,4 @@ def text(expr, name=None, **kwargs):
     os.chdir(orig_dir)
 
     svgfile = os.path.join(utils.PATH['cache'], tmp_name + '.svg')
-    io.loadSVG(svgfile, name, **kwargs)
+    return io.loadSVG(svgfile, name, **kwargs)
