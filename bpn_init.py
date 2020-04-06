@@ -35,6 +35,7 @@ from bpn.env import Props, ReportDelta
 from bpn.turtle import Draw
 from bpn.trf import CoordFrame as Frm
 from bpn.trf import PointCloud as PC
+from bpn.resources import CircularRig
 # functions
 from bpn.io import readattr, animate_simple
 from bpn.utils import get
