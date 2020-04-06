@@ -1,6 +1,7 @@
 """
 Creation submodule for bpn.
 """
+import os
 from functools import partial
 import numpy as np
 
@@ -10,7 +11,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import vef, utils, core, turtle, trf
+from . import vef, utils, core, turtle, trf, io
 
 def collection(coll_name='Collection'):
     """
@@ -265,3 +266,47 @@ class Tube(core.Msh):
             assert np.shape(new_normal_dir) == (self.n, 3)
             for i in range(np.shape(new_normal_dir)[0]):
                 self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
+
+def text(expr, name=None, **kwargs):
+    """
+    Convert a LaTeX expression into an svg and import that into blender.
+
+    :param name: (str) defaults to 'new_text.00n'
+    Possible keyword arguments:
+        Set by text:
+            FUTURE - Option to add packages to the tex document?
+            FUTURE - Option to use an existing tex document
+        Set by utils.clean_names:
+            'curve_name' : 'new_curve', 
+            'obj_name' : 'new_obj',
+            'coll_name': 'Collection',
+            'priority_obj': 'new',
+            'priority_curve': 'new',
+        Set by io.loadSVG:
+            'remove_default_coll': True,
+            'scale': (100, 100, 100), # svg imports are really small
+            'color': (1.0, 1.0, 1.0, 1.0), # rgba
+            'combine_curves': True, # this may not work!!
+    """
+    if name is None:
+        name = utils.new_name('new_text', [o.name for o in bpy.data.objects])
+    def write_tex_file(fname):
+        try:
+            f = open(fname, 'w')
+            f.write(r"\documentclass{standalone}" + "\n")
+            f.write(r"\begin{document}" + "\n")
+            f.write(expr + "\n")
+            f.write(r"\end{document}" + "\n")
+        finally:
+            f.close()
+
+    tmp_name = name
+    orig_dir = os.getcwd()
+    os.chdir(utils.PATH['cache'])
+    write_tex_file(tmp_name + '.tex')
+    os.system("pdflatex " + tmp_name + '.tex')
+    os.system("pdftocairo -svg " + tmp_name + '.pdf ' + tmp_name + '.svg')
+    os.chdir(orig_dir)
+
+    svgfile = os.path.join(utils.PATH['cache'], tmp_name + '.svg')
+    io.loadSVG(svgfile, name, **kwargs)

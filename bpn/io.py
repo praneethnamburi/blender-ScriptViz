@@ -49,7 +49,7 @@ def loadSVG(svgfile, name=None, **kwargs):
     """
     if name is None:
         name = os.path.splitext(os.path.basename(svgfile))[0]
-    kwargs_names, kwargs = utils.clean_names(name, kwargs, {'coll_name': 'my_svg'}, mode='curve')
+    kwargs_names, kwargs = utils.clean_names(name, kwargs, {'priority_curve': 'new'}, mode='curve')
     kwargs_def = {
         'remove_default_coll': True,
         'scale': (100, 100, 100), # svg imports are really small
