@@ -132,6 +132,8 @@ def loadSVG(svgfile, name=None, **kwargs):
     if kwargs['remove_default_coll']:
         bpy.data.collections.remove(col_def)
 
+    bpy.context.view_layer.update()
+
 # Save manual work to excel, or read it in as a pandas dataframe (e.g. nutations in the anatomy project)
 def readattr(names, frames=1, attrs='location', fname=False, sheet_name='animation', columns=('object', 'keyframe', 'attribute', 'value')):
     """

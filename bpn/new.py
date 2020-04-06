@@ -267,10 +267,10 @@ class Tube(core.Msh):
             for i in range(np.shape(new_normal_dir)[0]):
                 self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
 
-def text(expr, name=None, **kwargs):
+class Text:
     """
     Convert a LaTeX expression into an svg and import that into blender.
-
+    :param expr: (str) latex string to be converted into text.
     :param name: (str) defaults to 'new_text.00n'
     Possible keyword arguments:
         Set by text:
@@ -290,26 +290,63 @@ def text(expr, name=None, **kwargs):
             'halign' : 'center', # 'center', 'left', 'right', None
             'valign' : 'middle', # 'top', 'middle', 'bottom', None
     """
-    if name is None:
-        name = utils.new_name('new_text', [o.name for o in bpy.data.objects])
-    def write_tex_file(fname):
-        try:
-            f = open(fname, 'w')
-            f.write(r"\documentclass{standalone}" + "\n")
-            f.write(r"\usepackage{amsthm, amssymb, amsfonts}" + "\n")
-            f.write(r"\begin{document}" + "\n")
-            f.write(expr + "\n")
-            f.write(r"\end{document}" + "\n")
-        finally:
-            f.close()
+    def __init__(self, expr, name=None, **kwargs):
+        if name is None:
+            name = utils.new_name('new_text', [o.name for o in bpy.data.objects])
+        def write_tex_file(fname):
+            try:
+                f = open(fname, 'w')
+                f.write(r"\documentclass{standalone}" + "\n")
+                f.write(r"\usepackage{amsthm, amssymb, amsfonts, amsmath}" + "\n")
+                f.write(r"\begin{document}" + "\n")
+                f.write(expr + "\n")
+                f.write(r"\end{document}" + "\n")
+            finally:
+                f.close()
 
-    tmp_name = name
-    orig_dir = os.getcwd()
-    os.chdir(utils.PATH['cache'])
-    write_tex_file(tmp_name + '.tex')
-    os.system("pdflatex " + tmp_name + '.tex')
-    os.system("pdftocairo -svg " + tmp_name + '.pdf ' + tmp_name + '.svg')
-    os.chdir(orig_dir)
+        tmp_name = name
+        orig_dir = os.getcwd()
+        os.chdir(utils.PATH['cache'])
+        write_tex_file(tmp_name + '.tex')
+        os.system("pdflatex " + tmp_name + '.tex')
+        os.system("pdftocairo -svg " + tmp_name + '.pdf ' + tmp_name + '.svg')
+        os.chdir(orig_dir)
 
-    svgfile = os.path.join(utils.PATH['cache'], tmp_name + '.svg')
-    return io.loadSVG(svgfile, name, **kwargs)
+        svgfile = os.path.join(utils.PATH['cache'], tmp_name + '.svg')
+        delta = io.loadSVG(svgfile, name, **kwargs)
+        self.delta = {key:val for key, val in delta.items() if key in delta['changedFields']}
+        self.obj_names = [o.name for o in self.delta['objects']]
+
+        self.base_obj_name = self.obj_names[0]
+        self.frame_orig = self.frame
+
+    @property
+    def o(self):
+        """Return the blender object."""
+        return bpy.data.objects[self.base_obj_name]
+
+    @property
+    def frame(self):
+        """Object frame expressed as trf.CoordFrame"""
+        return trf.CoordFrame(bpy.data.objects[self.base_obj_name].matrix_world, unit_vectors=False)
+    
+    @frame.setter
+    def frame(self, new_frame):
+        bpy.data.objects[self.base_obj_name].matrix_world = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
+        bpy.context.view_layer.update()
+
+    def frame_reset(self):
+        """Reset matrix_world to what it was when created."""
+        self.frame = self.frame_orig
+
+    @property
+    def normal(self):
+        """By definition, normal is the z-direction."""
+        return self.frame.k
+
+    @normal.setter
+    def normal(self, new_normal):
+        new_normal = np.array(new_normal)
+        assert len(new_normal) == 3
+        tfmat = trf.m4(trf.normal2tfmat(new_normal))
+        self.frame = self.frame_orig.transform(tfmat)
