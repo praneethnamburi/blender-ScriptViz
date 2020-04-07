@@ -52,12 +52,12 @@ txt['ax_i'] = new.Text(r'$\leftarrow$\textit{Phase($\phi$)}', 'x_label',
                        coll_name='ax')
 txt['ax_i'].frame = txt['ax_i'].frame.transform(np.linalg.inv(trf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))))
 
-txt['ax_i'].o.location = Vector((1*ball_scale, 0, -0.02*ball_scale))
-txt['ax_j'].o.location = Vector((0, 1*ball_scale, -0.02*ball_scale))
-txt['ax_k'].o.location = Vector((0, -0.02*ball_scale, 0.5*ball_scale))
+txt['ax_i']().location = Vector((1*ball_scale, 0, -0.02*ball_scale))
+txt['ax_j']().location = Vector((0, 1*ball_scale, -0.02*ball_scale))
+txt['ax_k']().location = Vector((0, -0.02*ball_scale, 0.5*ball_scale))
 bpy.context.view_layer.update()
 
-txt['ax_k'].o.matrix_world = Matrix.Rotation(np.pi/3, 4, 'Z')@txt['ax_k'].o.matrix_world
+txt['ax_k']().matrix_world = Matrix.Rotation(np.pi/3, 4, 'Z')@txt['ax_k']().matrix_world
 
 # make ball
 s = new.sphere(r=0.1*ball_scale)
@@ -164,4 +164,4 @@ for mtrl in bpy.data.objects[txt['eqn'].obj_names[10]].data.materials:
     mtrl.diffuse_color = pal['crd_i']
 
 txt['eqn'].frame = txt['eqn'].frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
-txt['eqn'].o.location = w.o.location + Vector((0.15*ball_scale, -0.15*ball_scale, 0.8*ball_scale))
+txt['eqn']().location = w.o.location + Vector((0.15*ball_scale, -0.15*ball_scale, 0.8*ball_scale))

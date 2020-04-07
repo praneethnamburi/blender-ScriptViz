@@ -1009,3 +1009,74 @@ class Pencil:
 
         # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
         # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes
+
+class BlWrapper:
+    """Wrapper around blender's bpy.data.*"""
+    def __init__(self, thing_name, thing_type, composite=False):
+        if isinstance(thing_type, str):
+            thing_type = getattr(bpy.types, thing_type.title()) # bpy.types.Object
+        if isinstance(thing_name, thing_type):
+            thing_name = thing_name.name # in case you passed the object itself
+
+        plural = lambda string: string+'es' if string[-2:] in ('ch', 'sh') or string[-1] in ('s', 'x', 'z') else string+'s'
+        self.blend_type = thing_type # bpy.types.Object
+        type_name = thing_type.__name__.lower()
+        self.blend_coll = getattr(bpy.data, plural(type_name)) # bpy.data.objects, bpy.data.meshes
+        self.blend_name = thing_name
+        assert thing_name in [t.name for t in self.blend_coll]
+
+        if composite:
+            # self.object_name = thing_name - for composite objects!
+            setattr(self, type_name+'_name', thing_name)
+            setattr(self, type_name[0], self.blend_coll[self.blend_name])
+
+    def __call__(self):
+        """Return the blender object."""
+        return self.blend_coll[self.blend_name]
+    
+    def __neg__(self):
+        """Remove that object."""
+        self.blend_coll.remove(self())
+
+class Object(BlWrapper):
+    """Wrapper around a bpy.types.Object object."""
+    def __init__(self, name):
+        BlWrapper.__init__(self, name, 'Object')
+        self.frame_orig = self.frame
+
+    @property
+    def frame(self):
+        """Object frame expressed as trf.CoordFrame"""
+        return trf.CoordFrame(self().matrix_world, unit_vectors=False)
+    
+    @frame.setter
+    def frame(self, new_frame):
+        self().matrix_world = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
+        bpy.context.view_layer.update()
+
+    def frame_reset(self):
+        """Reset matrix_world to what it was when created."""
+        self.frame = self.frame_orig
+
+    @property
+    def normal(self):
+        """By definition, normal is the z-direction."""
+        return self.frame.k
+
+    @normal.setter
+    def normal(self, new_normal):
+        new_normal = np.array(new_normal)
+        assert len(new_normal) == 3
+        tfmat = trf.m4(trf.normal2tfmat(new_normal))
+        self.frame = self.frame_orig.transform(tfmat)
+        bpy.context.view_layer.update()
+
+# class Mesh(BlWrapper):
+#     """Wrapper around a bpy.types.Mesh object."""
+#     def __init__(self, name):
+#         BlWrapper.__init__(self, name, 'Mesh')
+    
+# class MeshObject(Object, Mesh): # will mature to replace bpn.Msh?
+#     def __init__(self, obj_name):
+#         Mesh.__init__(self, bpy.data.objects[obj_name].data.name, composite=True)
+#         Object.__init__(self, obj_name, composite=True)

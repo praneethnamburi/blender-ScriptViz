@@ -267,7 +267,7 @@ class Tube(core.Msh):
             for i in range(np.shape(new_normal_dir)[0]):
                 self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
 
-class Text:
+class Text(core.Object):
     """
     Convert a LaTeX expression into an svg and import that into blender.
     :param expr: (str) latex string to be converted into text.
@@ -327,37 +327,5 @@ class Text:
             for o in [bpy.data.objects[obj_name] for obj_name in self.obj_names]:
                 o.parent = emp
             self.base_obj_name = emp.name
-            
-        self.frame_orig = self.frame
-
-    @property
-    def o(self):
-        """Return the blender object."""
-        return bpy.data.objects[self.base_obj_name]
-
-    @property
-    def frame(self):
-        """Object frame expressed as trf.CoordFrame"""
-        return trf.CoordFrame(bpy.data.objects[self.base_obj_name].matrix_world, unit_vectors=False)
-    
-    @frame.setter
-    def frame(self, new_frame):
-        bpy.data.objects[self.base_obj_name].matrix_world = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
-        bpy.context.view_layer.update()
-
-    def frame_reset(self):
-        """Reset matrix_world to what it was when created."""
-        self.frame = self.frame_orig
-
-    @property
-    def normal(self):
-        """By definition, normal is the z-direction."""
-        return self.frame.k
-
-    @normal.setter
-    def normal(self, new_normal):
-        new_normal = np.array(new_normal)
-        assert len(new_normal) == 3
-        tfmat = trf.m4(trf.normal2tfmat(new_normal))
-        self.frame = self.frame_orig.transform(tfmat)
-        bpy.context.view_layer.update()
+        
+        super().__init__(self.base_obj_name)

@@ -10,7 +10,7 @@ import mathutils # pylint: disable=import-error
 
 import pntools as pn
 
-from . import core
+from . import core, env
 
 PATH = {}
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
@@ -19,18 +19,29 @@ PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
 # perhaps the most useful function
 def get(obj_name=None):
     """
-    Create a bpn msh object from object name
+    Dispatcher for the bpn module.
+    Takes as input the name of a prop in the blender environment.
+    Returns a 'wrapped' version of the object.
+
+    MESH bpy.types.Object - core.Msh
+    Other bpy.types.Object - core.Object
+    Prop in bpy.data.* - core.BlWrapper
+    
     bpn.obj('sphere')
     :param obj_name: (str) name of the object in blender's environment
     """
-    if not obj_name: # return the last objects
-        return core.Msh(obj_name=[o.name for o in bpy.data.objects][-1])
+    if obj_name is None: # return the last objects
+        obj_name = [o.name for o in bpy.data.objects][-1]
 
     if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
-        print('No object found with name: ' + obj_name)
+        if env.Props().get(obj_name):
+            return core.BlWrapper(obj_name, type(env.Props().get(obj_name)[0]).__name__)
+        print('No prop found with name: ' + obj_name)
         return []
 
-    return core.Msh(obj_name=obj_name)
+    if bpy.data.objects[obj_name].type == 'MESH':
+        return core.Msh(obj_name=obj_name)
+    return core.Object(obj_name)
 
 ### Name management
 def new_name(name, curr_names):
