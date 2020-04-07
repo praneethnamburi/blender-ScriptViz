@@ -174,3 +174,37 @@ def align_curve(bez_curve, halign='center', valign='middle'):
             pt.co -= trans
             pt.handle_left -= trans
             pt.handle_right -= trans
+
+def combine_curves(obj_list, mtrl_list=None):
+    """Combine bezier curves into one object."""
+    copied_curves = []
+    base_obj = obj_list[0]
+    base_curve = base_obj.data
+    all_materials = base_curve.materials[:]
+    attrs_pts = ['co', 'handle_left', 'handle_right', 'handle_left_type', 'handle_right_type']
+    attrs_spline = ['order_u', 'order_v', 'resolution_u', 'resolution_v', 'tilt_interpolation', 'use_bezier_u', 'use_bezier_v', 'use_cyclic_u', 'use_cyclic_v', 'use_endpoint_u', 'use_endpoint_v', 'use_smooth']
+    for obj in obj_list[1:]:
+        curve = obj.data
+        copied_curves.append(curve)
+        all_materials += curve.materials[:]
+        for spl in curve.splines:
+            if spl.type != 'BEZIER':
+                continue # only bezier splines are copied for now!
+            spl_targ = base_curve.splines.new(type='BEZIER')
+            spl_targ.bezier_points.add(len(spl.bezier_points)-1)
+            for pt_targ, pt in zip(spl_targ.bezier_points[:], spl.bezier_points[:]):
+                for attr in attrs_pts:
+                    setattr(pt_targ, attr, getattr(pt, attr))
+            for attr in attrs_spline:
+                setattr(spl_targ, attr, getattr(spl, attr))
+    
+    # cleanup
+    for obj in obj_list[1:]:
+        bpy.data.objects.remove(obj)
+    for curve in copied_curves:
+        bpy.data.curves.remove(curve)
+    base_materials = [ml.name for ml in base_curve.materials]
+    if mtrl_list is not None:
+        for mtrl in mtrl_list:
+            if mtrl.name not in base_materials:
+                bpy.data.materials.remove(mtrl)

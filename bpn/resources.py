@@ -93,6 +93,7 @@ class CircularRig:
         if obj_name != 'camera':
             obj_name = obj_name + 'Light'
         bpy.data.objects['Container_'+obj_name].constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
+        bpy.context.view_layer.update()
         
     @property
     def center(self):
@@ -105,6 +106,7 @@ class CircularRig:
         assert len(new_center) == 3
         bpy.data.objects['BezierCircle_camera'].location = mathutils.Vector(new_center)
         self._set_loc()
+        bpy.context.view_layer.update()
     
     def _set_loc(self):
         bpy.data.objects['BezierCircle_keyLight'].location = mathutils.Vector(self.center + self.key_rel_loc)
@@ -121,6 +123,7 @@ class CircularRig:
         new_target = np.array(new_target)
         assert len(new_target) == 3
         bpy.data.objects['Target'].location = mathutils.Vector(new_target)
+        bpy.context.view_layer.update()
 
     @property
     def fov(self):
@@ -130,12 +133,15 @@ class CircularRig:
     @fov.setter
     def fov(self, hor_angle_deg):
         bpy.data.cameras['Main'].lens = 0.5*bpy.data.cameras['Main'].sensor_width/np.tan(hor_angle_deg*np.pi/360)
+        bpy.context.view_layer.update()
 
     def scale(self, scl_factor=1):
+        """Scale the rig by scale factor in (int) scl_factor."""
         bpy.data.objects['BezierCircle_camera'].scale *= scl_factor
         bpy.data.objects['BezierCircle_keyLight'].scale *= scl_factor
         bpy.data.objects['BezierCircle_fillLight'].scale *= scl_factor
         bpy.data.objects['BezierCircle_backLight'].scale *= scl_factor
+        bpy.context.view_layer.update()
 
     def key(self, frame=None, targ='lens', value=None):
         """Camera and target keyframe insertion."""

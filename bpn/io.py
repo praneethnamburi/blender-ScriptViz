@@ -80,34 +80,9 @@ def loadSVG(svgfile, name=None, **kwargs):
     col = new.collection(kwargs_names['coll_name'])
 
     if kwargs['combine_curves']:
-        copied_curves = []
+        utils.combine_curves(s['objects'], s['materials'])
         base_obj = s['objects'][0]
         base_curve = base_obj.data
-        attrs_pts = ['co', 'handle_left', 'handle_right', 'handle_left_type', 'handle_right_type']
-        attrs_spline = ['order_u', 'order_v', 'resolution_u', 'resolution_v', 'tilt_interpolation', 'use_bezier_u', 'use_bezier_v', 'use_cyclic_u', 'use_cyclic_v', 'use_endpoint_u', 'use_endpoint_v', 'use_smooth']
-        for obj in s['objects'][1:]:
-            curve = obj.data
-            copied_curves.append(curve)
-            for spl in curve.splines:
-                if spl.type != 'BEZIER':
-                    continue # only bezier splines are copied for now!
-                spl_targ = base_curve.splines.new(type='BEZIER')
-                spl_targ.bezier_points.add(len(spl.bezier_points)-1)
-                for pt_targ, pt in zip(spl_targ.bezier_points[:], spl.bezier_points[:]):
-                    for attr in attrs_pts:
-                        setattr(pt_targ, attr, getattr(pt, attr))
-                for attr in attrs_spline:
-                    setattr(spl_targ, attr, getattr(spl, attr))
-        
-        # cleanup
-        for obj in s['objects'][1:]:
-            bpy.data.objects.remove(obj)
-        for curve in copied_curves:
-            bpy.data.curves.remove(curve)
-        base_materials = [ml.name for ml in base_curve.materials]
-        for mtrl in s['materials']:
-            if mtrl.name not in base_materials:
-                bpy.data.materials.remove(mtrl)
 
         base_obj.name = kwargs_names['obj_name']
         base_curve.name = kwargs_names['curve_name']
@@ -124,7 +99,7 @@ def loadSVG(svgfile, name=None, **kwargs):
             col.objects.link(obj)
             col_def.objects.unlink(obj)
             obj.scale = kwargs['scale']
-            utils.align_curve(obj.data, halign=kwargs['halign'], valign=kwargs['valign'])
+            # utils.align_curve(obj.data, halign=kwargs['halign'], valign=kwargs['valign'])
 
         for mtrl in s['materials']:
             mtrl.diffuse_color = kwargs['color']

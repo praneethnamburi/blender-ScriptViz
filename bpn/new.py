@@ -293,6 +293,7 @@ class Text:
     def __init__(self, expr, name=None, **kwargs):
         if name is None:
             name = utils.new_name('new_text', [o.name for o in bpy.data.objects])
+        kwargs_names, _ = utils.clean_names(name, kwargs, {'priority_curve': 'new'}, mode='curve')
         def write_tex_file(fname):
             try:
                 f = open(fname, 'w')
@@ -316,8 +317,17 @@ class Text:
         delta = io.loadSVG(svgfile, name, **kwargs)
         self.delta = {key:val for key, val in delta.items() if key in delta['changedFields']}
         self.obj_names = [o.name for o in self.delta['objects']]
-
-        self.base_obj_name = self.obj_names[0]
+        self.obj_names.sort()
+        if len(self.obj_names) == 1:
+            self.base_obj_name = self.obj_names[0]
+        else: # make an empty and parent everything
+            emp = bpy.data.objects.new(kwargs_names['obj_name'], None)
+            col = collection('coll_name')
+            col.objects.link(emp)
+            for o in [bpy.data.objects[obj_name] for obj_name in self.obj_names]:
+                o.parent = emp
+            self.base_obj_name = emp.name
+            
         self.frame_orig = self.frame
 
     @property
@@ -350,3 +360,4 @@ class Text:
         assert len(new_normal) == 3
         tfmat = trf.m4(trf.normal2tfmat(new_normal))
         self.frame = self.frame_orig.transform(tfmat)
+        bpy.context.view_layer.update()
