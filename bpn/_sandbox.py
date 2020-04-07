@@ -81,12 +81,15 @@ w = Pencil('wave', coll_name='plot', layer_name='main')
 w_color = {'white': (1.0, 1.0, 1.0, 1.0)}
 w.color = w_color
 w_width = 8
-
+mark_width = 6
 # animation
 def stroke_loc(phi=0, f=0.5, amp=1, key_num=0):
     """Helper function for the animation"""
     w.stroke(wave_pts(phi=phi, f=f, amp=amp), color='white', keyframe=key_num, line_width=w_width)
     s.key(key_num, 'l', [np.array((phi, f, amp))*ball_scale])
+    axp.stroke(trf.PointCloud(np.array([[0, f, 0], [0, f, amp]])*ball_scale, trf.CoordFrame()), color='crd_k', keyframe=key_num, layer='mark', line_width=mark_width)
+    axp.stroke(trf.PointCloud(np.array([[0, f, amp], [phi, f, amp]])*ball_scale, trf.CoordFrame()), color='crd_i', keyframe=key_num, layer='mark', line_width=mark_width)
+    axp.stroke(trf.PointCloud(np.array([[0, 0, amp], [0, f, amp]])*ball_scale, trf.CoordFrame()), color='crd_j', keyframe=key_num, layer='mark', line_width=mark_width)
     if key_num == 0:
         print((phi, f, amp, key_num))
 
@@ -117,11 +120,11 @@ w.keyframe = key
 key += 20
 s.key(key-1, 'l')
 
-for tp in np.linspace(0, 2*np.pi, 50):
+for tp in np.linspace(0, np.pi, 50):
     stroke_loc(phi=tp, f=0.5, amp=1, key_num=key)
     key += 1
 key += 10
-for tp in np.linspace(2*np.pi, 0, 50):
+for tp in np.linspace(np.pi, 0, 50):
     stroke_loc(phi=tp, f=0.5, amp=1, key_num=key)
     key += 1
 
