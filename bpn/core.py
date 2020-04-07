@@ -683,7 +683,7 @@ class Msh(pn.Track):
         if target in ['rs', 'rotscl', 'rotscale']:
             attrs = ['rotation_euler', 'scale']
 
-        if not values:
+        if values is None:
             values = [tuple(getattr(self.bo, attr)) for attr in attrs]
             # for some reason, s.key() doesn't take current values if I don't use tuple
         
