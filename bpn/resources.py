@@ -77,22 +77,23 @@ class CircularRig:
 
     @theta.setter
     def theta(self, new_theta):
-        self._set_camera_theta(new_theta)
+        self.set_theta('camera', new_theta)
         self._set_lights_theta()
-
-    def _set_camera_theta(self, new_theta):
-        bpy.data.objects['Container_camera'].constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
 
     def _set_lights_theta(self, new_theta=None):
         if new_theta is None:
             new_theta = self.theta
-        key_offset = self.theta2offset((new_theta + self.key_rel_theta)%(2*np.pi))
-        bpy.data.objects['Container_keyLight'].constraints[0].offset_factor = key_offset
-        fill_offset = self.theta2offset((new_theta + self.fill_rel_theta)%(2*np.pi))
-        bpy.data.objects['Container_fillLight'].constraints[0].offset_factor = fill_offset
-        back_offset = self.theta2offset((new_theta + self.back_rel_theta)%(2*np.pi))
-        bpy.data.objects['Container_backLight'].constraints[0].offset_factor = back_offset
+        self.set_theta('key', new_theta + self.key_rel_theta)
+        self.set_theta('fill', new_theta + self.fill_rel_theta)
+        self.set_theta('back', new_theta + self.back_rel_theta)
 
+    def set_theta(self, obj_name, new_theta):
+        """Set angle of an object"""
+        assert obj_name in ('camera', 'key', 'fill', 'back')
+        if obj_name != 'camera':
+            obj_name = obj_name + 'Light'
+        bpy.data.objects['Container_'+obj_name].constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
+        
     @property
     def center(self):
         """Center of the rig. Defined as the center of the camera path."""
@@ -130,6 +131,12 @@ class CircularRig:
     def fov(self, hor_angle_deg):
         bpy.data.cameras['Main'].lens = 0.5*bpy.data.cameras['Main'].sensor_width/np.tan(hor_angle_deg*np.pi/360)
 
+    def scale(self, scl_factor=1):
+        bpy.data.objects['BezierCircle_camera'].scale *= scl_factor
+        bpy.data.objects['BezierCircle_keyLight'].scale *= scl_factor
+        bpy.data.objects['BezierCircle_fillLight'].scale *= scl_factor
+        bpy.data.objects['BezierCircle_backLight'].scale *= scl_factor
+
     def key(self, frame=None, targ='lens', value=None):
         """Camera and target keyframe insertion."""
         if frame is None:
@@ -153,7 +160,7 @@ class CircularRig:
             bpy.data.objects['Target'].keyframe_insert(data_path='location', frame=frame)
         
         if targ == 'camera_angle':
-            self._set_camera_theta(value)
+            self.set_theta('camera', value)
             bpy.data.objects['Container_camera'].constraints[0].keyframe_insert('offset_factor', frame=frame)
 
     @staticmethod
