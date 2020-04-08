@@ -16,158 +16,343 @@ line_width_wave = 8
 line_width_ptguides = 6
 color_grid = {'gray': (0.12, 0.12, 0.12, 0.12)}
 color_wave = {'white': (1.0, 1.0, 1.0, 1.0)}
+color_ghost = {'ghost': (0.12, 0.12, 0.12, 0.12)}
+color_ptvector = {'ptvector': (0.6, 0.6, 0.6, 0.6)}
 color_ball = (0.8, 0.8, 0.8, 0.8)
 color_world = (0, 0, 0)
+out = 'vid'
 
-# Background
-bpy.data.worlds[0].use_nodes = False
-bpy.data.worlds[0].color = color_world
+def render(fname='', out_type='vid'):
+    """Render settings."""
+    rend = bpy.context.scene.render
+    rend.filepath = "D:\\Dropbox (Personal)\\Animation\\"+fname
+    if out_type == 'vid':
+        rend.image_settings.file_format = 'FFMPEG'
+        rend.ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'
+        bpy.context.scene.render.ffmpeg.format = 'MPEG4'
+        bpy.ops.render.render(animation=True)
+    else:
+        rend.image_settings.file_format = 'PNG'
+        bpy.ops.render.render(write_still=True)
+    
 
-# Rig
-c = resources.CircularRig()
-c.scale(4)
-c.center = np.array((0, 0, 0.5))*grid_scale
-c.target = np.array((0, 0, 1))*grid_scale
-c.set_theta('camera', np.pi/6)
-c.set_theta('key', np.pi/4)
-c.set_theta('fill', 0)
-c.set_theta('back', np.pi)
-c.fov = 80
-bpy.data.lights['Key'].energy = 4
+def background():
+    """Set up background."""
+    bpy.data.worlds[0].use_nodes = False
+    bpy.data.worlds[0].color = color_world
 
-# draw axes
-axp = Pencil('axes', coll_name='ax', layer_name='main')
-smp = np.r_[-grid_lim:grid_lim:0.05]*grid_scale
+def rig():
+    """Set up camera and lights."""
+    c = resources.CircularRig()
+    c.scale(4)
+    c.center = np.array((0, 0, 0.5))*grid_scale
+    c.target = np.array((0, 0, 1))*grid_scale
+    c.set_theta('camera', np.pi/6)
+    c.set_theta('key', np.pi/4)
+    c.set_theta('fill', 0)
+    c.set_theta('back', np.pi)
+    c.fov = 80
+    bpy.data.lights['Key'].energy = 4
+    bpy.context.scene.camera = bpy.data.objects['MainCamera']
 
-axp.stroke(trf.PointCloud(np.vstack((smp, 0*smp, 0*smp)).T, trf.CoordFrame()), color='crd_i', layer='main', keyframe=0, line_width=5)
-axp.stroke(trf.PointCloud(np.vstack((0*smp, smp, 0*smp)).T, trf.CoordFrame()), color='crd_j', layer='main', keyframe=0, line_width=5)
-axp.stroke(trf.PointCloud(np.vstack((0*smp, 0*smp, smp)).T, trf.CoordFrame()), color='crd_k', layer='main', keyframe=0, line_width=5)
-axp.color = color_grid
-for i in np.r_[-grid_lim:grid_lim+1]*grid_scale:
-    axp.stroke(trf.PointCloud(np.vstack((smp, i*np.ones_like(smp), 0*smp)).T, trf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
-    axp.stroke(trf.PointCloud(np.vstack((i*np.ones_like(smp), smp, 0*smp)).T, trf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
+def draw_axes():
+    """Draw the grid and axes."""
+    gpax = Pencil('axes', coll_name='ax', layer_name='main')
+    gpax.color = color_ptvector
+    smp = np.r_[-grid_lim:grid_lim:0.05]*grid_scale
 
-# name axes
-pal = utils.color_palette('blender_ax')
-txt = {}
-txt['ax_k'] = new.Text(r'\textit{Amplitude(A)} $\rightarrow$', 'z_label',
-                       halign='left', 
-                       valign='bottom', 
-                       scale=txt_size,
-                       color=pal['crd_k'], 
-                       coll_name='ax')
-txt['ax_k'].frame = txt['ax_k'].frame.transform(np.linalg.inv(trf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0))))
-txt['ax_j'] = new.Text(r'\textit{Frequency(f)} $\rightarrow$', 'y_label',
-                       halign='left', 
-                       valign='top', 
-                       scale=txt_size,
-                       color=pal['crd_j'], 
-                       coll_name='ax')
-txt['ax_j'].frame = txt['ax_j'].frame.transform(np.linalg.inv(trf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0))))
-txt['ax_i'] = new.Text(r'$\leftarrow$\textit{Phase($\phi$)}', 'x_label',
-                       halign='right', 
-                       valign='top', 
-                       scale=txt_size,
-                       color=pal['crd_i'], 
-                       coll_name='ax')
-txt['ax_i'].frame = txt['ax_i'].frame.transform(np.linalg.inv(trf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))))
+    gpax.stroke(trf.PointCloud(np.vstack((smp, 0*smp, 0*smp)).T, trf.CoordFrame()), color='crd_i', layer='main', keyframe=0, line_width=5)
+    gpax.stroke(trf.PointCloud(np.vstack((0*smp, smp, 0*smp)).T, trf.CoordFrame()), color='crd_j', layer='main', keyframe=0, line_width=5)
+    gpax.stroke(trf.PointCloud(np.vstack((0*smp, 0*smp, smp)).T, trf.CoordFrame()), color='crd_k', layer='main', keyframe=0, line_width=5)
+    gpax.color = color_grid
+    for i in np.r_[-grid_lim:grid_lim+1]*grid_scale:
+        gpax.stroke(trf.PointCloud(np.vstack((smp, i*np.ones_like(smp), 0*smp)).T, trf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
+        gpax.stroke(trf.PointCloud(np.vstack((i*np.ones_like(smp), smp, 0*smp)).T, trf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
+    return gpax
 
-txt['ax_i']().location = Vector((1*grid_scale, 0, -0.02*grid_scale))
-txt['ax_j']().location = Vector((0, 1*grid_scale, -0.02*grid_scale))
-txt['ax_k']().location = Vector((0, -0.02*grid_scale, 0.5*grid_scale))
-bpy.context.view_layer.update()
+def label_axes():
+    """label the axes."""
+    h_txt = {}
+    h_txt['ax_k'] = new.Text(r'\textit{Amplitude(A)} $\rightarrow$', 'z_label',
+                             halign='left', 
+                             valign='bottom', 
+                             scale=txt_size,
+                             color=pal['crd_k'], 
+                             coll_name='ax')
+    h_txt['ax_k'].frame = h_txt['ax_k'].frame.transform(np.linalg.inv(trf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0))))
+    h_txt['ax_j'] = new.Text(r'\textit{Frequency(f)} $\rightarrow$', 'y_label',
+                             halign='left', 
+                             valign='top', 
+                             scale=txt_size,
+                             color=pal['crd_j'], 
+                             coll_name='ax')
+    h_txt['ax_j'].frame = h_txt['ax_j'].frame.transform(np.linalg.inv(trf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0))))
+    h_txt['ax_i'] = new.Text(r'$\leftarrow$\textit{Phase($\phi$)}', 'x_label',
+                             halign='right', 
+                             valign='top', 
+                             scale=txt_size,
+                             color=pal['crd_i'], 
+                             coll_name='ax')
+    h_txt['ax_i'].frame = h_txt['ax_i'].frame.transform(np.linalg.inv(trf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))))
 
-txt['ax_k']().matrix_world = Matrix.Rotation(np.pi/3, 4, 'Z')@txt['ax_k']().matrix_world
+    h_txt['ax_i']().location = Vector((1*grid_scale, 0, -0.02*grid_scale))
+    h_txt['ax_j']().location = Vector((0, 1*grid_scale, -0.02*grid_scale))
+    h_txt['ax_k']().location = Vector((0, -0.02*grid_scale, 0.5*grid_scale))
+    bpy.context.view_layer.update()
 
-# make ball
-s = new.sphere(r=0.1*grid_scale)
-s.shade('smooth')
-s.subsurf(2, 3)
-b = bpy.data.materials.new('ball_mat')
-b.diffuse_color = color_ball
-b.metallic = 0.7
-s.bm.materials.append(b)
+    h_txt['ax_k']().matrix_world = Matrix.Rotation(np.pi/3, 4, 'Z')@h_txt['ax_k']().matrix_world
+    return h_txt
+
+
+def make_sphere():
+    """Sphere to represent points in 3D space."""
+    sph = new.sphere('sphere', r=0.07*grid_scale, coll_name='spheres')
+    sph.shade('smooth')
+    sph.subsurf(2, 3)
+    b = bpy.data.materials.new('ball_mat')
+    b.diffuse_color = color_ball
+    b.metallic = 0.7
+    sph.bm.materials.append(b)
+    sph.show(1)
+    return sph
 
 # sine wave
 def wave_pts(amp, f, phi, t_end=4):
     """Sine wave as a point cloud."""
+    if isinstance(amp, (int, float)):
+        amp = [amp]
+    if isinstance(f, (int, float)):
+        f = [f]
+    if isinstance(phi, (int, float)):
+        phi = [phi]
     x = np.linspace(0, t_end, 200) # time
-    y = amp*np.sin(2*np.pi*f*x + phi)
+    y = np.zeros_like(x)
     z = np.zeros_like(x)
+    for ta, tf, tp in zip(amp, f, phi):
+        y += ta*np.sin(2*np.pi*tf*x + tp)
+    y = y/len(np.array(amp))
     return trf.PointCloud(np.vstack((x, y, z)).T*sine_scale, trf.CoordFrame())
 
-w = Pencil('wave', coll_name='plot', layer_name='main')
-w.color = color_wave
+def draw_wave():
+    """Set up greasepencil for drawing sine wave strokes."""
+    wav = Pencil('wave', coll_name='plot', layer_name='main')
+    wav.color = color_ghost
+    wav.color = color_wave
 
-# point the sine wave to the camera
-wo_frame = trf.CoordFrame(w.o.matrix_world, unit_vectors=False)
-cam_frame = trf.CoordFrame(bpy.data.objects['MainCamera'].matrix_world)
-w.o.matrix_world = wo_frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))).m
-w.o.location = np.array((2, -2, 1))*grid_scale
-bpy.context.view_layer.update()
+    # point the sine wave to the camera
+    wo_frame = trf.CoordFrame(wav.o.matrix_world, unit_vectors=False)
+    cam_frame = trf.CoordFrame(bpy.data.objects['MainCamera'].matrix_world)
+    wav.o.matrix_world = wo_frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))).m
+    wav.o.location = np.array((2, -2, 1))*grid_scale
+    bpy.context.view_layer.update()
+    return wav
 
-# title the equation
-txt['eqn'] = new.Text(r'$A\sin(2 \pi f t + \phi)$', 'plot_title',
-                      halign='left', 
-                      valign='bottom', 
-                      scale=np.array(txt_size)*1.2,
-                      color=color_wave['white'], 
-                      coll_name='eqn',
-                      combine_curves=False)
-for mtrl in bpy.data.objects[txt['eqn'].obj_names[0]].data.materials:
-    mtrl.diffuse_color = pal['crd_k']
-for mtrl in bpy.data.objects[txt['eqn'].obj_names[7]].data.materials:
-    mtrl.diffuse_color = pal['crd_j']
-for mtrl in bpy.data.objects[txt['eqn'].obj_names[10]].data.materials:
-    mtrl.diffuse_color = pal['crd_i']
+def sin_eqn():
+    """Equation for sine wave."""
+    txt_eqn = new.Text(
+        r'$A\sin(2 \pi f t + \phi)$', 'plot_title',
+        halign='left', 
+        valign='bottom', 
+        scale=np.array(txt_size)*1.2,
+        color=color_wave['white'], 
+        coll_name='eqn',
+        combine_curves=False)
+    for mtrl in bpy.data.objects[txt_eqn.obj_names[0]].data.materials:
+        mtrl.diffuse_color = pal['crd_k']
+    for mtrl in bpy.data.objects[txt_eqn.obj_names[7]].data.materials:
+        mtrl.diffuse_color = pal['crd_j']
+    for mtrl in bpy.data.objects[txt_eqn.obj_names[10]].data.materials:
+        mtrl.diffuse_color = pal['crd_i']
 
-txt['eqn'].frame = txt['eqn'].frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
-txt['eqn']().location = w.o.location + Vector((0.15*grid_scale, -0.15*grid_scale, 0.8*grid_scale))
+    cam_frame = trf.CoordFrame(bpy.data.objects['MainCamera'].matrix_world)
+    txt_eqn.frame = txt_eqn.frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
+    txt_eqn().location = w.o.location + Vector((0.15*grid_scale, -0.15*grid_scale, 0.8*grid_scale))
+    return txt_eqn
 
 # animation
-def stroke_loc(phi=0, f=0.5, amp=1, key_num=0):
+def stroke_loc(sph, phi=0, f=0.5, amp=1, key_num=0, guide_type='axes', ghost=False):
     """Helper function for the animation"""
+    
+    sph = sph if isinstance(sph, list) else [sph]
+    phi = phi if isinstance(phi, list) else [phi]
+    f = f if isinstance(f, list) else [f]
+    amp = amp if isinstance(amp, list) else [amp]
+    assert guide_type in ('axes', 'vector', None)
+
+    # compound wave
     w.stroke(wave_pts(phi=phi, f=f, amp=amp), color='white', keyframe=key_num, line_width=line_width_wave)
-    s.key(key_num, 'l', [np.array((phi, f, amp))*grid_scale])
-    axp.stroke(trf.PointCloud(np.array([[0, f, 0], [0, f, amp]])*grid_scale, trf.CoordFrame()), color='crd_k', keyframe=key_num, layer='mark', line_width=line_width_ptguides)
-    axp.stroke(trf.PointCloud(np.array([[0, f, amp], [phi, f, amp]])*grid_scale, trf.CoordFrame()), color='crd_i', keyframe=key_num, layer='mark', line_width=line_width_ptguides)
-    axp.stroke(trf.PointCloud(np.array([[0, 0, amp], [0, f, amp]])*grid_scale, trf.CoordFrame()), color='crd_j', keyframe=key_num, layer='mark', line_width=line_width_ptguides)
-    if key_num == 0:
-        print((phi, f, amp, key_num))
+    
+    for ts, tp, tf, ta in zip(sph, phi, f, amp):
+        # ghost individual waves
+        if ghost: 
+            w.stroke(wave_pts(phi=tp, f=tf, amp=ta), color='ghost', keyframe=key_num, line_width=line_width_wave*0.7)
 
-key = 1
-env.Key().start = key
-bpy.context.view_layer.update()
-for tf in np.linspace(0, 2, 50):
-    stroke_loc(phi=0, f=tf, amp=1, key_num=key)
-    key += 1
-key += 10
-for tf in np.linspace(2, 0, 50):
-    stroke_loc(phi=0, f=tf, amp=1, key_num=key)
-    key += 1
+        # sphere location
+        ts.key(key_num, 'l', [np.array((tp, tf, ta))*grid_scale])
 
-w.keyframe = key
-key += 20
-s.key(key-1, 'l')
+        # sphere guides
+        if guide_type is not None:
+            if guide_type == 'axes':
+                axg.stroke(trf.PointCloud(np.array([[0, tf, 0], [0, tf, ta]])*grid_scale, trf.CoordFrame()), color='crd_k', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
+                axg.stroke(trf.PointCloud(np.array([[0, tf, ta], [tp, tf, ta]])*grid_scale, trf.CoordFrame()), color='crd_i', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
+                axg.stroke(trf.PointCloud(np.array([[0, 0, ta], [0, tf, ta]])*grid_scale, trf.CoordFrame()), color='crd_j', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
+            if guide_type == 'vector':
+                axg.stroke(trf.PointCloud(np.array([[0, 0, 0], [tp, tf, ta]])*grid_scale, trf.CoordFrame()), color='ptvector', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides/2)
 
-for ta in np.linspace(0, 2, 50):
-    stroke_loc(phi=0, f=0.5, amp=ta, key_num=key)
-    key += 1
-key += 10
-for ta in np.linspace(2, 0, 50):
-    stroke_loc(phi=0, f=0.5, amp=ta, key_num=key)
-    key += 1
 
-w.keyframe = key
-key += 20
-s.key(key-1, 'l')
+def sweep_freq(tkey):
+    """Animation. Frequency sweep."""
+    for tf in np.linspace(1, 2, 40):
+        stroke_loc(s_all[0], phi=0, f=tf, amp=1, key_num=tkey)
+        tkey += 1
+    tkey += 10
+    for tf in np.linspace(2, 0, 60):
+        stroke_loc(s_all[0], phi=0, f=tf, amp=1, key_num=tkey)
+        tkey += 1
+    tkey += 10
+    for tf in np.linspace(0, 1, 30):
+        stroke_loc(s_all[0], phi=0, f=tf, amp=1, key_num=tkey)
+        tkey += 1
+    return tkey
 
-for tp in np.linspace(0, np.pi, 50):
-    stroke_loc(phi=tp, f=0.5, amp=1, key_num=key)
-    key += 1
-key += 10
-for tp in np.linspace(np.pi, 0, 50):
-    stroke_loc(phi=tp, f=0.5, amp=1, key_num=key)
-    key += 1
+def blanks(tkey, n_blanks=20):
+    """Insert blanks for sphere and freeze wave."""
+    w.keyframe = tkey+1
+    axg.keyframe = tkey+1
+    for ts in s_all:
+        ts.hide(tkey)
+    tkey += n_blanks
+    for ts in s_all:
+        ts.show(tkey)
+        ts.key(tkey-1, 'l')
+    w.keyframe = tkey-1
+    axg.keyframe = tkey-1
+    return tkey
 
-env.Key().end = key
+def sweep_amp(tkey):
+    """Animation. Amplitude sweep."""
+    for ta in np.linspace(1, 2, 40):
+        stroke_loc(s_all[0], phi=0, f=0.5, amp=ta, key_num=tkey)
+        tkey += 1
+    tkey += 10
+    for ta in np.linspace(2, 0, 60):
+        stroke_loc(s_all[0], phi=0, f=0.5, amp=ta, key_num=tkey)
+        tkey += 1
+    tkey += 10
+    for ta in np.linspace(0, 1, 30):
+        stroke_loc(s_all[0], phi=0, f=0.5, amp=ta, key_num=tkey)
+        tkey += 1
+    return tkey
+
+def sweep_phi(tkey):
+    """Animation. Phase sweep."""
+    for tp in np.linspace(np.pi, 0, 50):
+        stroke_loc(s_all[0], phi=tp, f=0.5, amp=1, key_num=tkey)
+        tkey += 1
+    tkey += 10
+    for tp in np.linspace(0, np.pi, 50):
+        stroke_loc(s_all[0], phi=tp, f=0.5, amp=1, key_num=tkey)
+        tkey += 1
+    return tkey
+
+def copy_spheres(tot_spheres):
+    """Make copies of the sphere, but remove animation data."""
+    n_present = len(s_all)
+    n_copies = tot_spheres - n_present # number of copies to make
+    for _ in range(n_copies):
+        s_all.append(s_all[0].copy())
+    for ts in s_all[n_present:]:
+        ts.bo.animation_data_clear() # retains a reference to the old animation data
+        ts.hide(1) # hide all the copies until it is time to show
+    assert len(s_all) == tot_spheres
+    bpy.context.view_layer.update()
+
+def rand_sweep(tkey):
+    """Animation. Points in random places constructing a signal."""
+    n_pts_max = 10
+    copy_spheres(n_pts_max)
+    rnd = lambda n: list(np.random.random(n)*2) # pylint: disable=no-member
+    for n_pts in range(1, n_pts_max+1):
+        for _ in range(10):
+            stroke_loc(s_all[0:n_pts], phi=rnd(n_pts), f=rnd(n_pts), amp=rnd(n_pts), key_num=tkey, guide_type='axes', ghost=True)
+            for ts in s_all[0:n_pts]:
+                ts.show(tkey)
+            for ts in s_all[n_pts:]:
+                ts.hide(tkey)
+            tkey += 1
+    return tkey
+
+def add_waves(tkey):
+    """Animation. Add points from random locations progressively."""
+    n_pts_max = 10
+    copy_spheres(n_pts_max)
+    rnd = lambda n: list(np.random.random(n)*2) # pylint: disable=no-member
+    for n_pts in range(1, n_pts_max+1):
+        for _ in range(10):
+            stroke_loc(s_all[0:n_pts], phi=rnd(n_pts), f=rnd(n_pts), amp=rnd(n_pts), key_num=tkey, guide_type='axes', ghost=True)
+            for ts in s_all[0:n_pts]:
+                ts.show(tkey)
+            for ts in s_all[n_pts:]:
+                ts.hide(tkey)
+            tkey += 1
+    return tkey
+
+def make_animation(func_list, save=False, name=None):
+    """Save video after making the animation."""
+    if type(func_list).__name__ == 'function':
+        func_list = [func_list]
+    if name is None:
+        name = ''
+        for f in func_list:
+            name += f.__name__+'_'
+        name = name[:-1]
+    key = 1
+    env.Key().start = key
+    bpy.context.view_layer.update()
+    for f in func_list:
+        key = f(key)
+    env.Key().end = key
+    if save is not None:
+        if 'vid' in save:
+            render(name+' ', 'vid')
+            env.Key().goto(1)
+            render(name+'_title', 'img')
+        if 'img' in save:
+            for frm in range(env.Key().end):
+                env.Key().goto(frm)
+                render(name+'_{:04d}'.format(frm), 'img')
+
+def clear_animation():
+    """Clear animation data."""
+    env.clear('actions')
+    for g in (axg.g, w.g):
+        for l in g.layers:
+            l.clear()
+
+background()
+rig()
+draw_axes()
+axg = Pencil('guides', coll_name='ax', layer_name='main')
+pal = utils.color_palette('blender_ax')
+txt = label_axes()
+s_all = [make_sphere()]
+w = draw_wave()
+txt['eqn'] = sin_eqn()
+
+
+make_animation(sweep_freq, save='vid')
+clear_animation()
+make_animation(sweep_amp, save='vid')
+clear_animation()
+make_animation(sweep_phi, save='vid')
+clear_animation()
+make_animation(rand_sweep, save='img')
+
+
+# key = blanks(key)
+# key = sweep_amp(key)
+# key = blanks(key)
+# key = sweep_phi(key)
+# key = blanks(key)
+# key = rand_sweep(key)
+# key = blanks(key)

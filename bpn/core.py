@@ -698,6 +698,22 @@ class Msh(pn.Track):
 
         return self # so you can chain keyings into one command
 
+    def hide(self, keyframe=None):
+        if keyframe is None:
+            keyframe = bpy.context.scene.frame_current
+        self.bo.hide_render = True
+        self.bo.keyframe_insert('hide_render', frame=keyframe)
+        self.bo.hide_viewport = True
+        self.bo.keyframe_insert('hide_viewport', frame=keyframe)
+    
+    def show(self, keyframe=None):
+        if keyframe is None:
+            keyframe = bpy.context.scene.frame_current
+        self.bo.hide_render = False
+        self.bo.keyframe_insert('hide_render', frame=keyframe)
+        self.bo.hide_viewport = False
+        self.bo.keyframe_insert('hide_viewport', frame=keyframe)
+
     def morph(self, n_frames=50, frame_start=1):
         """
         Morphs the mesh from initial vertex positions to current vertex positions.
@@ -1070,6 +1086,24 @@ class Object(BlWrapper):
         tfmat = trf.m4(trf.normal2tfmat(new_normal))
         self.frame = self.frame_orig.transform(tfmat)
         bpy.context.view_layer.update()
+
+    def hide(self, keyframe=None):
+        """Hide object at keyframe."""
+        if keyframe is None:
+            keyframe = bpy.context.scene.frame_current
+        self().hide_render = True
+        self().keyframe_insert('hide_render', frame=keyframe)
+        self().hide_viewport = True
+        self().keyframe_insert('hide_viewport', frame=keyframe)
+    
+    def show(self, keyframe=None):
+        """Show object at keyframe."""
+        if keyframe is None:
+            keyframe = bpy.context.scene.frame_current
+        self().hide_render = False
+        self().keyframe_insert('hide_render', frame=keyframe)
+        self().hide_viewport = False
+        self().keyframe_insert('hide_viewport', frame=keyframe)
 
 # class Mesh(BlWrapper):
 #     """Wrapper around a bpy.types.Mesh object."""
