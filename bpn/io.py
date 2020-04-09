@@ -237,3 +237,16 @@ def animate_simple(anim_data, columns=None, propfunc=None):
         bpy.context.scene.frame_set(frame)
         setattr(obj, attr, val)
         obj.keyframe_insert(data_path=attr, frame=frame)
+
+def render(fname='', out_type='vid'):
+    """Render settings."""
+    rend = bpy.context.scene.render
+    rend.filepath = "D:\\Dropbox (Personal)\\Animation\\"+fname
+    if out_type == 'vid':
+        rend.image_settings.file_format = 'FFMPEG'
+        rend.ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'
+        bpy.context.scene.render.ffmpeg.format = 'MPEG4'
+        bpy.ops.render.render(animation=True)
+    else:
+        rend.image_settings.file_format = 'PNG'
+        bpy.ops.render.render(write_still=True)

@@ -3,9 +3,7 @@
 This is a sandbox. Develop code here!
 """
 #-----------------
-from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
-pn.reload()
-env.reset()
+
 #-----------------
 
 grid_scale = 0.4 # 0.4 => 0.4 m in the world is 1 unit in coordinate frame
@@ -21,20 +19,14 @@ color_ptvector = {'ptvector': (0.6, 0.6, 0.6, 0.6)}
 color_ball = (0.8, 0.8, 0.8, 0.8)
 color_world = (0, 0, 0)
 out = 'vid'
-
-def render(fname='', out_type='vid'):
-    """Render settings."""
-    rend = bpy.context.scene.render
-    rend.filepath = "D:\\Dropbox (Personal)\\Animation\\"+fname
-    if out_type == 'vid':
-        rend.image_settings.file_format = 'FFMPEG'
-        rend.ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'
-        bpy.context.scene.render.ffmpeg.format = 'MPEG4'
-        bpy.ops.render.render(animation=True)
-    else:
-        rend.image_settings.file_format = 'PNG'
-        bpy.ops.render.render(write_still=True)
-    
+# text_eqn = r'$A\sin(2 \pi f t + \phi)$'
+# text_xlabel = r'$\leftarrow$\textit{Phase($\phi$)}'
+# text_ylabel = r'\textit{Frequency(f)} $\rightarrow$'
+# text_zlabel = r'\textit{Amplitude(A)} $\rightarrow$'
+text_eqn = r'\textit{Walking}'
+text_xlabel = r'$\leftarrow$\textit{?}'
+text_ylabel = r'\textit{?} $\rightarrow$'
+text_zlabel = r'\textit{?} $\rightarrow$'
 
 def background():
     """Set up background."""
@@ -43,17 +35,18 @@ def background():
 
 def rig():
     """Set up camera and lights."""
-    c = resources.CircularRig()
-    c.scale(4)
-    c.center = np.array((0, 0, 0.5))*grid_scale
-    c.target = np.array((0, 0, 1))*grid_scale
-    c.set_theta('camera', np.pi/6)
-    c.set_theta('key', np.pi/4)
-    c.set_theta('fill', 0)
-    c.set_theta('back', np.pi)
-    c.fov = 80
+    cr = resources.CircularRig()
+    cr.scale(4)
+    cr.center = np.array((0, 0, 0.5))*grid_scale
+    cr.target = np.array((0, 0, 1))*grid_scale
+    cr.set_theta('camera', np.pi/6)
+    cr.set_theta('key', np.pi/4)
+    cr.set_theta('fill', 0)
+    cr.set_theta('back', np.pi)
+    cr.fov = 80
     bpy.data.lights['Key'].energy = 4
     bpy.context.scene.camera = bpy.data.objects['MainCamera']
+    return cr
 
 def draw_axes():
     """Draw the grid and axes."""
@@ -73,21 +66,21 @@ def draw_axes():
 def label_axes():
     """label the axes."""
     h_txt = {}
-    h_txt['ax_k'] = new.Text(r'\textit{Amplitude(A)} $\rightarrow$', 'z_label',
+    h_txt['ax_k'] = new.Text(text_zlabel, 'z_label',
                              halign='left', 
                              valign='bottom', 
                              scale=txt_size,
                              color=pal['crd_k'], 
                              coll_name='ax')
     h_txt['ax_k'].frame = h_txt['ax_k'].frame.transform(np.linalg.inv(trf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0))))
-    h_txt['ax_j'] = new.Text(r'\textit{Frequency(f)} $\rightarrow$', 'y_label',
+    h_txt['ax_j'] = new.Text(text_ylabel, 'y_label',
                              halign='left', 
                              valign='top', 
                              scale=txt_size,
                              color=pal['crd_j'], 
                              coll_name='ax')
     h_txt['ax_j'].frame = h_txt['ax_j'].frame.transform(np.linalg.inv(trf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0))))
-    h_txt['ax_i'] = new.Text(r'$\leftarrow$\textit{Phase($\phi$)}', 'x_label',
+    h_txt['ax_i'] = new.Text(text_xlabel, 'x_label',
                              halign='right', 
                              valign='top', 
                              scale=txt_size,
@@ -150,23 +143,29 @@ def draw_wave():
 def sin_eqn():
     """Equation for sine wave."""
     txt_eqn = new.Text(
-        r'$A\sin(2 \pi f t + \phi)$', 'plot_title',
+        text_eqn, 'plot_title',
         halign='left', 
         valign='bottom', 
         scale=np.array(txt_size)*1.2,
         color=color_wave['white'], 
         coll_name='eqn',
         combine_curves=False)
-    for mtrl in bpy.data.objects[txt_eqn.obj_names[0]].data.materials:
-        mtrl.diffuse_color = pal['crd_k']
-    for mtrl in bpy.data.objects[txt_eqn.obj_names[7]].data.materials:
-        mtrl.diffuse_color = pal['crd_j']
-    for mtrl in bpy.data.objects[txt_eqn.obj_names[10]].data.materials:
-        mtrl.diffuse_color = pal['crd_i']
+    # for mtrl in bpy.data.objects[txt_eqn.obj_names[5]].data.materials:
+    #     mtrl.diffuse_color = pal['crd_k']
+    # for mtrl in bpy.data.objects[txt_eqn.obj_names[13]].data.materials:
+    #     mtrl.diffuse_color = pal['crd_j']
+    # for mtrl in bpy.data.objects[txt_eqn.obj_names[17]].data.materials:
+    #     mtrl.diffuse_color = pal['crd_i']
+    # for mtrl in bpy.data.objects[txt_eqn.obj_names[10]].data.materials:
+    #     mtrl.diffuse_color = pal['crd_k']
+    # for mtrl in bpy.data.objects[txt_eqn.obj_names[12]].data.materials:
+    #     mtrl.diffuse_color = pal['crd_j']
+    # for mtrl in bpy.data.objects[txt_eqn.obj_names[14]].data.materials:
+    #     mtrl.diffuse_color = pal['crd_i']
 
     cam_frame = trf.CoordFrame(bpy.data.objects['MainCamera'].matrix_world)
     txt_eqn.frame = txt_eqn.frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
-    txt_eqn().location = w.o.location + Vector((0.15*grid_scale, -0.15*grid_scale, 0.8*grid_scale))
+    txt_eqn().location = w.o.location + Vector((0.4*grid_scale, -0.4*grid_scale, 0.8*grid_scale))
     return txt_eqn
 
 # animation
@@ -246,11 +245,11 @@ def sweep_amp(tkey):
 
 def sweep_phi(tkey):
     """Animation. Phase sweep."""
-    for tp in np.linspace(np.pi, 0, 50):
+    for tp in np.linspace(0, np.pi, 50):
         stroke_loc(s_all[0], phi=tp, f=0.5, amp=1, key_num=tkey)
         tkey += 1
     tkey += 10
-    for tp in np.linspace(0, np.pi, 50):
+    for tp in np.linspace(np.pi, 0, 50):
         stroke_loc(s_all[0], phi=tp, f=0.5, amp=1, key_num=tkey)
         tkey += 1
     return tkey
@@ -269,11 +268,11 @@ def copy_spheres(tot_spheres):
 
 def rand_sweep(tkey):
     """Animation. Points in random places constructing a signal."""
-    n_pts_max = 10
+    n_pts_max = 7
     copy_spheres(n_pts_max)
     rnd = lambda n: list(np.random.random(n)*2) # pylint: disable=no-member
-    for n_pts in range(1, n_pts_max+1):
-        for _ in range(10):
+    for n_pts in range(2, n_pts_max+1):
+        for _ in range(4):
             stroke_loc(s_all[0:n_pts], phi=rnd(n_pts), f=rnd(n_pts), amp=rnd(n_pts), key_num=tkey, guide_type='axes', ghost=True)
             for ts in s_all[0:n_pts]:
                 ts.show(tkey)
@@ -297,7 +296,7 @@ def add_waves(tkey):
             tkey += 1
     return tkey
 
-def make_animation(func_list, save=False, name=None):
+def make_animation(func_list, save=None, name=None):
     """Save video after making the animation."""
     if type(func_list).__name__ == 'function':
         func_list = [func_list]
@@ -306,21 +305,22 @@ def make_animation(func_list, save=False, name=None):
         for f in func_list:
             name += f.__name__+'_'
         name = name[:-1]
+    if save is None:
+        save = []
     key = 1
     env.Key().start = key
     bpy.context.view_layer.update()
     for f in func_list:
         key = f(key)
     env.Key().end = key
-    if save is not None:
-        if 'vid' in save:
-            render(name+' ', 'vid')
-            env.Key().goto(1)
-            render(name+'_title', 'img')
-        if 'img' in save:
-            for frm in range(env.Key().end):
-                env.Key().goto(frm)
-                render(name+'_{:04d}'.format(frm), 'img')
+    if 'vid' in save:
+        io.render(name+' ', 'vid')
+        env.Key().goto(1)
+        io.render(name+'_title', 'img')
+    if 'img' in save:
+        for frm in range(env.Key().end):
+            env.Key().goto(frm)
+            io.render(name+'_{:04d}'.format(frm), 'img')
 
 def clear_animation():
     """Clear animation data."""
@@ -329,8 +329,37 @@ def clear_animation():
         for l in g.layers:
             l.clear()
 
+def spring():
+    θ = np.radians(np.arange(0, 360*6+40, 40))
+    z1 = np.sin(θ)
+    y1 = np.cos(θ)
+    x1 = θ/4
+    s = new.Tube('spring', x=x1, y=y1, z=z1, coll_name='Spring')
+    s.xsec.centers = np.vstack((x1*0.75, y1, z1)).T
+    s.loc = (0.40955743193626404, 0.2013765275478363, 1.4415044784545898)
+    s.scl = (0.023873649537563324, 0.023873649537563324, 0.023873649537563324)
+    s.rot = (0.0, -0.0, 1.0471975803375244)
+
+    s_comp = new.Tube('spring_comp', x=x1, y=y1, z=z1, coll_name='Spring')
+    s_comp.xsec.centers = np.vstack((x1*0.5, y1, z1)).T
+    s_comp.loc = (0.40955743193626404, 0.2013765275478363, 1.4415044784545898 - 0.1)
+    s_comp.scl = (0.023873649537563324, 0.023873649537563324, 0.023873649537563324)
+    s_comp.rot = (0.0, -0.0, 1.0471975803375244)
+
+    s_exp = new.Tube('spring_exp', x=x1, y=y1, z=z1, coll_name='Spring')
+    s_exp.xsec.centers = np.vstack((x1*1.1, y1, z1)).T
+    s_exp.loc = (0.40955743193626404, 0.2013765275478363, 1.4415044784545898 - 0.2)
+    s_exp.scl = (0.023873649537563324, 0.023873649537563324, 0.023873649537563324)
+    s_exp.rot = (0.0, -0.0, 1.0471975803375244)
+    return s, s_comp, s_exp
+
+# if __name__ == "__main__" or __name__ == '<run_path>':
+from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
+pn.reload()
+env.reset()
+
 background()
-rig()
+c = rig()
 draw_axes()
 axg = Pencil('guides', coll_name='ax', layer_name='main')
 pal = utils.color_palette('blender_ax')
@@ -340,19 +369,25 @@ w = draw_wave()
 txt['eqn'] = sin_eqn()
 
 
-make_animation(sweep_freq, save='vid')
-clear_animation()
-make_animation(sweep_amp, save='vid')
-clear_animation()
-make_animation(sweep_phi, save='vid')
-clear_animation()
-make_animation(rand_sweep, save='img')
+# make_animation(sweep_freq, save='vid')
+# clear_animation()
+# make_animation(sweep_amp, save='vid')
+# clear_animation()
+# make_animation(sweep_phi, save='vid')
+# clear_animation()
+# make_animation(rand_sweep)
 
+# make_animation([sweep_freq, blanks, sweep_amp, blanks, sweep_phi, blanks, rand_sweep])
 
-# key = blanks(key)
-# key = sweep_amp(key)
-# key = blanks(key)
-# key = sweep_phi(key)
-# key = blanks(key)
-# key = rand_sweep(key)
-# key = blanks(key)
+# n_frames = 60
+# fov = np.linspace(110, 30, n_frames)
+# targ_start = np.array([-0.22117764,  0.06976014,  1.2347604])
+# targ_end = np.array([-0.22117764,  0.64740258,  1.29340947])
+# targ = np.linspace(targ_start, targ_end, n_frames)
+
+# fcount = 1
+# for ttarg, tfov in zip(targ, fov):
+#     c.target = ttarg
+#     c.fov = tfov
+#     s.render('Skeleton.{:04d}'.format(fcount), 'img')
+#     fcount += 1
