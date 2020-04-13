@@ -1026,25 +1026,37 @@ class Pencil:
         # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
         # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes
 
-class BlWrapper:
-    """Wrapper around blender's bpy.data.*"""
-    def __init__(self, thing_name, thing_type, composite=False):
+class Thing:
+    """
+    Wrapper around blender's bpy.data.*
+    args are exclusively meant for the new() method.
+    kwargs are attributes of the thing being created.
+    Example:
+        key_light = core.Thing('Key', 'Light', 'SUN', energy=2.5, angle=0.2, color=(0., 0., 0.))
+    """
+    def __init__(self, thing_name, thing_type, *args, **kwargs):
         if isinstance(thing_type, str):
             thing_type = getattr(bpy.types, thing_type.title()) # bpy.types.Object
         if isinstance(thing_name, thing_type):
             thing_name = thing_name.name # in case you passed the object itself
+        if len(args) >= 1 and isinstance(args[0], Thing):
+            args = list(args)
+            args[0] = args[0]()
+            args = tuple(args)
 
         plural = lambda string: string+'es' if string[-2:] in ('ch', 'sh') or string[-1] in ('s', 'x', 'z') else string+'s'
         self.blend_type = thing_type # bpy.types.Object
         type_name = thing_type.__name__.lower()
         self.blend_coll = getattr(bpy.data, plural(type_name)) # bpy.data.objects, bpy.data.meshes
         self.blend_name = thing_name
-        assert thing_name in [t.name for t in self.blend_coll]
-
-        if composite:
-            # self.object_name = thing_name - for composite objects!
-            setattr(self, type_name+'_name', thing_name)
-            setattr(self, type_name[0], self.blend_coll[self.blend_name])
+        self.created = False
+        # if it is not in the collection, create a new one
+        if thing_name not in [t.name for t in self.blend_coll]:
+            self.blend_coll.new(thing_name, *args)
+            self.created = True
+        
+        for key, val in kwargs.items():
+            setattr(self(), key, val)
 
     def __call__(self):
         """Return the blender object."""
@@ -1053,12 +1065,49 @@ class BlWrapper:
     def __neg__(self):
         """Remove that object."""
         self.blend_coll.remove(self())
+    
+    @property
+    def name(self):
+        """Return the name in blender. It is important to set the name through this setter for chaning names."""
+        return self.blend_name
+    
+    @name.setter
+    def name(self, new_name):
+        self().name = new_name
+        self.blend_name = new_name
 
-class Object(BlWrapper):
-    """Wrapper around a bpy.types.Object object."""
+class Collection(Thing):
+    """Wrapper around a bpy.types.Collection thing"""
     def __init__(self, name):
-        BlWrapper.__init__(self, name, 'Object')
+        Thing.__init__(self, name, 'Collection')
+        if self.created:
+            bpy.context.scene.collection.children.link(self())
+
+class Object(Thing):
+    """
+    Wrapper around a bpy.types.Object thing
+    args is for new
+    kwargs is to set options
+    Object('empty_obj', None)
+    """
+    def __init__(self, name, *args, **kwargs):
+        Thing.__init__(self, name, 'Object', *args)
         self.frame_orig = self.frame
+        kwargs, kwargs_blobject = pn.clean_kwargs(kwargs, {'coll_name': 'Collection'})
+        if not self().users_collection:
+            col = Collection(kwargs['coll_name'])
+            col().objects.link(self())
+
+        # set blender object attributes useful for initialization
+        for key, val in kwargs_blobject.items():
+            setattr(self(), key, val)
+
+        self.container = self().parent.name if self().parent else None
+
+        all_constraints = ('CAMERA_SOLVER', 'FOLLOW_TRACK', 'OBJECT_SOLVER', 'COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS', 'LIMIT_DISTANCE', 'LIMIT_LOCATION', 'LIMIT_ROTATION', 'LIMIT_SCALE', 'MAINTAIN_VOLUME', 'TRANSFORM', 'TRANSFORM_CACHE', 'CLAMP_TO', 'DAMPED_TRACK', 'IK', 'LOCKED_TRACK', 'SPLINE_IK', 'STRETCH_TO', 'TRACK_TO', 'ACTION', 'ARMATURE', 'CHILD_OF', 'FLOOR', 'FOLLOW_PATH', 'PIVOT', 'SHRINKWRAP')
+        if self.created:
+            self.constraints = {cn.lower() : None for cn in all_constraints}
+        # if they are already there, then add them to the name list!!
 
     @property
     def frame(self):
@@ -1087,6 +1136,94 @@ class Object(BlWrapper):
         self.frame = self.frame_orig.transform(tfmat)
         bpy.context.view_layer.update()
 
+    # transformations
+    @property
+    def loc(self):
+        """Object location (not mesh!)"""
+        return self().location
+    @loc.setter
+    def loc(self, new_loc):
+        assert len(new_loc) == 3
+        self().location = mathutils.Vector(new_loc)
+        bpy.context.view_layer.update()
+
+    @property
+    def rot(self):
+        """Object rotation"""
+        return self().rotation_euler
+    @rot.setter
+    def rot(self, theta):
+        self().rotation_euler.x = theta[0]
+        self().rotation_euler.y = theta[1]
+        self().rotation_euler.z = theta[2]
+        bpy.context.view_layer.update()
+
+    @property
+    def scl(self):
+        """Object scale"""
+        return self().scale
+    @scl.setter
+    def scl(self, s):
+        if isinstance(s, (int, float)):
+            s = np.array([1, 1, 1])*s
+        else:
+            assert np.size(s) == 3
+            self().scale = mathutils.Vector(s)
+        bpy.context.view_layer.update()
+
+        self().scale = mathutils.Vector(s)
+        bpy.context.view_layer.update()
+
+    # object transforms - update view_layer after any transform operating on the object (bo)
+    def translate(self, delta=0, x=0, y=0, z=0):
+        """
+        Move an object by delta.
+        delta is a 3-element tuple, list, numpy array or Vector
+        sph.translate((0, 0, 0.6))
+        sph.translate(z=0.6)
+        """
+        if 'numpy' in str(type(delta)):
+            delta = tuple(delta)
+        if delta == 0:
+            delta = (x, y, z)
+        assert len(delta) == 3
+        self().location = self().location + mathutils.Vector(delta)
+        bpy.context.view_layer.update()
+        return self
+    
+    def rotate(self, theta, inp_type='degrees', frame='global'):
+        """
+        Rotate an object.
+        theta is a 3-element tuple, list, numpy array or Vector
+        inp_type is 'degrees' (default) or 'radians'
+        frame of reference is either 'global' or 'local'
+        """
+        assert len(theta) == 3
+        if inp_type == 'degrees':
+            theta = [math.radians(θ) for θ in theta]
+        if frame == 'local':
+            self().rotation_euler.x = self().rotation_euler.x + theta[0]
+            self().rotation_euler.y = self().rotation_euler.y + theta[1]
+            self().rotation_euler.z = self().rotation_euler.z + theta[2]
+        else: #frame = global
+            self().rotation_euler.rotate(mathutils.Euler(tuple(theta)))
+        bpy.context.view_layer.update()
+        return self
+
+    def scale(self, delta):
+        """
+        Scale an object.
+        delta is a 3-element tuple, list, numpy array or Vector
+        """
+        if isinstance(delta, (int, float)):
+            self().scale = self().scale*float(delta)
+        else:
+            assert np.size(delta) == 3
+            self().scale = mathutils.Vector(np.array(delta)*np.array(self().scale))
+        bpy.context.view_layer.update()
+        return self
+
+    # animation
     def hide(self, keyframe=None):
         """Hide object at keyframe."""
         if keyframe is None:
@@ -1104,11 +1241,85 @@ class Object(BlWrapper):
         self().keyframe_insert('hide_render', frame=keyframe)
         self().hide_viewport = False
         self().keyframe_insert('hide_viewport', frame=keyframe)
+    
+    # parenting
+    def add_container(self, container_name=None, typ='CUBE', size=0.25):
+        """
+        Add a container (parent object).
+        By default, set container_name to <obj_name>+'_container'
+        """
+        if container_name is None:
+            container_name = self.name+'_container'
+        self.container = new.empty(container_name, typ, size=size, coll_name=self().users_collection[0].name)
+        self().parent = self.container()
+    
+    # modifiers
+    def subsurf(self, levels=2, render_levels=3, name=None):
+        """Subsurf modifier, because it is so common."""
+        if not name:
+            name = utils.new_name('subd', [m.name for m in self().modifiers])
+        self().modifiers.new(name, type='SUBSURF')
+        self().modifiers[name].levels = levels
+        self().modifiers[name].render_levels = render_levels
 
-# class Mesh(BlWrapper):
+    # constraints
+    def get_constraint(self, constraint_name):
+        """Returns the bpy.types.Constraint, or makes a new one if a constraint doesn't exist."""
+        if self.constraints[constraint_name.lower()] is not None:
+            return self().constratints[self.constraints[constraint_name.lower()]]
+        return self().constraints.new(constraint_name.upper())
+
+    def follow_path(self, path_obj=None, **kwargs):
+        """
+        Add a FOLLOW PATH constraint to parametrically control object flow.
+        obj.follow_path(r=3) to add a bezier circle path constraint
+        obj.follow_path(functools.partial(new.bezier, r=3)) also does the same.
+        Give any function or partial that returs a bpy.types.Object of type CURVE, OR its wrapper, core.Object
+        """
+        if path_obj is None:
+            path_obj = functools.partial(new.bezier_circle, r=kwargs['r'] if 'r' in kwargs else 2)
+        if isinstance(path_obj, functools.partial) or type(path_obj).__name__ == 'function': # give a function or a partial function that returns a core.Object or a bpy.types.Object of type CURVE
+            path_obj = path_obj(curve_name=self.name+'Path', obj_name=self.name+'_path', coll_name=self().users_collection[0].name)
+        if isinstance(path_obj, Thing):
+            path_obj = path_obj()
+        assert isinstance(path_obj, bpy.types.Object)
+        assert path_obj.type == 'CURVE'
+
+        path_constraint = self.get_constraint('follow_path')
+        path_constraint.target = path_obj
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'use_curve_follow': True,
+            'use_curve_radius': False,
+            'use_fixed_location': True,
+            'up_axis': 'UP_Z', # ('UP_X', 'UP_Y', 'UP_Z')
+            'forward_axis': 'FORWARD_Y', # ('FORWARD_X', 'FORWARD_Y', 'FORWARD_Z', 'TRACK_NEGATIVE_X', 'TRACK_NEGATIVE_Y', 'TRACK_NEGATIVE_Z')
+        })
+        for key, val in kwargs.items():
+            setattr(path_constraint, key, val)
+        self.constraints['follow_path'] = path_constraint.name
+    
+    def track_to(self, targ_obj, **kwargs):
+        """
+        Add a TRACK TO constraint
+        """
+        if isinstance(targ_obj, Thing):
+            targ_obj = targ_obj()
+        assert isinstance(targ_obj, bpy.types.Object)
+
+        track_constraint = self.get_constraint('track_to')
+        track_constraint.target = targ_obj
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'up_axis': 'UP_Y', # ('UP_X', 'UP_Y', 'UP_Z')
+            'track_axis': 'TRACK_NEGATIVE_Z', # ('TRACK_X', 'TRACK_Y', 'TRACK_Z', 'TRACK_NEGATIVE_X', 'TRACK_NEGATIVE_Y', 'TRACK_NEGATIVE_Z')
+        })
+        for key, val in kwargs.items():
+            setattr(track_constraint, key, val)
+        
+
+# class Mesh(Thing):
 #     """Wrapper around a bpy.types.Mesh object."""
 #     def __init__(self, name):
-#         BlWrapper.__init__(self, name, 'Mesh')
+#         Thing.__init__(self, name, 'Mesh')
     
 # class MeshObject(Object, Mesh): # will mature to replace bpn.Msh?
 #     def __init__(self, obj_name):

@@ -13,6 +13,16 @@ import mathutils #pylint: disable=import-error
 
 from . import vef, utils, core, turtle, trf, io
 
+def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
+    """
+    Create a new empty. Convenience wrapper for initalizing core.Object
+    # typ ('PLAIN_AXES', 'ARROWS', 'SINGLE_ARROW', 'CIRCLE', 'CUBE', 'SPHERE', 'CONE', 'IMAGE')
+    returns: core.Object
+    """
+    if name is None:
+        name = utils.new_name('empty', [o.name for o in bpy.data.objects])
+    return core.Object(name, None, empty_display_type=typ, empty_display_size=size, coll_name=coll_name)
+
 def collection(coll_name='Collection'):
     """
     Create a new collection with name coll_name if it doesn't exist.
@@ -181,6 +191,53 @@ def torus(name=None, **kwargs):
     a.join(start.e + end.e)
     tor = +a
     return tor
+
+# bezier curves
+def bezier_circle(name=None, **kwargs):
+    """
+    Bezier circle of radius r.
+    Returns core.Object
+    """
+    names, kwargs = utils.clean_names(name, kwargs, {'curve_name':'Bezier', 'obj_name':'bezier', 'priority_curve':'current', 'priority_obj':'new'}, 'curve')
+    kwargs, _ = pn.clean_kwargs(kwargs, {'r':1, 'h':None})
+    r = kwargs['r']
+    h = kwargs['h']
+    if h is None:
+        h = r*(np.sqrt(2)/2 - 4*(0.5**3))/(3*(0.5**3)) # handle length for cubic bezier approx. of a circle
+
+    col = collection(names['coll_name'])
+    path = bpy.data.curves.new(names['curve_name'], 'CURVE')
+    path_obj = bpy.data.objects.new(names['obj_name'], path)
+    col.objects.link(path_obj)
+
+    spl = path.splines.new(type='BEZIER')
+    spl.bezier_points.add(3)
+    spl.bezier_points[0].co = (-r, 0, 0)
+    spl.bezier_points[1].co = (0, r, 0)
+    spl.bezier_points[2].co = (r, 0, 0)
+    spl.bezier_points[3].co = (0, -r, 0)
+
+    spl.bezier_points[0].handle_right = (-r, h, 0)
+    spl.bezier_points[0].handle_left = (-r, -h, 0)
+
+    spl.bezier_points[1].handle_right = (h, r, 0)
+    spl.bezier_points[1].handle_left = (-h, r, 0)
+
+    spl.bezier_points[2].handle_right = (r, -h, 0)
+    spl.bezier_points[2].handle_left = (r, h, 0)
+
+    spl.bezier_points[3].handle_right = (-h, -r, 0)
+    spl.bezier_points[3].handle_left = (h, -r, 0)
+
+    spl.use_cyclic_u = True
+    spl.order_u = 4
+    spl.order_v = 4
+    spl.resolution_u = 12
+    spl.resolution_v = 12
+    spl.tilt_interpolation = 'LINEAR' #('LINEAR', 'CARDINAL', 'BSPLINE', 'EASE')
+
+    return utils.get(path_obj.name)
+
 
 # convenience 
 def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
