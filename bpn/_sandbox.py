@@ -3,7 +3,9 @@
 This is a sandbox. Develop code here!
 """
 #-----------------
-
+from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
+pn.reload()
+env.reset()
 #-----------------
 
 grid_scale = 0.4 # 0.4 => 0.4 m in the world is 1 unit in coordinate frame
@@ -36,16 +38,15 @@ def background():
 def rig():
     """Set up camera and lights."""
     cr = resources.CircularRig()
-    cr.scale(4)
     cr.center = np.array((0, 0, 0.5))*grid_scale
     cr.target = np.array((0, 0, 1))*grid_scale
-    cr.set_theta('camera', np.pi/6)
-    cr.set_theta('key', np.pi/4)
-    cr.set_theta('fill', 0)
-    cr.set_theta('back', np.pi)
+    cr.camera.theta = np.pi/6
+    cr.key_light.theta = np.pi/4
+    cr.fill_light.theta = 0
+    cr.back_light.theta = np.pi
     cr.fov = 80
-    bpy.data.lights['Key'].energy = 4
-    bpy.context.scene.camera = bpy.data.objects['MainCamera']
+    cr.key_light().data.energy = 4
+    bpy.context.scene.camera = cr.camera()
     return cr
 
 def draw_axes():
@@ -134,7 +135,7 @@ def draw_wave():
 
     # point the sine wave to the camera
     wo_frame = trf.CoordFrame(wav.o.matrix_world, unit_vectors=False)
-    cam_frame = trf.CoordFrame(bpy.data.objects['MainCamera'].matrix_world)
+    cam_frame = trf.CoordFrame(c.camera().matrix_world)
     wav.o.matrix_world = wo_frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))).m
     wav.o.location = np.array((2, -2, 1))*grid_scale
     bpy.context.view_layer.update()
@@ -163,7 +164,7 @@ def sin_eqn():
     # for mtrl in bpy.data.objects[txt_eqn.obj_names[14]].data.materials:
     #     mtrl.diffuse_color = pal['crd_i']
 
-    cam_frame = trf.CoordFrame(bpy.data.objects['MainCamera'].matrix_world)
+    cam_frame = trf.CoordFrame(c.camera().matrix_world)
     txt_eqn.frame = txt_eqn.frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
     txt_eqn().location = w.o.location + Vector((0.4*grid_scale, -0.4*grid_scale, 0.8*grid_scale))
     return txt_eqn
@@ -329,34 +330,6 @@ def clear_animation():
         for l in g.layers:
             l.clear()
 
-def spring():
-    θ = np.radians(np.arange(0, 360*6+40, 40))
-    z1 = np.sin(θ)
-    y1 = np.cos(θ)
-    x1 = θ/4
-    s = new.Tube('spring', x=x1, y=y1, z=z1, coll_name='Spring')
-    s.xsec.centers = np.vstack((x1*0.75, y1, z1)).T
-    s.loc = (0.40955743193626404, 0.2013765275478363, 1.4415044784545898)
-    s.scl = (0.023873649537563324, 0.023873649537563324, 0.023873649537563324)
-    s.rot = (0.0, -0.0, 1.0471975803375244)
-
-    s_comp = new.Tube('spring_comp', x=x1, y=y1, z=z1, coll_name='Spring')
-    s_comp.xsec.centers = np.vstack((x1*0.5, y1, z1)).T
-    s_comp.loc = (0.40955743193626404, 0.2013765275478363, 1.4415044784545898 - 0.1)
-    s_comp.scl = (0.023873649537563324, 0.023873649537563324, 0.023873649537563324)
-    s_comp.rot = (0.0, -0.0, 1.0471975803375244)
-
-    s_exp = new.Tube('spring_exp', x=x1, y=y1, z=z1, coll_name='Spring')
-    s_exp.xsec.centers = np.vstack((x1*1.1, y1, z1)).T
-    s_exp.loc = (0.40955743193626404, 0.2013765275478363, 1.4415044784545898 - 0.2)
-    s_exp.scl = (0.023873649537563324, 0.023873649537563324, 0.023873649537563324)
-    s_exp.rot = (0.0, -0.0, 1.0471975803375244)
-    return s, s_comp, s_exp
-
-# if __name__ == "__main__" or __name__ == '<run_path>':
-from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
-pn.reload()
-env.reset()
 
 background()
 c = rig()

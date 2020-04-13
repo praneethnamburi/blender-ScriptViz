@@ -7,9 +7,8 @@ import os
 import numpy as np
 
 import bpy #pylint: disable=import-error
-import mathutils #pylint: disable=import-error
 
-from . import new, utils, core
+from . import new, utils, core, env
 
 SKELETON = "D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem_originAtCenter_xForward.blend"
 
@@ -46,11 +45,13 @@ class CircularRig:
         c.theta = -np.pi/2
     """
     def __init__(self, rig_name='CircularRig', size=0.15):
+        assert not env.Props().get(rig_name)    
         self.rig_name = rig_name
         self.size = size
         
         self.targ = new.empty('target', 'SPHERE', size=0.25, coll_name=self.rig_name)
-
+        self.targ.scl = size
+        
         cam = core.Thing('Camera', 'Camera')
         self.camera = CircularRig.ObjectOnCircle(cam, self.rig_name, 2, self.size, self.targ)
         self.camera.scl = size
@@ -93,11 +94,11 @@ class CircularRig:
         @property
         def theta(self):
             """Angle of the container object in the XY plane."""
-            return CircularRig.offset2theta(self.container().constraints[0].offset_factor)
+            return self.offset2theta(self.container().constraints[0].offset_factor)
         
         @theta.setter
         def theta(self, new_theta):
-            self.container().constraints[0].offset_factor = CircularRig.theta2offset(new_theta%(2*np.pi))
+            self.container().constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
             bpy.context.view_layer.update()
 
         @property
@@ -108,6 +109,17 @@ class CircularRig:
         @center.setter
         def center(self, new_center):
             self.path.loc = new_center
+        
+        @staticmethod
+        def theta2offset(theta):
+            """theta in radians"""
+            return (0.75 - theta/(2*np.pi))%1.0
+        
+        @staticmethod
+        def offset2theta(offset):
+            """offset sets relative rig locations"""
+            assert 0 <= offset <= 1
+            return (3*np.pi/2 - 2*np.pi*offset)%(2*np.pi)
 
 
     @property
@@ -190,14 +202,3 @@ class CircularRig:
         if targ == 'camera_angle':
             self.camera.theta = value
             self.camera.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
-
-    @staticmethod
-    def theta2offset(theta):
-        """theta in radians"""
-        return (0.75 - theta/(2*np.pi))%1.0
-    
-    @staticmethod
-    def offset2theta(offset):
-        """offset sets relative rig locations"""
-        assert 0 <= offset <= 1
-        return (3*np.pi/2 - 2*np.pi*offset)%(2*np.pi)
