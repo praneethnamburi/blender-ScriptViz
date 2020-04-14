@@ -30,7 +30,7 @@ bpy = bpn.bpy
 # # plot trajectories
 # obj_names = anim_data['object'].unique()
 # traj_coll_name = 'Trajectories'
-# bpn.new.collection(traj_coll_name)
+# core.Collection(traj_coll_name)
 # for obj_name in obj_names:
 #     p = np.array([eval(k) for k in anim_data.loc[anim_data['object'] == obj_name]['value']])
 #     bpn.Msh(x=p[:, 0], y=p[:, 1], z=p[:, 2], name=obj_name+'_trajectory', coll_name=traj_coll_name)

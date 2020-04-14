@@ -10,11 +10,10 @@ import numpy as np
 import pandas as pd
 
 import bpy #pylint: disable=import-error
-import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
-from . import new, env, utils
+from . import new, env, utils, core
 
 # File IO
 @env.ReportDelta
@@ -77,7 +76,7 @@ def loadSVG(svgfile, name=None, **kwargs):
 
     s = _loadSVG(svgfile)
     col_def = s['collections'][0]
-    col = new.collection(kwargs_names['coll_name'])
+    col = core.Collection(kwargs_names['coll_name'])()
 
     if kwargs['combine_curves']:
         utils.combine_curves(s['objects'], s['materials'])

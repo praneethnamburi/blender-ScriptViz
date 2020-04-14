@@ -190,7 +190,7 @@ class Msh(pn.Track):
             self.bo.name = kwargs['obj_name']
         
         if 'coll_name' in kwargs:
-            col = new.collection(kwargs['coll_name'])
+            col = Collection(kwargs['coll_name'])()
             col.objects.link(self.bo)
             self.bc.objects.unlink(self.bo)
             self.bc = col
@@ -229,7 +229,7 @@ class Msh(pn.Track):
                 self.bm = self._make_mesh(msh_name, kwargs)
             # object doesn't exist, so make it and link it to the scene
             self.bo = bpy.data.objects.new(obj_name, self.bm)
-            self.bc = new.collection(coll_name) # create if it doesn't exist
+            self.bc = Collection(coll_name)() # create if it doesn't exist
             self.bc.objects.link(self.bo)
 
     def _make_mesh(self, msh_name, kwargs):
@@ -741,7 +741,7 @@ class Msh(pn.Track):
         assert typ in ['copy', 'move']
         oldC = self.bc
         if isinstance(coll_name, str):
-            self.bc = new.collection(coll_name)
+            self.bc = Collection(coll_name)()
         else:
             self.bc = coll_name
         if coll_name not in [c.name for c in self.bo.users_collection]: # link only if the object isn't in collection already
@@ -802,7 +802,7 @@ class Msh(pn.Track):
         if isinstance(obj_name, str):
             this_o.name = obj_name
         if isinstance(coll_name, str):
-            new.collection(coll_name).objects.link(this_o)
+            Collection(coll_name)().objects.link(this_o)
         else:
             self.bc.objects.link(this_o)
         return Msh(obj_name=this_o.name)
@@ -816,7 +816,7 @@ class Msh(pn.Track):
         if isinstance(obj_name, str):
             this_o.name = obj_name
         if isinstance(coll_name, str):
-            new.collection(coll_name).objects.link(this_o)
+            Collection(coll_name)().objects.link(this_o)
         else:
             self.bc.objects.link(this_o)
         if isinstance(msh_name, str):
@@ -857,7 +857,7 @@ class Pencil:
     def __init__(self, name=None, **kwargs):
         names, kwargs = utils.clean_names(name, kwargs, {'priority_gp':'new'}, 'gp')
         self.g = new.greasepencil(names['gp_name'])
-        self.c = new.collection(names['coll_name'])
+        self.c = Collection(names['coll_name'])()
         self.o = new.obj(self.g, self.c, names['obj_name'])
         
         kwargs, _ = pn.clean_kwargs(kwargs, {
@@ -1036,7 +1036,9 @@ class Thing:
     """
     def __init__(self, thing_name, thing_type, *args, **kwargs):
         if isinstance(thing_type, str):
-            thing_type = getattr(bpy.types, thing_type.title()) # bpy.types.Object
+            if thing_type[0].lower() == thing_type[0]:
+                thing_type = thing_type.title()
+            thing_type = getattr(bpy.types, thing_type) # bpy.types.Object
         if isinstance(thing_name, thing_type):
             thing_name = thing_name.name # in case you passed the object itself
         if len(args) >= 1 and isinstance(args[0], Thing):
@@ -1044,10 +1046,9 @@ class Thing:
             args[0] = args[0]()
             args = tuple(args)
 
-        plural = lambda string: string+'es' if string[-2:] in ('ch', 'sh') or string[-1] in ('s', 'x', 'z') else string+'s'
         self.blend_type = thing_type # bpy.types.Object
         type_name = thing_type.__name__.lower()
-        self.blend_coll = getattr(bpy.data, plural(type_name)) # bpy.data.objects, bpy.data.meshes
+        self.blend_coll = getattr(bpy.data, utils.plural(type_name)) # bpy.data.objects, bpy.data.meshes
         self.blend_name = thing_name
         self.created = False
         # if it is not in the collection, create a new one
@@ -1082,6 +1083,18 @@ class Collection(Thing):
         Thing.__init__(self, name, 'Collection')
         if self.created:
             bpy.context.scene.collection.children.link(self())
+    
+    def hide(self):
+        """Hide collection from the viewport, and from rendering."""
+        bpy.context.scene.view_layers[0].layer_collection.children[self.name].hide_viewport = True
+        bpy.context.scene.view_layers[0].layer_collection.children[self.name].exclude = True
+    
+    def show(self):
+        """Show collection in the viewport, and enable rendering."""
+        bpy.context.scene.view_layers[0].layer_collection.children[self.name].hide_viewport = False
+        bpy.context.scene.view_layers[0].layer_collection.children[self.name].exclude = False
+    
+    # Group transformations for objects in a collection!
 
 class Object(Thing):
     """
@@ -1105,9 +1118,14 @@ class Object(Thing):
         self.container = self().parent.name if self().parent else None
 
         all_constraints = ('CAMERA_SOLVER', 'FOLLOW_TRACK', 'OBJECT_SOLVER', 'COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS', 'LIMIT_DISTANCE', 'LIMIT_LOCATION', 'LIMIT_ROTATION', 'LIMIT_SCALE', 'MAINTAIN_VOLUME', 'TRANSFORM', 'TRANSFORM_CACHE', 'CLAMP_TO', 'DAMPED_TRACK', 'IK', 'LOCKED_TRACK', 'SPLINE_IK', 'STRETCH_TO', 'TRACK_TO', 'ACTION', 'ARMATURE', 'CHILD_OF', 'FLOOR', 'FOLLOW_PATH', 'PIVOT', 'SHRINKWRAP')
-        if self.created:
-            self.constraints = {cn.lower() : None for cn in all_constraints}
-        # if they are already there, then add them to the name list!!
+        self.constraint_list = {cn.lower() : None for cn in all_constraints}
+        for con in self().constraints[:]: # if they are already there, then add them to the name list
+            self.constraint_list[con.type.lower()] = con.name
+        
+        all_modifiers = ('DATA_TRANSFER', 'MESH_CACHE', 'MESH_SEQUENCE_CACHE', 'NORMAL_EDIT', 'WEIGHTED_NORMAL', 'UV_PROJECT', 'UV_WARP', 'VERTEX_WEIGHT_EDIT', 'VERTEX_WEIGHT_MIX', 'VERTEX_WEIGHT_PROXIMITY', 'ARRAY', 'BEVEL', 'BOOLEAN', 'BUILD', 'DECIMATE', 'EDGE_SPLIT', 'MASK', 'MIRROR', 'MULTIRES', 'REMESH', 'SCREW', 'SKIN', 'SOLIDIFY', 'SUBSURF', 'TRIANGULATE', 'WELD', 'WIREFRAME', 'ARMATURE', 'CAST', 'CURVE', 'DISPLACE', 'HOOK', 'LAPLACIANDEFORM', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 'SIMPLE_DEFORM', 'SMOOTH', 'CORRECTIVE_SMOOTH', 'LAPLACIANSMOOTH', 'SURFACE_DEFORM', 'WARP', 'WAVE', 'CLOTH', 'COLLISION', 'DYNAMIC_PAINT', 'EXPLODE', 'FLUID', 'OCEAN', 'PARTICLE_INSTANCE', 'PARTICLE_SYSTEM', 'SOFT_BODY', 'SURFACE')
+        self.modifier_list = {mod.lower() : None for mod in all_modifiers}
+        for mod in self().modifiers[:]: # if they are already there, then add them to the modifier list
+            self.modifier_list[mod.type.lower()] = mod.name
 
     @property
     def frame(self):
@@ -1253,21 +1271,72 @@ class Object(Thing):
         self.container = new.empty(container_name, typ, size=size, coll_name=self().users_collection[0].name)
         self().parent = self.container()
     
+    @property
+    def coll(self):
+        """
+        Collection of the object.
+        If the object is in multiple collections, return the last one
+        """
+        this_coll = self().users_collection
+        assert this_coll # make sure there is at least one element
+        return Collection(this_coll[-1].name)
+
+    def to_coll(self, coll_name, typ='move'):
+        """
+        Move this object to a collection.
+
+        :param coll_name: (str)
+            A collection will be created if a collection by coll_name doesn't exist
+        :param typ: (str) 'copy' or 'move'
+            Note that copy won't copy the object itself. It will simply keep the same object in both collections. 
+            Use Msh.copy or Msh.deepcopy to achieve this.
+        """
+        assert isinstance(coll_name, (bpy.types.Collection, str))
+        assert typ in ['copy', 'move']
+        oldC = self.coll
+        if not isinstance(coll_name, str):
+            coll_name = coll_name.name
+        newC = Collection(coll_name)
+        if coll_name not in [c.name for c in self().users_collection]: # link only if the object isn't in collection already
+            newC().objects.link(self())
+            if typ == 'move':
+                oldC().objects.unlink(self())
+    
     # modifiers
-    def subsurf(self, levels=2, render_levels=3, name=None):
-        """Subsurf modifier, because it is so common."""
-        if not name:
-            name = utils.new_name('subd', [m.name for m in self().modifiers])
-        self().modifiers.new(name, type='SUBSURF')
-        self().modifiers[name].levels = levels
-        self().modifiers[name].render_levels = render_levels
+    def get_modifier(self, modifier_type):
+        """Returns bpy.types.Modifier, or makes a new one if a modifier does not exist."""
+        if self.modifier_list[modifier_type.lower()] is not None:
+            return self().modifiers[self.modifier_list[modifier_type.lower()]]
+        modifier_name = modifier_type.lower().replace('_', ' ').title()
+        return self().modifiers.new(modifier_name, modifier_type.upper())
+
+    def subsurf(self, levels=2, render_levels=3, **kwargs):
+        """Subdivision surface modifier."""
+        # get a subsurf modifier if it already exists
+        subsurf_modifier = self.get_modifier('subsurf')
+        
+        # update important attributes
+        subsurf_modifier.levels = levels
+        subsurf_modifier.render_levels = render_levels
+
+        # update optional attributes
+            # kwargs_other: if you didn't specify, don't change
+            # kwargs_impose: if you didn't specify, impose a certain value
+        kwargs_impose, kwargs_keep = pn.clean_kwargs(kwargs, {
+            'subdivision_type' : 'CATMULL_CLARK' #('CATMULL_CLARK', 'SIMPLE')
+        })
+        for key, val in {**kwargs_impose, **kwargs_keep}.items():
+            setattr(subsurf_modifier, key, val)
+
+        # update modifier list
+        self.modifier_list['subsurf'] = subsurf_modifier.name
 
     # constraints
-    def get_constraint(self, constraint_name):
+    def get_constraint(self, constraint_type):
         """Returns the bpy.types.Constraint, or makes a new one if a constraint doesn't exist."""
-        if self.constraints[constraint_name.lower()] is not None:
-            return self().constratints[self.constraints[constraint_name.lower()]]
-        return self().constraints.new(constraint_name.upper())
+        if self.constraint_list[constraint_type.lower()] is not None:
+            return self().constratints[self.constraint_list[constraint_type.lower()]]
+        return self().constraints.new(constraint_type.upper())
 
     def follow_path(self, path_obj=None, **kwargs):
         """
@@ -1296,7 +1365,7 @@ class Object(Thing):
         })
         for key, val in kwargs.items():
             setattr(path_constraint, key, val)
-        self.constraints['follow_path'] = path_constraint.name
+        self.constraint_list['follow_path'] = path_constraint.name
     
     def track_to(self, targ_obj, **kwargs):
         """

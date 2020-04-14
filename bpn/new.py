@@ -23,17 +23,17 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
         name = utils.new_name('empty', [o.name for o in bpy.data.objects])
     return core.Object(name, None, empty_display_type=typ, empty_display_size=size, coll_name=coll_name)
 
-def collection(coll_name='Collection'):
-    """
-    Create a new collection with name coll_name if it doesn't exist.
-    Returns: (bpy.types.Collection)
-    """
-    if coll_name in [c.name for c in bpy.data.collections]:
-        col = bpy.data.collections[coll_name]
-    else:
-        col = bpy.data.collections.new(coll_name)
-        bpy.context.scene.collection.children.link(col)
-    return col
+# def collection(coll_name='Collection'):
+#     """
+#     Create a new collection with name coll_name if it doesn't exist.
+#     Returns: (bpy.types.Collection)
+#     """
+#     if coll_name in [c.name for c in bpy.data.collections]:
+#         col = bpy.data.collections[coll_name]
+#     else:
+#         col = bpy.data.collections.new(coll_name)
+#         bpy.context.scene.collection.children.link(col)
+#     return col
 
 def obj(msh, col, obj_name='newObj'):
     """
@@ -48,7 +48,7 @@ def obj(msh, col, obj_name='newObj'):
     if isinstance(msh, str):
         msh = bpy.data.meshes[msh]
     if isinstance(col, str):
-        col = collection(col)
+        col = core.Collection(col)()
 
     if obj_name in [o.name for o in bpy.data.objects]:
         o = bpy.data.objects[obj_name]
@@ -205,7 +205,7 @@ def bezier_circle(name=None, **kwargs):
     if h is None:
         h = r*(np.sqrt(2)/2 - 4*(0.5**3))/(3*(0.5**3)) # handle length for cubic bezier approx. of a circle
 
-    col = collection(names['coll_name'])
+    col = core.Collection(names['coll_name'])()
     path = bpy.data.curves.new(names['curve_name'], 'CURVE')
     path_obj = bpy.data.objects.new(names['obj_name'], path)
     col.objects.link(path_obj)
@@ -379,7 +379,7 @@ class Text(core.Object):
             self.base_obj_name = self.obj_names[0]
         else: # make an empty and parent everything
             emp = bpy.data.objects.new(kwargs_names['obj_name'], None)
-            col = collection('coll_name')
+            col = core.Collection('coll_name')()
             col.objects.link(emp)
             for o in [bpy.data.objects[obj_name] for obj_name in self.obj_names]:
                 o.parent = emp

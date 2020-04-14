@@ -24,7 +24,7 @@ def load_bones(bones=None, coll_name='Bones'):
     with bpy.data.libraries.load(SKELETON) as (data_from, data_to):
         data_to.objects = [name for name in data_from.objects if name in bones]
     
-    col = new.collection(coll_name)
+    col = core.Collection(coll_name)()
     for obj in data_to.objects:
         if obj is not None:
             col.objects.link(obj)
@@ -51,7 +51,7 @@ class CircularRig:
         
         self.targ = new.empty('target', 'SPHERE', size=0.25, coll_name=self.rig_name)
         self.targ.scl = size
-        
+
         cam = core.Thing('Camera', 'Camera')
         self.camera = CircularRig.ObjectOnCircle(cam, self.rig_name, 2, self.size, self.targ)
         self.camera.scl = size
@@ -83,10 +83,13 @@ class CircularRig:
         :param size: (float) overall 'size' of your rig
         :param targ: (core.Object, bpy.types.Object)
         """
-        def __init__(self, this_thing, coll_name, r, size, targ=None):
+        def __init__(self, this_thing, coll_name, path, size, targ=None):
             super().__init__(this_thing.name.lower(), this_thing, coll_name=coll_name)
             self.add_container(size=size)
-            self.path = new.bezier_circle(r=r, curve_name=this_thing.name+'Path', obj_name=this_thing.name.lower()+'_path', coll_name=coll_name)
+            if isinstance(path, (int, float)):
+                self.path = new.bezier_circle(r=path, curve_name=this_thing.name+'Path', obj_name=this_thing.name.lower()+'_path', coll_name=coll_name)
+            if isinstance(path, core.Object):
+                self.path = path
             self.container.follow_path(self.path)
             if targ is not None:
                 self.track_to(targ)
