@@ -1340,9 +1340,6 @@ class Mesh(Thing):
         """Number of edges."""
         return np.shape(self.e)[0]
 
-    def dummy(self, inp=2):
-        print(self.__class__)
-        print(inp)
 
 @pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property
 class MeshObject(Object):
@@ -1389,10 +1386,3 @@ class MeshObject(Object):
         self.v = new_pts.co
         self.frame = new_pts.frame
     
-    @property
-    def nV(self):
-        print('In container')
-
-    def dummy(self, inp=2):
-        print(inp)
-        print(self.__class__)

@@ -563,8 +563,6 @@ def port_properties(src_class, trg_class, trg_attr_name='data'):
 
     Note that attributes of the Mesh class will NOT be copied
     """
-    trg_names_offlimits = [func_name for func_name, func in trg_class.__dict__.items() if type(func).__name__ == 'function' or isinstance(func, property)]
-
     # properties
     def swap_input_fget(this_prop):
         return lambda x: this_prop.fget(getattr(x, trg_attr_name))
@@ -574,7 +572,7 @@ def port_properties(src_class, trg_class, trg_attr_name='data'):
 
     src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property)}
     for p_name, p in src_properties.items():
-        if p_name not in trg_names_offlimits:
+        if not hasattr(trg_class, p_name): # no overwrites - this implmentation is more readable
             if p.fset is None:
                 setattr(trg_class, p_name, property(swap_input_fget(p)))
             else:
@@ -586,7 +584,7 @@ def port_properties(src_class, trg_class, trg_attr_name='data'):
 
     src_methods = {func_name:func for func_name, func in src_class.__dict__.items() if type(func).__name__ == 'function' and func_name[0] != '_'}
     for src_func_name, src_func in src_methods.items():
-        if src_func_name not in trg_names_offlimits: # don't overwrite if it already exists (even if it is a property)
+        if not hasattr(trg_class, src_func_name): # no overwrites
             setattr(trg_class, src_func_name, property(swap_first_input(src_func)))
 
     return trg_class
