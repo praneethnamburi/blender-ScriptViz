@@ -9,6 +9,7 @@ import functools
 import math
 import os
 import types
+import copy
 
 import numpy as np
 
@@ -284,6 +285,7 @@ class Msh(pn.Track):
                 msh.update()
         return msh
 
+    #PORTED
     @property
     def v(self):
         """Coordinates of a mesh as an nVx3 numpy array."""
@@ -295,6 +297,7 @@ class Msh(pn.Track):
         bpy.context.view_layer.update()
         return trf.apply_matrix(self.bo.matrix_world, self.v) #apply_matrix from trf
     
+    # PORTED
     @property
     def frame(self):
         """
@@ -302,6 +305,7 @@ class Msh(pn.Track):
         """
         return trf.CoordFrame(self.bo.matrix_world, unit_vectors=False) # scaling is included in this?!
 
+    # PORTED
     @frame.setter
     def frame(self, new_frame):
         """Points go with the frame! Simply changes matrix_world."""
@@ -310,6 +314,7 @@ class Msh(pn.Track):
         self.bo.matrix_world = mathutils.Matrix(new_frame)
         bpy.context.view_layer.update()
 
+    # MESH + OBJECT - PORTED
     @property
     def pts(self):
         """Return vertices as a trf.PointCloud object."""
@@ -379,6 +384,7 @@ class Msh(pn.Track):
         """Number of edges."""
         return np.shape(self.e)[0]
 
+    # PORTED
     @v.setter
     def v(self, thisCoords):
         """
@@ -392,6 +398,7 @@ class Msh(pn.Track):
             vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
         bpy.context.view_layer.update()
 
+    # PORTED
     @property
     def center(self):
         """Return mesh center"""
@@ -401,6 +408,7 @@ class Msh(pn.Track):
     def center(self, new_center):
         self.v = self.v + new_center - self.center
 
+    # Superseded by __neg__??
     def delete(self):
         """Remove the mesh and corresponding objects from blender."""
         bpy.data.meshes.remove(self.bm, do_unlink=True)
@@ -503,95 +511,7 @@ class Msh(pn.Track):
         if 'invalid' in str(self.bc).lower():
             self.bc = bpy.data.collections[self.name['coll']] #pylint: disable=attribute-defined-outside-init
 
-    # object properties
-    @property
-    def loc(self):
-        """Object location (not mesh!)"""
-        return self.bo.location
-    @loc.setter
-    def loc(self, new_loc):
-        assert len(new_loc) == 3
-        self.bo.location = new_loc
-        bpy.context.view_layer.update()
-
-    @property
-    def rot(self):
-        """Object rotation"""
-        return self.bo.rotation_euler
-    @rot.setter
-    def rot(self, theta):
-        self.bo.rotation_euler.x = theta[0]
-        self.bo.rotation_euler.y = theta[1]
-        self.bo.rotation_euler.z = theta[2]
-        bpy.context.view_layer.update()
-
-    @property
-    def scl(self):
-        """Object scale"""
-        return self.bo.scale
-    @scl.setter
-    def scl(self, s):
-        self.bo.scale = mathutils.Vector(s)
-        bpy.context.view_layer.update()
-
-    # object transforms - update view_layer after any transform operating on the object (bo)
-    def translate(self, delta=0, x=0, y=0, z=0):
-        """
-        Move an object by delta.
-        delta is a 3-element tuple, list, numpy array or Vector
-        sph.translate((0, 0, 0.6))
-        sph.translate(z=0.6)
-        """
-        if 'numpy' in str(type(delta)):
-            delta = tuple(delta)
-        if delta == 0:
-            delta = (x, y, z)
-        assert len(delta) == 3
-        self.bo.location = self.bo.location + mathutils.Vector(delta)
-        bpy.context.view_layer.update()
-        return self
-    
-    def rotate(self, theta, inp_type='degrees', frame='global'):
-        """
-        Rotate an object.
-        theta is a 3-element tuple, list, numpy array or Vector
-        inp_type is 'degrees' (default) or 'radians'
-        frame of reference is either 'global' or 'local'
-        """
-        assert len(theta) == 3
-        if inp_type == 'degrees':
-            theta = [math.radians(θ) for θ in theta]
-        if frame == 'local':
-            self.bo.rotation_euler.x = self.bo.rotation_euler.x + theta[0]
-            self.bo.rotation_euler.y = self.bo.rotation_euler.y + theta[1]
-            self.bo.rotation_euler.z = self.bo.rotation_euler.z + theta[2]
-        else: #frame = global
-            self.bo.rotation_euler.rotate(mathutils.Euler(tuple(theta)))
-        bpy.context.view_layer.update()
-        return self
-
-    def scale(self, delta):
-        """
-        Scale an object.
-        delta is a 3-element tuple, list, numpy array or Vector
-        """
-        if isinstance(delta, (int, float)):
-            self.bo.scale = self.bo.scale*float(delta)
-        else:
-            assert np.size(delta) == 3
-            self.bo.scale = mathutils.Vector(np.array(delta)*np.array(self.bo.scale))
-        bpy.context.view_layer.update()
-        return self
-
-    def subsurf(self, levels=2, render_levels=3, name=None):
-        """Subsurf modifier, because it is so common."""
-        if not name:
-            name = utils.new_name('subd', [m.name for m in self.bo.modifiers])
-        self.bo.modifiers.new(name, type='SUBSURF')
-        self.bo.modifiers[name].levels = levels
-        self.bo.modifiers[name].render_levels = render_levels
-    
-    # transforms on mesh vertices
+    # MESH
     def shade(self, typ='smooth'):
         """
         Easy access to set shading.
@@ -602,6 +522,7 @@ class Msh(pn.Track):
         for p in self.bm.polygons:
             p.use_smooth = poly_smooth
 
+    # OBJECT + MESH
     def apply_matrix(self):
         """
         Apply world transformation coordinates to the mesh vertices.
@@ -615,6 +536,7 @@ class Msh(pn.Track):
         bpy.context.view_layer.update()
         return self
     
+    # MESH + OBJECT
     def slice_ax(self, axis='x', slice_dir='neg'):
         """
         Use a plane as a slicer and set all vertices below it to zero.
@@ -647,73 +569,7 @@ class Msh(pn.Track):
     slice_y = functools.partialmethod(slice_ax, axis='y')
     slice_z = functools.partialmethod(slice_ax, axis='z')
 
-    # animation
-    def key(self, frame=None, target='lrs', values=None):
-        """
-        Easy keying. Useful for playing around in the command line, or iterating ideas while keeping history.
-        :param frame: (int) Uses current frame number if nothing is specified.
-        :param target: (str) recommended use - one of 'l', 'r', 's', 'lrs', 'lr', 'ls', 'rs'
-        :param values: (list) each element of the list should be a 3-tuple
-            If you have only one parameter to change, still supply [(1, 2, 3)] instead of (1, 2, 3)
-
-        Note that if values are not specified, current numbers will be used.
-        Example:
-            s = bpn.new.sphere(name='sphere')
-            s.key(1)
-            s.loc = (2, 2, 2) # this location will be keyed into frame 26!
-            s.key(26)
-            s.scl = (1, 0.2, 1)
-            s.key(51)
-        """
-        assert isinstance(target, str)
-        target = target.lower()
-
-        if target in ['l', 'loc', 'location']:
-            attrs = ['location']
-        if target in ['r', 'rot', 'rotation', 'rotation_euler']:
-            attrs = ['rotation_euler']
-        if target in ['s', 'scl', 'scale']:
-            attrs = ['scale']
-        if target in ['lrs', 'locrotscale', 'locrotscl']:
-            attrs = ['location', 'rotation_euler', 'scale']
-        if target in ['lr', 'locrot']:
-            attrs = ['location', 'rotation_euler']
-        if target in ['ls', 'locscl', 'locscale']:
-            attrs = ['location', 'rotation_euler']
-        if target in ['rs', 'rotscl', 'rotscale']:
-            attrs = ['rotation_euler', 'scale']
-
-        if values is None:
-            values = [tuple(getattr(self.bo, attr)) for attr in attrs]
-            # for some reason, s.key() doesn't take current values if I don't use tuple
-        
-        frame_current = bpy.context.scene.frame_current
-        if not frame:
-            frame = frame_current
-        bpy.context.scene.frame_set(frame)
-        for attr, value in zip(attrs, values):
-            setattr(self.bo, attr, value)
-            self.bo.keyframe_insert(data_path=attr, frame=frame)
-        # bpy.context.scene.frame_set(frame_current)
-
-        return self # so you can chain keyings into one command
-
-    def hide(self, keyframe=None):
-        if keyframe is None:
-            keyframe = bpy.context.scene.frame_current
-        self.bo.hide_render = True
-        self.bo.keyframe_insert('hide_render', frame=keyframe)
-        self.bo.hide_viewport = True
-        self.bo.keyframe_insert('hide_viewport', frame=keyframe)
-    
-    def show(self, keyframe=None):
-        if keyframe is None:
-            keyframe = bpy.context.scene.frame_current
-        self.bo.hide_render = False
-        self.bo.keyframe_insert('hide_render', frame=keyframe)
-        self.bo.hide_viewport = False
-        self.bo.keyframe_insert('hide_viewport', frame=keyframe)
-
+    # MESH + OBJECT
     def morph(self, n_frames=50, frame_start=1):
         """
         Morphs the mesh from initial vertex positions to current vertex positions.
@@ -727,28 +583,7 @@ class Msh(pn.Track):
             self.v = (1-p)*v_orig + p*v_targ
         bpy.app.handlers.frame_change_pre.append(my_handler)
 
-    def to_coll(self, coll_name, typ='move'):
-        """
-        Move this object to a collection.
-
-        :param coll_name: (str)
-            A collection will be created if a collection by coll_name doesn't exist
-        :param typ: (str) 'copy' or 'move'
-            Note that copy won't copy the object itself. It will simply keep the same object in both collections. 
-            Use Msh.copy or Msh.deepcopy to achieve this.
-        """
-        assert isinstance(coll_name, (bpy.types.Collection, str))
-        assert typ in ['copy', 'move']
-        oldC = self.bc
-        if isinstance(coll_name, str):
-            self.bc = Collection(coll_name)()
-        else:
-            self.bc = coll_name
-        if coll_name not in [c.name for c in self.bo.users_collection]: # link only if the object isn't in collection already
-            self.bc.objects.link(self.bo)
-            if typ == 'move':
-                oldC.objects.unlink(self.bo)
-
+    # OBJECT + MESH - use setter for swapping
     @property
     def m(self):
         """
@@ -775,54 +610,7 @@ class Msh(pn.Track):
         else:
             print('Mesh does not exist!')
 
-    @property
-    def o(self):
-        """
-        Easy access to the object. Currenty, this cannot be set.
-        """
-        return self.bo
-
-    @property
-    def c(self):
-        """
-        Easy access to blender collection. When supplied with a new name, object moves into that collection.
-        """
-        return self.bc
-
-    @c.setter
-    def c(self, coll_name):
-        self.to_coll(coll_name, 'move')
-
-    def copy(self, obj_name=None, coll_name=None):
-        """
-        Make a copy of the object, keep the same mesh and put it in the same collection.
-        Use the same animation data!
-        """
-        this_o = self.bo.copy()
-        if isinstance(obj_name, str):
-            this_o.name = obj_name
-        if isinstance(coll_name, str):
-            Collection(coll_name)().objects.link(this_o)
-        else:
-            self.bc.objects.link(this_o)
-        return Msh(obj_name=this_o.name)
-
-    def deepcopy(self, obj_name=None, coll_name=None, msh_name=None):
-        """
-        Make a copy of everything - object, mesh and animation
-        """
-        this_o = self.bo.copy()
-        this_o.data = this_o.data.copy()
-        if isinstance(obj_name, str):
-            this_o.name = obj_name
-        if isinstance(coll_name, str):
-            Collection(coll_name)().objects.link(this_o)
-        else:
-            self.bc.objects.link(this_o)
-        if isinstance(msh_name, str):
-            this_o.data.name = msh_name
-        return Msh(obj_name=this_o.name)
-
+    # MESH
     def update_normals(self):
         """Update face normals (for example, when updating the point locations!)"""
         bm = bmesh.new()
@@ -1080,7 +868,7 @@ class Thing:
 class Collection(Thing):
     """Wrapper around a bpy.types.Collection thing"""
     def __init__(self, name):
-        Thing.__init__(self, name, 'Collection')
+        super().__init__(name, 'Collection')
         if self.created:
             bpy.context.scene.collection.children.link(self())
     
@@ -1104,7 +892,7 @@ class Object(Thing):
     Object('empty_obj', None)
     """
     def __init__(self, name, *args, **kwargs):
-        Thing.__init__(self, name, 'Object', *args)
+        super().__init__(name, 'Object', *args)
         self.frame_orig = self.frame
         kwargs, kwargs_blobject = pn.clean_kwargs(kwargs, {'coll_name': 'Collection'})
         if not self().users_collection:
@@ -1260,6 +1048,56 @@ class Object(Thing):
         self().hide_viewport = False
         self().keyframe_insert('hide_viewport', frame=keyframe)
     
+    def key(self, frame=None, target='lrs', values=None):
+        """
+        Easy keying. Useful for playing around in the command line, or iterating ideas while keeping history.
+        :param frame: (int) Uses current frame number if nothing is specified.
+        :param target: (str) recommended use - one of 'l', 'r', 's', 'lrs', 'lr', 'ls', 'rs'
+        :param values: (list) each element of the list should be a 3-tuple
+            If you have only one parameter to change, still supply [(1, 2, 3)] instead of (1, 2, 3)
+
+        Note that if values are not specified, current numbers will be used.
+        Example:
+            s = bpn.new.sphere(name='sphere')
+            s.key(1)
+            s.loc = (2, 2, 2) # this location will be keyed into frame 26!
+            s.key(26)
+            s.scl = (1, 0.2, 1)
+            s.key(51)
+        """
+        assert isinstance(target, str)
+        target = target.lower()
+
+        if target in ['l', 'loc', 'location']:
+            attrs = ['location']
+        if target in ['r', 'rot', 'rotation', 'rotation_euler']:
+            attrs = ['rotation_euler']
+        if target in ['s', 'scl', 'scale']:
+            attrs = ['scale']
+        if target in ['lrs', 'locrotscale', 'locrotscl']:
+            attrs = ['location', 'rotation_euler', 'scale']
+        if target in ['lr', 'locrot']:
+            attrs = ['location', 'rotation_euler']
+        if target in ['ls', 'locscl', 'locscale']:
+            attrs = ['location', 'rotation_euler']
+        if target in ['rs', 'rotscl', 'rotscale']:
+            attrs = ['rotation_euler', 'scale']
+
+        if values is None:
+            values = [tuple(getattr(self(), attr)) for attr in attrs]
+            # for some reason, s.key() doesn't take current values if I don't use tuple
+        
+        frame_current = bpy.context.scene.frame_current
+        if not frame:
+            frame = frame_current
+        bpy.context.scene.frame_set(frame)
+        for attr, value in zip(attrs, values):
+            setattr(self(), attr, value)
+            self().keyframe_insert(data_path=attr, frame=frame)
+        # bpy.context.scene.frame_set(frame_current)
+
+        return self # so you can chain keyings into one command
+    
     # parenting
     def add_container(self, container_name=None, typ='CUBE', size=0.25):
         """
@@ -1269,7 +1107,7 @@ class Object(Thing):
         if container_name is None:
             container_name = self.name+'_container'
         self.container = new.empty(container_name, typ, size=size, coll_name=self().users_collection[0].name)
-        self().parent = self.container()
+        self().parent = self.container() # container is a core.Object
     
     @property
     def coll(self):
@@ -1383,14 +1221,172 @@ class Object(Thing):
         })
         for key, val in kwargs.items():
             setattr(track_constraint, key, val)
-        
-
-# class Mesh(Thing):
-#     """Wrapper around a bpy.types.Mesh object."""
-#     def __init__(self, name):
-#         Thing.__init__(self, name, 'Mesh')
     
-# class MeshObject(Object, Mesh): # will mature to replace bpn.Msh?
-#     def __init__(self, obj_name):
-#         Mesh.__init__(self, bpy.data.objects[obj_name].data.name, composite=True)
-#         Object.__init__(self, obj_name, composite=True)
+    def copy(self, obj_name=None, coll_name=None):
+        """
+        Make a copy of the object, keep the same mesh and put it in the same collection.
+        Use the same animation data!
+        """
+        this_o = self().copy()
+        if isinstance(obj_name, str):
+            this_o.name = obj_name
+        if isinstance(coll_name, str):
+            Collection(coll_name)().objects.link(this_o)
+        else:
+            self.coll().objects.link(this_o)
+        return utils.get(this_o.name) # use the dispatcher!
+
+    def deepcopy(self, obj_name=None, coll_name=None, msh_name=None):
+        """
+        Make a copy of everything - object, mesh and animation
+        """
+        this_o = self().copy()
+        this_o.data = this_o.data.copy()
+        if isinstance(obj_name, str):
+            this_o.name = obj_name
+        if isinstance(coll_name, str):
+            Collection(coll_name)().objects.link(this_o)
+        else:
+            self.coll().objects.link(this_o)
+        if isinstance(msh_name, str):
+            this_o.data.name = msh_name
+        return utils.get(this_o.name)
+
+
+class Mesh(Thing):
+    """Wrapper around a bpy.types.Mesh object."""
+    def __init__(self, name):
+        super().__init__(name, 'Mesh')
+        self.v_init = copy.deepcopy(self.v)
+        self.v_bkp = copy.deepcopy(self.v)
+    
+    @property
+    def v(self):
+        """Coordinates of a mesh as an nVx3 numpy array."""
+        return np.array([v.co for v in self().vertices])
+    
+    @v.setter
+    def v(self, thisCoords):
+        """
+        Set vertex positions of a mesh using a numpy array of size nVertices x 3.
+        Note that this will only work when blender 3D viewport is in object mode.
+        Therefore, this code will temporarily change the 3D viewport mode to Object,
+        change the mesh coordinates and switch it back.
+        """
+        self.v_bkp = copy.deepcopy(self.v) # for undo
+        for vertexCount, vertex in enumerate(self().vertices):
+            vertex.co = mathutils.Vector(thisCoords[vertexCount, :])
+        bpy.context.view_layer.update()
+    
+    @property
+    def center(self):
+        """Return mesh center"""
+        return np.mean(self.v, axis=0)
+
+    @center.setter
+    def center(self, new_center):
+        self.v = self.v + new_center - self.center
+
+    @property
+    def vn(self):
+        """Vertex normals as an nVx3 numpy array."""
+        return np.array([vert.normal[:] for vert in self().vertices])
+    
+    @property
+    def f(self):
+        """Faces as an nFx3 numpy array."""
+        return np.array([polygon.vertices[:] for polygon in self().polygons])
+
+    @property
+    def fn(self):
+        """Face normals as an nFx3 numpy array."""
+        return np.array([polygon.normal[:] for polygon in self().polygons])
+        
+    @property
+    def fa(self):
+        """Area of faces as an nFx3 numpy array."""
+        return np.array([polygon.area for polygon in self().polygons])
+    
+    @property
+    def fc(self):
+        """Coordinates of face centers."""
+        return np.array([polygon.center for polygon in self().polygons])
+
+    @property
+    def e(self):
+        """Vertex indices of edges."""
+        return np.array([edge.vertices[:] for edge in self().edges])
+
+    @property
+    def eL(self):
+        """Edge lengths."""
+        e = self.e
+        v = self.v
+        # This will take forever! Need a better way
+        return [np.sqrt(np.sum(np.diff(v[k], axis=0)**2)) for k in e]
+
+    @property
+    def nV(self):
+        """Number of vertices."""
+        return np.shape(self.v)[0]
+
+    @property
+    def nF(self):
+        """Number of faces."""
+        return np.shape(self.f)[0]
+
+    @property
+    def nE(self):
+        """Number of edges."""
+        return np.shape(self.e)[0]
+
+    def dummy(self, inp=2):
+        print(self.__class__)
+        print(inp)
+
+@pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property
+class MeshObject(Object):
+    """
+    This is an object. Automatically calls the appropriate methods and
+    properties from Object and Mesh classes.
+    For example:
+        new.sphere('sph')
+        s = MeshObject('sph')
+        s.v -> automatically returns vertices from them mesh
+    """
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        assert self().type == 'MESH'
+        self._data = Mesh(self().data) # self() returns bpy.data.objects[obj_name] and self().data acts on that blender object
+
+    @property
+    def data(self):
+        """Mesh data. Initalized at the time of object creation."""
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        if not isinstance(new_data, str):
+            assert hasattr(new_data, 'name')
+            new_data = new_data.name
+        self._data = Mesh(new_data)
+        self().data = self.data() # replace the blender data
+        bpy.context.view_layer.update()
+
+    @property
+    def pts(self):
+        """Return vertices as a trf.PointCloud object."""
+        return trf.PointCloud(self.v, self.frame)
+
+    @pts.setter
+    def pts(self, new_pts):
+        """
+        Set the vertices AND the frame. In other words, transform the
+        point cloud into the desired frame of reference before putting
+        it here.
+        """
+        assert type(new_pts).__name__ == 'PointCloud'
+        self.v = new_pts.co
+        self.frame = new_pts.frame
+
+# MeshObject = utils.port_properties(Mesh, MeshObject, 'data')
