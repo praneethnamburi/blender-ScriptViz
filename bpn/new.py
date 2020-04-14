@@ -23,18 +23,6 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
         name = utils.new_name('empty', [o.name for o in bpy.data.objects])
     return core.Object(name, None, empty_display_type=typ, empty_display_size=size, coll_name=coll_name)
 
-# def collection(coll_name='Collection'):
-#     """
-#     Create a new collection with name coll_name if it doesn't exist.
-#     Returns: (bpy.types.Collection)
-#     """
-#     if coll_name in [c.name for c in bpy.data.collections]:
-#         col = bpy.data.collections[coll_name]
-#     else:
-#         col = bpy.data.collections.new(coll_name)
-#         bpy.context.scene.collection.children.link(col)
-#     return col
-
 def obj(msh, col, obj_name='newObj'):
     """
     Creates an object with obj_name if it does not exist.
