@@ -2,6 +2,7 @@
 Utility functions
 """
 import os
+import re
 
 import numpy as np
 
@@ -16,8 +17,10 @@ PATH = {}
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 PATH['cache'] = os.path.join(DEV_ROOT, '_temp')
 
+plural = lambda string: string+'es' if string[-2:] in ('ch', 'sh') or string[-1] in ('s', 'x', 'z') else string+'s'
+
 # perhaps the most useful function
-def get(obj_name=None):
+def get(name=None, mode=None, priority='Object'):
     """
     Dispatcher for the bpn module.
     Takes as input the name of a prop in the blender environment.
@@ -25,23 +28,90 @@ def get(obj_name=None):
 
     MESH bpy.types.Object - core.Msh
     Other bpy.types.Object - core.Object
-    Prop in bpy.data.* - core.BlWrapper
+    Prop in bpy.data.* - core.Thing
     
     bpn.obj('sphere')
     :param obj_name: (str) name of the object in blender's environment
+    :param mode: (None, 'all') if 'all', returns all things with the name (priority given to objects)
+
+    If there are objects and curves with the same name, then 
+    utils.get(['x_label', 'y_label'], priority='Curve') will return the curves
+    utils.get(['x_label', 'y_label']) will return the objects
+    utils.get(['x_label', 'y_label'], 'all') will return both objects and curves
+    utils.get('abe.*') to get all objects that contain 'abe'
+    utils.get('abe.*', 'all') to get all items that contain 'abe'
     """
-    if obj_name is None: # return the last objects
-        obj_name = [o.name for o in bpy.data.objects][-1]
+    assert mode in (None, 'all')
+    assert isinstance(name, (str, list)) or name is None
+    assert not (mode == 'all' and name is None)
 
-    if isinstance(obj_name, str) and (obj_name not in [o.name for o in bpy.data.objects]):
-        if env.Props().get(obj_name):
-            return core.BlWrapper(obj_name, type(env.Props().get(obj_name)[0]).__name__)
-        print('No prop found with name: ' + obj_name)
+    regex = re.compile('[.^$*+}{|)(]')
+    if isinstance(name, str):
+        if regex.search(name) is not None: # not a normal string
+            name = env.Props().search(name)
+
+    if isinstance(name, list): # if name is a list of regular expressions
+        checked_name = []
+        for this_name in name:
+            if regex.search(this_name) is not None:
+                checked_name += env.Props().search(this_name)
+            else:
+                checked_name += [this_name]
+        name = list(np.unique(checked_name))
+        name = [n for n in name if '/' not in n]
+        if len(name) == 1:
+            name = name[0]
+    
+    def _fix_type(thing_type):
+        # lights cause an issue here
+        if plural(thing_type.__name__.lower()) not in env.PROP_FIELDS:
+            thing_type = [k for k in thing_type.__mro__[:-1] if plural(k.__name__.lower()) in env.PROP_FIELDS]
+            if not thing_type:
+                return [] # window manager caused issue when searching for ALL objects
+            thing_type = thing_type[0]
+        return thing_type
+
+    def _enhance_item(item): # item is bpy.data.(sometype)
+        thing_type = _fix_type(type(item))
+        if not thing_type:
+            return []
+        thing_type = thing_type.__name__
+        if thing_type == 'Object' and item.type == 'MESH':
+            return core.Msh(obj_name=item.name)
+        if hasattr(core, thing_type):
+            return getattr(core, thing_type)(item)
+        return core.Thing(item, thing_type)
+
+    def _get_one_with_name(name):
+        """Returns one dispatched object."""
+        all_items = env.Props().get(name)
+        if all_items: # at least one item found
+            all_obj_items = [item for item in all_items if type(item).__name__ == priority]
+            if all_obj_items: # one of the items was object item
+                return _enhance_item(all_obj_items[0])
+            return _enhance_item(all_items[0])
+        print('No prop found with name: ' + name)
         return []
+    
+    def _get_all_with_name(name):
+        """Returns a list of dispatched objects (even if there is only one)."""
+        assert isinstance(name, str)
+        return [_enhance_item(item) for item in env.Props().get(name) if _enhance_item(item)]
 
-    if bpy.data.objects[obj_name].type == 'MESH':
-        return core.Msh(obj_name=obj_name)
-    return core.Object(obj_name)
+    if mode is None and name is None: # no inputs given, return the last object
+        return _get_one_with_name([o.name for o in bpy.data.objects][-1])
+    if mode is None and isinstance(name, str): # return one object
+        return _get_one_with_name(name)
+    if mode is None and isinstance(name, list):
+        return [_get_one_with_name(this_name) for this_name in name]
+    if mode == 'all' and isinstance(name, str):
+        return _get_all_with_name(name)
+    if mode == 'all' and isinstance(name, list): # here for completeness, don't recommend using it
+        ret_list = []
+        for this_name in name:
+            ret_list += _get_all_with_name(this_name)
+        return ret_list
+
 
 ### Name management
 def new_name(name, curr_names):

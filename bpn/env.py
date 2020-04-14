@@ -9,6 +9,7 @@ Functions:
     reset() - Reset the current blender scene programatically (useful to preserve console history and variables)
     shade() - Change the shading in 3D viewport
 """
+import re
 import functools
 import numpy as np
 
@@ -91,6 +92,26 @@ class Props:
         """Get an object by its name."""
         assert isinstance(name, str)
         return [k[0] for k in self(name).values()]
+    def search(self, name=''):
+        """
+        Return names of props in the environment that match a specific regular expression.
+        See get_re for examples
+        """
+        all_prop_names = [this_item for this_set in self.names().values() for this_item in this_set]
+        all_matched_names = list(np.unique([i for i in all_prop_names if re.search(name, i)]))
+        return all_matched_names
+    def get_re(self, name=''):
+        """
+        Return all props that fit a regular expression given in name.
+        Props().get_re('^ax') : return all props starting with 'ax'
+        Props().get_re('_R$') : return all props ending with '_R'
+        Props().get_re('es') : return everything with 'es' in it
+        Props().get_re('es$') : return everython ending with es
+        """
+        ret_list = []
+        for this_name in self.search(name):
+            ret_list += self.get(this_name)
+        return ret_list
     def names(self, discard_empty=True):
         """Return only the names, and not references to objects."""
         self.clean()
