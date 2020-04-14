@@ -500,6 +500,7 @@ class Msh(pn.Track):
             faces.append(tuple(thisFace))
         write_stl(filepath=os.path.join(fPath, fName), faces=faces, ascii=False)
 
+    # NO LONGER NEEDED (I think!)
     def refresh(self):
         """
         Refresh if blender does memory management and moves things.
@@ -522,7 +523,7 @@ class Msh(pn.Track):
         for p in self.bm.polygons:
             p.use_smooth = poly_smooth
 
-    # OBJECT + MESH
+    # OBJECT + MESH - PORTED
     def apply_matrix(self):
         """
         Apply world transformation coordinates to the mesh vertices.
@@ -946,7 +947,7 @@ class Object(Thing):
     @property
     def loc(self):
         """Object location (not mesh!)"""
-        return self().location
+        return np.array(self().location) # so you can do += 1
     @loc.setter
     def loc(self, new_loc):
         assert len(new_loc) == 3
@@ -1279,13 +1280,16 @@ class Mesh(Thing):
         bpy.context.view_layer.update()
     
     @property
-    def center(self):
-        """Return mesh center"""
+    def vertex_center(self):
+        """
+        Return the center of all vertices.
+        This was originally 'center' which was confusing.
+        """
         return np.mean(self.v, axis=0)
 
-    @center.setter
-    def center(self, new_center):
-        self.v = self.v + new_center - self.center
+    @vertex_center.setter
+    def vertex_center(self, new_center):
+        self.v = self.v + new_center - self.vertex_center
 
     @property
     def vn(self):
@@ -1340,8 +1344,131 @@ class Mesh(Thing):
         """Number of edges."""
         return np.shape(self.e)[0]
 
+    def undo(self):
+        """
+        Undo the last change to coords.
+        Repeated application of undo will keep switching between the
+        last two views.
+        """
+        self.v, self.v_bkp = self.v_bkp, self.v
 
-@pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property
+    def reset(self):
+        """Reset the mesh to its initalized state"""
+        self.v = self.v_init
+
+    def inflate(self, pres=0.2, elas=0.1, delta=0.05, nIter=20):
+        """
+        Inflate a mesh towards a sphere
+
+        Try this sequence on Suzanne:
+        m.inflate(0.2, 0.1, 0.05, 300)
+        m.inflate(0.02, 0.1, 0.01, 300)
+        m.inflate(0.05, 0.1, 0.01, 300)
+        m.inflate(0.1, 0.1, 0.01, 300)
+        m.inflate(0.15, 0.1, 0.02, 600)
+
+        Don't normalize pressure vector by area:
+        F_p = np.sum(fn[tNei[i]], 0)
+        Then, try
+        m.inflate(1, 0.1, 0.5, 150)
+        """
+        newV = self.v
+        f = self.f
+        e = self.e
+        nV = self.nV
+
+        fnv = [self.fnv(f, i) for i in range(nV)] # face neighbors of vertices
+        vnv = [self.vnv(e, i) for i in range(nV)] # vertex neighbors of vertices
+        for _ in range(nIter):
+            fn = self.fn
+            fa = self.fa
+            for i in range(self.nV):
+                F_el = np.sum(newV[vnv[i]] - newV[i], 0) # elastic force vector
+                F_p = np.sum(fn[fnv[i]].T*fa[fnv[i]], 1) # pressure force vector
+                F = elas*F_el + pres*F_p # sum of elastic and pressure forces
+                newV[i] = newV[i] + delta*F
+            self.v = newV
+        
+    def fnv(self, f, i):
+        """Face neighbors of a vertex i.
+        Faces attached to vertex i, given faces f."""
+        return np.flatnonzero(np.sum(f == i, 1))
+    
+    def vnv(self, e, i):
+        """Vertex neighbors of vertex i.
+        Vertex indices attached to vertex i, given edges e."""
+        return [np.setdiff1d(k, i)[0] for k in e if i in k]
+
+    def export(self, fName=None, fPath=None):
+        """
+        Export a Msh instance into an stl file.
+        REMEMBER: This only works if the mesh has ONLY triangular faces.
+        """
+        if fPath is None:
+            fPath = utils.PATH['cache']
+
+        if fName is None:
+            fName = self().name + '.stl'
+
+        if fName.lower()[-4:] != '.stl':
+            print('File name should end with a .stl')
+            return
+
+        # if the full path is supplied as the first argument
+        if os.path.dirname(fName):
+            if os.path.exists(os.path.dirname(fName)):
+                fPath = os.path.dirname(fName)
+        fName = os.path.basename(fName)
+
+        v = [tuple(v.co) for v in self().vertices]
+        f = [tuple(polygon.vertices[:]) for polygon in self().polygons]
+
+        # generate faces for blender's write_stl function
+        # faces: iterable of tuple of 3 vertex, vertex is tuple of 3 coordinates as float
+        # faces = [f1: (v1:(p11, p12, p13), v2:(p21, p22, p23), v3:(p31, p32, p33)), f2:...]
+        faces = []
+        for face in f:
+            thisFace = []
+            for vPos in face:
+                thisFace.append(v[vPos])
+            faces.append(tuple(thisFace))
+        write_stl(filepath=os.path.join(fPath, fName), faces=faces, ascii=False)
+    
+    def morph(self, n_frames=50, frame_start=1):
+        """
+        Morphs the mesh from initial vertex positions to current vertex positions.
+        CAUTION: Using this multiple times on the same object can cause unpredictable behavior.
+        """
+        v_orig = self.v_init
+        v_targ = self.v
+        frame_end = frame_start + n_frames
+        def my_handler(scene):
+            p = (scene.frame_current-frame_start)/(frame_end-frame_start)
+            self.v = (1-p)*v_orig + p*v_targ
+        bpy.app.handlers.frame_change_pre.append(my_handler)
+    
+    def update_normals(self):
+        """Update face normals (for example, when updating the point locations!)"""
+        bm = bmesh.new()
+        bm.from_mesh(self())
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        bm.to_mesh(self())
+        bm.clear()
+        self().update()
+        bm.free()
+    
+    def shade(self, typ='smooth'):
+        """
+        Easy access to set shading.
+        Extend this to mark sharpe edges, and define smoothing only for some faces
+        """
+        assert typ in ('smooth', 'flat')
+        poly_smooth = typ == 'smooth'
+        for p in self().polygons:
+            p.use_smooth = poly_smooth
+
+
+@pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
 class MeshObject(Object):
     """
     This is an object. Automatically calls the appropriate methods and
@@ -1373,7 +1500,7 @@ class MeshObject(Object):
     @property
     def pts(self):
         """Return vertices as a trf.PointCloud object."""
-        return trf.PointCloud(self.v, self.frame)
+        return trf.PointCloud(self.data.v, self.frame)
 
     @pts.setter
     def pts(self, new_pts):
@@ -1383,6 +1510,50 @@ class MeshObject(Object):
         it here.
         """
         assert type(new_pts).__name__ == 'PointCloud'
-        self.v = new_pts.co
+        self.data.v = new_pts.co
         self.frame = new_pts.frame
     
+    def apply_matrix(self):
+        """
+        Apply world transformation coordinates to the mesh vertices.
+        CAUTION: Applies matrix to the MESH directly and NOT the object!!
+        It also resets matrix_world
+        Note that this move will move the mesh center to origin.
+        """
+        self.data.v_bkp = self.data.v # for undoing
+        self.data.v = trf.apply_matrix(self().matrix_world, self.data.v)
+        self().matrix_world = mathutils.Matrix(np.eye(4))
+        bpy.context.view_layer.update()
+        return self
+
+    def slice_ax(self, axis='x', slice_dir='neg'):
+        """
+        Use a plane as a slicer and set all vertices below it to zero.
+        """
+        assert slice_dir in ('pos', 'neg')
+        if isinstance(axis, str):
+            axis = {'x':0, 'y':1, 'z':2}[axis]
+        self.data.v_bkp = self.data.v
+
+        # apply matrix, do your thing, apply inverse, then put the original matrix back in
+        m = self().matrix_world.copy()
+        mi = m.copy()
+        mi.invert()
+        self.apply_matrix()
+
+        v = self.data.v
+        if slice_dir == 'neg':
+            v[v[:, axis] < 0, axis] = 0
+        else:
+            v[v[:, axis] > 0, axis] = 0
+        self.data.v = v
+
+        self().matrix_world = mi
+        self.apply_matrix()
+        self().matrix_world = m
+        bpy.context.view_layer.update()
+        return self
+
+    slice_x = functools.partialmethod(slice_ax, axis='x')
+    slice_y = functools.partialmethod(slice_ax, axis='y')
+    slice_z = functools.partialmethod(slice_ax, axis='z')
