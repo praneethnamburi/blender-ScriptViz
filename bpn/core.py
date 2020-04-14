@@ -1388,5 +1388,11 @@ class MeshObject(Object):
         assert type(new_pts).__name__ == 'PointCloud'
         self.v = new_pts.co
         self.frame = new_pts.frame
+    
+    @property
+    def nV(self):
+        print('In container')
 
-# MeshObject = utils.port_properties(Mesh, MeshObject, 'data')
+    def dummy(self, inp=2):
+        print(inp)
+        print(self.__class__)

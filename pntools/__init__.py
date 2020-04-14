@@ -560,27 +560,35 @@ def port_properties(src_class, trg_class, trg_attr_name='data'):
 
     Note that trg_class itself is being modified
     (i.e., return statement is just to enable the decorator)
+
+    Note that attributes of the Mesh class will NOT be copied
     """
-    # import things from the Mesh class, but make them accessible directly
+    trg_names_offlimits = [func_name for func_name, func in trg_class.__dict__.items() if type(func).__name__ == 'function' or isinstance(func, property)]
+
+    # properties
     def swap_input_fget(this_prop):
         return lambda x: this_prop.fget(getattr(x, trg_attr_name))
     
     def swap_input_fset(this_prop):
         return lambda x, s: this_prop.fset(getattr(x, trg_attr_name), s)
 
-    all_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property)}
-    for p_name, p in all_properties.items():
-        if p.fset is None:
-            setattr(trg_class, p_name, property(swap_input_fget(p)))
-        else:
-            setattr(trg_class, p_name, property(swap_input_fget(p), swap_input_fset(p)))
+    src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property)}
+    for p_name, p in src_properties.items():
+        if p_name not in trg_names_offlimits:
+            if p.fset is None:
+                setattr(trg_class, p_name, property(swap_input_fget(p)))
+            else:
+                setattr(trg_class, p_name, property(swap_input_fget(p), swap_input_fset(p)))
 
+    # methods
     def swap_first_input(func): # when we don't know how many inputs func has
         return lambda x: functools.partial(func, getattr(x, trg_attr_name))
 
-    all_methods = {func_name:func for func_name, func in src_class.__dict__.items() if type(func).__name__ == 'function' and func_name[0] != '_'}
-    for func_name, func in all_methods.items():
-        setattr(trg_class, func_name, property(swap_first_input(func)))
+    src_methods = {func_name:func for func_name, func in src_class.__dict__.items() if type(func).__name__ == 'function' and func_name[0] != '_'}
+    for src_func_name, src_func in src_methods.items():
+        if src_func_name not in trg_names_offlimits: # don't overwrite if it already exists (even if it is a property)
+            setattr(trg_class, src_func_name, property(swap_first_input(src_func)))
+
     return trg_class
 
 class PortProperties:
