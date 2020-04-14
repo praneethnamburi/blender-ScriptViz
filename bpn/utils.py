@@ -289,3 +289,21 @@ def combine_curves(obj_list, mtrl_list=None):
         for mtrl in mtrl_list:
             if mtrl.name not in base_materials:
                 bpy.data.materials.remove(mtrl)
+
+def copy_curve(curve_src):
+    """Used to check Bezier curve anomaly."""
+    attrs_pts = ['co', 'handle_left', 'handle_right', 'handle_left_type', 'handle_right_type']
+    attrs_spline = ['order_u', 'order_v', 'resolution_u', 'resolution_v', 'tilt_interpolation', 'use_bezier_u', 'use_bezier_v', 'use_cyclic_u', 'use_cyclic_v', 'use_endpoint_u', 'use_endpoint_v', 'use_smooth']
+
+    curve_targ = bpy.data.curves.new(curve_src.name, 'CURVE')
+    for spl in curve_src.splines:
+        if spl.type != 'BEZIER':
+            continue # only bezier splines are copied for now!
+        spl_targ = curve_targ.splines.new(type='BEZIER')
+        spl_targ.bezier_points.add(len(spl.bezier_points)-1)
+        for pt_targ, pt in zip(spl_targ.bezier_points[:], spl.bezier_points[:]):
+            for attr in attrs_pts:
+                setattr(pt_targ, attr, getattr(pt, attr))
+        for attr in attrs_spline:
+            setattr(spl_targ, attr, getattr(spl, attr))
+    return curve_targ
