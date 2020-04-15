@@ -27,37 +27,6 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     s.to_coll(coll_name)
     return s
 
-def greasepencil(gp_name='newGP'):
-    """
-    Creates a new blender grease pencil.
-    Returns a reference to existing grease pencil if it already exists.
-    """
-    if gp_name in [g.name for g in bpy.data.grease_pencils]:
-        return bpy.data.grease_pencils[gp_name]
-    return bpy.data.grease_pencils.new(gp_name)
-
-def obj(msh, col, obj_name='newObj'):
-    """
-    Creates an object with obj_name if it does not exist.
-    If object with name exists, returns object.
-
-    :param msh: (str, bpy.types.Mesh) mesh from blender
-    :param col: (str, bpy.types.Collection) collection from blender
-    
-    DOES NOT: change collection of the object if col is different from the object's collection
-    """
-    if isinstance(msh, str):
-        msh = bpy.data.meshes[msh]
-    if isinstance(col, str):
-        col = core.Collection(col)()
-
-    if obj_name in [o.name for o in bpy.data.objects]:
-        o = bpy.data.objects[obj_name]
-    else:
-        o = bpy.data.objects.new(obj_name, msh)
-        col.objects.link(o)
-    return o
-
 def mesh(name=None, **kwargs): # formerly bpn.Msh
     """
     Create a mesh object from various types of input
