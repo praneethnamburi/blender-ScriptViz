@@ -71,27 +71,16 @@ def get(name=None, mode=None, priority='Object'):
             thing_type = thing_type[0]
         return thing_type
 
-    def _check_item_exists(item_name, item_enhanced_class):
-        """
-        Search for the enhanced item in the classes before creating them
-        This can work because all the core classes are being tracked using pntools.tracker
-        This way, the dispatcher won't create new enhanced objects every time it is called
-        """
-        this_item = [o for o in item_enhanced_class.all if o.name == item_name]
-        if this_item:
-            return this_item[0]
-        return item_enhanced_class(item_name)
-
     def _enhance_item(item): # item is bpy.data.(sometype)
         thing_type = _fix_type(type(item))
         if not thing_type:
             return []
         thing_type = thing_type.__name__
         if thing_type == 'Object' and item.type == 'MESH':
-            return _check_item_exists(item.name, core.MeshObject)
+            return check_core_item_exists(item.name, core.MeshObject)
         if hasattr(core, thing_type):
-            return _check_item_exists(item.name, getattr(core, thing_type))
-        return _check_item_exists(item.name, core.Thing)
+            return check_core_item_exists(item.name, getattr(core, thing_type))
+        return check_core_item_exists(item.name, core.Thing)
 
     def _get_one_with_name(name):
         """Returns one dispatched object."""
@@ -123,6 +112,16 @@ def get(name=None, mode=None, priority='Object'):
             ret_list += _get_all_with_name(this_name)
         return ret_list
 
+def check_core_item_exists(item_name, item_enhanced_class):
+    """
+    Search for the enhanced item in the classes before creating them
+    This can work because all the core classes are being tracked using pntools.tracker
+    This way, the dispatcher won't create new enhanced objects every time it is called
+    """
+    this_item = [o for o in item_enhanced_class.all if o.name == item_name]
+    if this_item:
+        return this_item[0]
+    return item_enhanced_class(item_name)
 
 ### Name management
 def new_name(name, curr_names):
@@ -192,6 +191,32 @@ def clean_names(name, kwargs, kwargs_def=None, mode='msh'):
         if kwargs_names['priority_curve'] == 'new':
             kwargs_names['curve_name'] = new_name(kwargs_names['curve_name'], [g.name for g in bpy.data.curves])
     return kwargs_names, kwargs_other
+
+def bpy_type(type_name):
+    """'Object' -> bpy.types.Object."""
+    assert isinstance(type_name, str)
+    if type_name[0].lower() == type_name[0]:
+        type_name = type_name.title()
+    exc = {'Greasepencil':'GreasePencil', 'Lightprobe':'LightProbe', 'Nodegroup':'NodeGroup'}
+    type_name = exc.get(type_name, type_name)
+    return getattr(bpy.types, type_name) # bpy.types.Object
+
+def bpy_data_coll(this_type):
+    """
+    bpy.types.Object -> bpy.data.objects
+    'Object' -> bpy.data.objects
+
+    Useful:
+        [k for k in dir(bpy.data) if hasattr(getattr(bpy.data, k), 'new')]
+    """
+    if isinstance(this_type, str):
+        this_type = bpy_type(this_type)
+    thing_coll_name = plural(this_type.__name__.lower())
+    if thing_coll_name == 'greasepencils':
+        thing_coll_name = 'grease_pencils'
+    if thing_coll_name == 'nodegroups':
+        thing_coll_name = 'node_groups'
+    return getattr(bpy.data, thing_coll_name)
 
 # common color palettes
 def color_palette(name='MATLAB', prefix='', alpha=0.8):

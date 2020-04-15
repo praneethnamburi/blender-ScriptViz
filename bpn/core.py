@@ -17,199 +17,6 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 from . import new, utils, trf
 
-class Pencil:
-    """
-    Does a fine job creating a new grease pencil custom object.
-    What if I want to make one from an existing grease pencil object?
-
-    Example:
-        θ = np.radians(np.arange(0, 360*2+1, 1))
-        x1 = θ/2
-        z1 = np.sin(θ)
-        y1 = np.cos(θ)
-
-        pc1 = PC(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((1, 1, 1)))
-        pc2 = PC(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((0, 0, 1)))
-
-        gp = Pencil(gp_name='myGP', obj_name='myGPobj', coll_name='myColl', layer_name='sl1')
-        gp.stroke(pc1, color=2, layer='sl1', keyframe=0)
-        gp.stroke(pc2, color=1, layer='sl3', keyframe=10)
-        gp.stroke(pc1, color=2, layer='sl1', keyframe=20, line_width=100)
-        gp.keyframe = 30
-    """
-    def __init__(self, name=None, **kwargs):
-        names, kwargs = utils.clean_names(name, kwargs, {'priority_gp':'new'}, 'gp')
-        self.g = new.greasepencil(names['gp_name'])
-        self.c = Collection(names['coll_name'])()
-        self.o = new.obj(self.g, self.c, names['obj_name'])
-        
-        kwargs, _ = pn.clean_kwargs(kwargs, {
-            'palette_list': ['MATLAB', 'blender_ax'], 
-            'palette_prefix': ['MATLAB_', ''], 
-            'palette_alpha': [1, 0.8],
-            })
-        this_palette = {}
-        for pal_name, pal_pre, pal_alpha in zip(kwargs['palette_list'], kwargs['palette_prefix'], kwargs['palette_alpha']):
-            this_palette = {**this_palette, **utils.color_palette(pal_name, pal_pre, pal_alpha)} # material library for this grease pencil
-        for mtrl_name, rgba in this_palette.items(): # create material library
-            self.new_color(mtrl_name, rgba)
-
-        self._layer = None
-        self._keyframe = None # current keyframe
-        self.layer = names['layer_name'] # current layer (also makes a default keyframe at 0!)
-        
-        self._color = None # name of the current material
-        self.color = 0 # initalize to the first one
-        self.strokes = {} # easy access to stroke data
-    
-    @property
-    def color_index(self):
-        """Index of the current color."""
-        return {m.name : i for i, m in enumerate(self.o.material_slots)}[self._color]
-
-    @property
-    def color(self):
-        """Return the name of the current color."""
-        return self._color
-
-    @color.setter
-    def color(self, this_color):
-        """
-        Set the current stroke material (self._color).
-        this_color is either a string, a number, a dict, or a tuple.
-        string - material name
-        number - material index
-        tuple - 4-element tuple : select the closest color
-        dict - create new material
-            one key, value pair {name: 4-tuple rgba}
-            if material with that name exists, create a new name
-        """
-        if isinstance(this_color, int):
-            assert this_color < len(self.o.material_slots)
-            color_name = {i : m.name for i, m in enumerate(self.o.material_slots)}[this_color]
-        if isinstance(this_color, dict):
-            assert len(this_color) == 1 # supply only one color at a time?'
-            key = list(this_color.keys())[0] # key is the name
-            val = list(this_color.values())[0]
-            # pick a new name if a material with current name exists
-            this_color[utils.new_name(key, [m.name for m in bpy.data.materials])] = this_color.pop(key)
-            assert len(val) == 4
-            for v in val:
-                assert 0.0 <= v <= 1.0
-            self.new_color(key, val)
-            color_name = key # convert it into a number 
-        if isinstance(this_color, str):
-            assert this_color in [m.name for m in self.o.material_slots]
-            color_name = this_color
-
-        self._color = color_name
-
-    @property
-    def layer(self):
-        """Returns the current layer."""
-        return self._layer
-    
-    @layer.setter
-    def layer(self, layer_name):
-        """
-        Returns a reference to an existing layer.
-        Creates a layer if it doesn't exist.
-        """
-        if layer_name in [l.info for l in self.g.layers]:
-            self._layer = self.g.layers[layer_name]
-        else:
-            self._layer = self.g.layers.new(layer_name)
-            self.keyframe = 0 # make a default keyframe at 0 with every new layer
-
-    @property
-    def keyframe(self):
-        """Returns the current keyframe."""
-        return self._keyframe
-    
-    @keyframe.setter
-    def keyframe(self, keynum):
-        """
-        Returns reference to the keyframe given by keynum for the
-        current layer.
-        Inserts a keyframe in the current layer if there isn't one.
-        """
-        assert isinstance(keynum, int)
-        if keynum not in [kf.frame_number for kf in self.layer.frames]:
-            self._layer.frames.new(keynum)
-        self._keyframe = [kf for kf in self.layer.frames if kf.frame_number == keynum][0]
-
-    def new_color(self, mtrl_name, rgba):
-        """
-        Add a new color to the current object's material slot.
-        Create the material if it doesn't exist.
-        Update the rgba if material with mtrl_name already exists.
-        Add it to the material slot of the current object.
-        Returns:
-            Material object (bpy.data.materials)
-        """
-        if mtrl_name in [m.name for m in bpy.data.materials]:
-            mtrl = bpy.data.materials[mtrl_name]
-        else:
-            mtrl = bpy.data.materials.new(mtrl_name)
-        bpy.data.materials.create_gpencil_data(mtrl)
-        mtrl.grease_pencil.color = rgba
-        if mtrl_name not in [m.name for m in self.g.materials if m is not None]:
-            self.g.materials.append(mtrl)
-        return mtrl
-    
-    def stroke(self, ptcloud, **kwargs):
-        """
-        Make a new stroke 
-            1) in the current layer, 
-            2) at the current keyframe,
-            3) in the current color.
-        Allow settings for color, layer, keyframe 
-        (which change the current settings)
-        Add pressure and strength arrays
-        """
-        kwargs, _ = pn.clean_kwargs(kwargs, {
-            'pressure': 1.0, 
-            'strength': 1.0, 
-            'line_width': 40, 
-            'layer': None, # defaults to layer in self._layer
-            'color': None, # defaults to current color self._color
-            'keyframe': None, # defaults to self._keyframe
-            'display_mode': '3DSPACE',
-            'name': 'stroke'
-            })
-
-        # set where, when and color
-        if kwargs['layer'] is not None:
-            self.layer = kwargs['layer']
-        if kwargs['keyframe'] is not None:
-            self.keyframe = kwargs['keyframe']
-        if kwargs['color'] is not None:
-            self.color = kwargs['color']
-
-        assert type(ptcloud).__name__ == 'PointCloud'
-        gp_stroke = self.keyframe.strokes.new()
-        kwargs['name'] = utils.new_name(kwargs['name'], list(self.strokes.keys()))
-        gp_stroke.display_mode = kwargs['display_mode']
-
-        gp_stroke.points.add(count=ptcloud.n)
-        gp_stroke.points.foreach_set('co', tuple(ptcloud.in_world().co.flatten())) # more efficient
-        gp_stroke.material_index = self.color_index
-        gp_stroke.line_width = kwargs['line_width']
-        n_pts = len(gp_stroke.points[:])
-
-        for attr in ('pressure', 'strength'):
-            if isinstance(kwargs[attr], (int, float)):
-                kwargs[attr] = kwargs[attr]*np.ones(n_pts)
-            else:
-                assert len(kwargs[attr]) == n_pts
-            gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
-        self.strokes[kwargs['name']] = gp_stroke
-        return gp_stroke
-
-        # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
-        # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes
-
-
 @pn.tracker
 class Thing:
     """
@@ -222,20 +29,18 @@ class Thing:
     def __init__(self, thing_name, thing_type, *args, **kwargs):
         self.track(self) #pylint:disable=no-member
         if isinstance(thing_type, str):
-            if thing_type[0].lower() == thing_type[0]:
-                thing_type = thing_type.title()
-            thing_type = getattr(bpy.types, thing_type) # bpy.types.Object
+            thing_type = utils.bpy_type(thing_type)
         if isinstance(thing_name, thing_type):
-            thing_name = thing_name.name # in case you passed the object itself
-        if len(args) >= 1 and isinstance(args[0], Thing):
+            thing_name = thing_name.name # in case you passed the object itself - don't do this!
+        if len(args) >= 1 and isinstance(args[0], Thing): # if you passed core.Mesh instead of bpy.types.Mesh when creating an object
             args = list(args)
             args[0] = args[0]()
             args = tuple(args)
-
-        self.blend_type = thing_type # bpy.types.Object
-        type_name = thing_type.__name__.lower()
-        self.blend_coll = getattr(bpy.data, utils.plural(type_name)) # bpy.data.objects, bpy.data.meshes
+    
         self.blend_name = thing_name
+        self.blend_type = thing_type # bpy.types.Object
+        self.blend_coll = utils.bpy_data_coll(thing_type) # bpy.data.objects, bpy.data.meshes
+
         # if it is not in the blend_coll, create a new one
         if thing_name not in [t.name for t in self.blend_coll]:
             self.blend_coll.new(thing_name, *args)
@@ -258,15 +63,18 @@ class Thing:
     
     @name.setter
     def name(self, new_name):
-        self().name = new_name
-        self.blend_name = new_name
+        new_name_checked = utils.new_name(new_name, [t.name for t in self.blend_coll]) # in case you rename it to something that is already present
+        self().name = new_name_checked
+        self.blend_name = new_name_checked
+        if new_name_checked != new_name:
+            print(new_name+' already present. Used '+new_name_checked)
 
 
 @pn.tracker
 class Collection(Thing):
     """Wrapper around a bpy.types.Collection thing"""
-    def __init__(self, name):
-        super().__init__(name, 'Collection')
+    def __init__(self, name, **kwargs):
+        super().__init__(name, 'Collection', **kwargs)
         if self.name not in [c.name for c in bpy.context.scene.collection.children[:]]:
             bpy.context.scene.collection.children.link(self())
     
@@ -290,18 +98,12 @@ class Object(Thing):
     args is for new
     kwargs is to set options
     Object('empty_obj', None)
+
+    DOES NOT put it in a collection. That is the job of functions in the new module.
     """
     def __init__(self, name, *args, **kwargs):
-        super().__init__(name, 'Object', *args)
+        super().__init__(name, 'Object', *args, **kwargs)
         self.frame_orig = self.frame
-        kwargs, kwargs_blobject = pn.clean_kwargs(kwargs, {'coll_name': 'Collection'})
-        if not self().users_collection:
-            col = Collection(kwargs['coll_name'])
-            col().objects.link(self())
-
-        # set blender object attributes useful for initialization
-        for key, val in kwargs_blobject.items():
-            setattr(self(), key, val)
 
         self.container = self().parent.name if self().parent else None
 
@@ -516,7 +318,8 @@ class Object(Thing):
         If the object is in multiple collections, return the last one
         """
         this_coll = self().users_collection
-        assert this_coll # make sure there is at least one element
+        if not this_coll: # orphan object not linked to the scene
+            return this_coll
         return Collection(this_coll[-1].name)
 
     def to_coll(self, coll_name, typ='move'):
@@ -534,10 +337,10 @@ class Object(Thing):
         oldC = self.coll
         if not isinstance(coll_name, str):
             coll_name = coll_name.name
-        newC = Collection(coll_name)
+        newC = utils.check_core_item_exists(coll_name, Collection)
         if coll_name not in [c.name for c in self().users_collection]: # link only if the object isn't in collection already
             newC().objects.link(self())
-            if typ == 'move':
+            if typ == 'move' and oldC: # if it was part of a collection
                 oldC().objects.unlink(self())
     
     # modifiers
@@ -627,27 +430,24 @@ class Object(Thing):
         Make a copy of the object, keep the same mesh and put it in the same collection.
         Use the same animation data!
         """
-        this_o = self().copy()
-        if isinstance(obj_name, str):
+        this_o = Object(self().copy().name) # copy object data
+        if isinstance(obj_name, str): # rename
             this_o.name = obj_name
         if isinstance(coll_name, str):
-            Collection(coll_name)().objects.link(this_o)
-        else:
-            self.coll().objects.link(this_o)
-        return utils.get(this_o.name) # use the dispatcher!
+            this_o.to_coll(coll_name)
+        else: # put it in the same collection
+            curr_coll = self.coll
+            if self.coll:
+                this_o.to_coll(curr_coll.name)
+        return this_o
 
     def deepcopy(self, obj_name=None, coll_name=None, msh_name=None):
         """
         Make a copy of everything - object, mesh and animation
         """
-        this_o = self().copy()
-        this_o.data = this_o.data.copy()
-        if isinstance(obj_name, str):
-            this_o.name = obj_name
-        if isinstance(coll_name, str):
-            Collection(coll_name)().objects.link(this_o)
-        else:
-            self.coll().objects.link(this_o)
+        this_o = self.copy(obj_name=obj_name, coll_name=coll_name)
+        this_m = Mesh(this_o().data.copy()) # blender's copy function
+        this_o.data = this_m.name # pylint: disable=attribute-defined-outside-init
         if isinstance(msh_name, str):
             this_o.data.name = msh_name
         return utils.get(this_o.name)
@@ -656,8 +456,8 @@ class Object(Thing):
 @pn.tracker
 class Mesh(Thing):
     """Wrapper around a bpy.types.Mesh object."""
-    def __init__(self, name):
-        super().__init__(name, 'Mesh')
+    def __init__(self, name, **kwargs):
+        super().__init__(name, 'Mesh', **kwargs)
         self.v_init = copy.deepcopy(self.v)
         self.v_bkp = copy.deepcopy(self.v)
     
@@ -958,3 +758,233 @@ class MeshObject(Object):
     slice_x = functools.partialmethod(slice_ax, axis='x')
     slice_y = functools.partialmethod(slice_ax, axis='y')
     slice_z = functools.partialmethod(slice_ax, axis='z')
+
+
+@pn.tracker
+class GreasePencil(Thing):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, 'GreasePencil', **kwargs)
+
+        
+@pn.tracker
+@pn.PortProperties(GreasePencil, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
+class GreasePencilObject(Object):
+    """
+    This is a core.Object. Automatically calls the appropriate methods
+    and properties from Object and Greasepencil classes.
+    For example:
+        new.sphere('sph')
+        s = MeshObject('sph')
+        s.v -> automatically returns vertices from them mesh
+    """
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        assert self().type == 'GPENCIL'
+        self._data = Mesh(self().data) # self() returns bpy.data.objects[obj_name] and self().data acts on that blender object
+
+    @property
+    def data(self):
+        """Grease pencil data. Initalized at the time of object creation."""
+        return self._data
+
+    @data.setter
+    def data(self, new_data):
+        if not isinstance(new_data, str):
+            assert hasattr(new_data, 'name')
+            new_data = new_data.name
+        self._data = GreasePencil(new_data)
+        self().data = self.data() # replace the blender data
+        bpy.context.view_layer.update()
+
+
+class Pencil:
+    """
+    Does a fine job creating a new grease pencil custom object.
+    What if I want to make one from an existing grease pencil object?
+
+    Example:
+        θ = np.radians(np.arange(0, 360*2+1, 1))
+        x1 = θ/2
+        z1 = np.sin(θ)
+        y1 = np.cos(θ)
+
+        pc1 = PC(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((1, 1, 1)))
+        pc2 = PC(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((0, 0, 1)))
+
+        gp = Pencil(gp_name='myGP', obj_name='myGPobj', coll_name='myColl', layer_name='sl1')
+        gp.stroke(pc1, color=2, layer='sl1', keyframe=0)
+        gp.stroke(pc2, color=1, layer='sl3', keyframe=10)
+        gp.stroke(pc1, color=2, layer='sl1', keyframe=20, line_width=100)
+        gp.keyframe = 30
+    """
+    def __init__(self, name=None, **kwargs):
+        names, kwargs = utils.clean_names(name, kwargs, {'priority_gp':'new'}, 'gp')
+        self.g = new.greasepencil(names['gp_name'])
+        self.c = Collection(names['coll_name'])()
+        self.o = new.obj(self.g, self.c, names['obj_name'])
+        
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'palette_list': ['MATLAB', 'blender_ax'], 
+            'palette_prefix': ['MATLAB_', ''], 
+            'palette_alpha': [1, 0.8],
+            })
+        this_palette = {}
+        for pal_name, pal_pre, pal_alpha in zip(kwargs['palette_list'], kwargs['palette_prefix'], kwargs['palette_alpha']):
+            this_palette = {**this_palette, **utils.color_palette(pal_name, pal_pre, pal_alpha)} # material library for this grease pencil
+        for mtrl_name, rgba in this_palette.items(): # create material library
+            self.new_color(mtrl_name, rgba)
+
+        self._layer = None
+        self._keyframe = None # current keyframe
+        self.layer = names['layer_name'] # current layer (also makes a default keyframe at 0!)
+        
+        self._color = None # name of the current material
+        self.color = 0 # initalize to the first one
+        self.strokes = {} # easy access to stroke data
+    
+    @property
+    def color_index(self):
+        """Index of the current color."""
+        return {m.name : i for i, m in enumerate(self.o.material_slots)}[self._color]
+
+    @property
+    def color(self):
+        """Return the name of the current color."""
+        return self._color
+
+    @color.setter
+    def color(self, this_color):
+        """
+        Set the current stroke material (self._color).
+        this_color is either a string, a number, a dict, or a tuple.
+        string - material name
+        number - material index
+        tuple - 4-element tuple : select the closest color
+        dict - create new material
+            one key, value pair {name: 4-tuple rgba}
+            if material with that name exists, create a new name
+        """
+        if isinstance(this_color, int):
+            assert this_color < len(self.o.material_slots)
+            color_name = {i : m.name for i, m in enumerate(self.o.material_slots)}[this_color]
+        if isinstance(this_color, dict):
+            assert len(this_color) == 1 # supply only one color at a time?'
+            key = list(this_color.keys())[0] # key is the name
+            val = list(this_color.values())[0]
+            # pick a new name if a material with current name exists
+            this_color[utils.new_name(key, [m.name for m in bpy.data.materials])] = this_color.pop(key)
+            assert len(val) == 4
+            for v in val:
+                assert 0.0 <= v <= 1.0
+            self.new_color(key, val)
+            color_name = key # convert it into a number 
+        if isinstance(this_color, str):
+            assert this_color in [m.name for m in self.o.material_slots]
+            color_name = this_color
+
+        self._color = color_name
+
+    @property
+    def layer(self):
+        """Returns the current layer."""
+        return self._layer
+    
+    @layer.setter
+    def layer(self, layer_name):
+        """
+        Returns a reference to an existing layer.
+        Creates a layer if it doesn't exist.
+        """
+        if layer_name in [l.info for l in self.g.layers]:
+            self._layer = self.g.layers[layer_name]
+        else:
+            self._layer = self.g.layers.new(layer_name)
+            self.keyframe = 0 # make a default keyframe at 0 with every new layer
+
+    @property
+    def keyframe(self):
+        """Returns the current keyframe."""
+        return self._keyframe
+    
+    @keyframe.setter
+    def keyframe(self, keynum):
+        """
+        Returns reference to the keyframe given by keynum for the
+        current layer.
+        Inserts a keyframe in the current layer if there isn't one.
+        """
+        assert isinstance(keynum, int)
+        if keynum not in [kf.frame_number for kf in self.layer.frames]:
+            self._layer.frames.new(keynum)
+        self._keyframe = [kf for kf in self.layer.frames if kf.frame_number == keynum][0]
+
+    def new_color(self, mtrl_name, rgba):
+        """
+        Add a new color to the current object's material slot.
+        Create the material if it doesn't exist.
+        Update the rgba if material with mtrl_name already exists.
+        Add it to the material slot of the current object.
+        Returns:
+            Material object (bpy.data.materials)
+        """
+        if mtrl_name in [m.name for m in bpy.data.materials]:
+            mtrl = bpy.data.materials[mtrl_name]
+        else:
+            mtrl = bpy.data.materials.new(mtrl_name)
+        bpy.data.materials.create_gpencil_data(mtrl)
+        mtrl.grease_pencil.color = rgba
+        if mtrl_name not in [m.name for m in self.g.materials if m is not None]:
+            self.g.materials.append(mtrl)
+        return mtrl
+    
+    def stroke(self, ptcloud, **kwargs):
+        """
+        Make a new stroke 
+            1) in the current layer, 
+            2) at the current keyframe,
+            3) in the current color.
+        Allow settings for color, layer, keyframe 
+        (which change the current settings)
+        Add pressure and strength arrays
+        """
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'pressure': 1.0, 
+            'strength': 1.0, 
+            'line_width': 40, 
+            'layer': None, # defaults to layer in self._layer
+            'color': None, # defaults to current color self._color
+            'keyframe': None, # defaults to self._keyframe
+            'display_mode': '3DSPACE',
+            'name': 'stroke'
+            })
+
+        # set where, when and color
+        if kwargs['layer'] is not None:
+            self.layer = kwargs['layer']
+        if kwargs['keyframe'] is not None:
+            self.keyframe = kwargs['keyframe']
+        if kwargs['color'] is not None:
+            self.color = kwargs['color']
+
+        assert type(ptcloud).__name__ == 'PointCloud'
+        gp_stroke = self.keyframe.strokes.new()
+        kwargs['name'] = utils.new_name(kwargs['name'], list(self.strokes.keys()))
+        gp_stroke.display_mode = kwargs['display_mode']
+
+        gp_stroke.points.add(count=ptcloud.n)
+        gp_stroke.points.foreach_set('co', tuple(ptcloud.in_world().co.flatten())) # more efficient
+        gp_stroke.material_index = self.color_index
+        gp_stroke.line_width = kwargs['line_width']
+        n_pts = len(gp_stroke.points[:])
+
+        for attr in ('pressure', 'strength'):
+            if isinstance(kwargs[attr], (int, float)):
+                kwargs[attr] = kwargs[attr]*np.ones(n_pts)
+            else:
+                assert len(kwargs[attr]) == n_pts
+            gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
+        self.strokes[kwargs['name']] = gp_stroke
+        return gp_stroke
+
+        # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
+        # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes

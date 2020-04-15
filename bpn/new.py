@@ -23,7 +23,18 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     """
     if name is None:
         name = utils.new_name('empty', [o.name for o in bpy.data.objects])
-    return core.Object(name, None, empty_display_type=typ, empty_display_size=size, coll_name=coll_name)
+    s = core.Object(name, None, empty_display_type=typ, empty_display_size=size)
+    s.to_coll(coll_name)
+    return s
+
+def greasepencil(gp_name='newGP'):
+    """
+    Creates a new blender grease pencil.
+    Returns a reference to existing grease pencil if it already exists.
+    """
+    if gp_name in [g.name for g in bpy.data.grease_pencils]:
+        return bpy.data.grease_pencils[gp_name]
+    return bpy.data.grease_pencils.new(gp_name)
 
 def obj(msh, col, obj_name='newObj'):
     """
@@ -201,18 +212,40 @@ def mesh(name=None, **kwargs): # formerly bpn.Msh
 
     # if mesh exists, assign it to the object, and put it in collection
     if msh_name in [m.name for m in bpy.data.meshes]:
-        return core.MeshObject(obj_name, bpy.data.meshes[msh_name])
-    return core.MeshObject(obj_name, _make_mesh(msh_name, kwargs))
+        s = core.MeshObject(obj_name, bpy.data.meshes[msh_name])
+        s.to_coll(coll_name)
+        return s
 
+    # if mesh doesn't exist, make it, make object, and put it in the collection
+    s = core.MeshObject(obj_name, _make_mesh(msh_name, kwargs))
+    s.to_coll(coll_name)
+    return s
 
-def greasepencil(gp_name='newGP'):
+def pencil(name=None, **kwargs):
     """
-    Creates a new blender grease pencil.
-    Returns a reference to existing grease pencil if it already exists.
+    Create a new grease pencil object.
     """
+    names, kwargs = utils.clean_names(name, kwargs, {'priority_gp': 'current', 'priority_obj': 'current'}, mode='gp')
+    gp_name = names['gp_name']
+    obj_name = names['obj_name']
+    coll_name = names['coll_name']
+
+    # if obj_name exists, use object and corresponding grease pencil
+    if obj_name in [o.name for o in bpy.data.objects]:
+        s = core.GreasePencilObject(gp_name)
+        s.to_coll(coll_name)
+        return s
+
+    # if gp exists, and obj doesn't exist, assign it to the object, and put it in collection
     if gp_name in [g.name for g in bpy.data.grease_pencils]:
-        return bpy.data.grease_pencils[gp_name]
-    return bpy.data.grease_pencils.new(gp_name)
+        s = core.GreasePencilObject(obj_name, bpy.data.grease_pencils[gp_name])
+        s.to_coll(coll_name)
+        return s
+    
+    # if gp doesn't exist, make it, make an object, and put it in the collection
+    s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name)())
+    s.to_coll(coll_name)
+    return s
 
 # easy object creation
 def easycreate(mshfunc, name=None, **kwargs):
@@ -359,7 +392,7 @@ def bezier_circle(name=None, **kwargs):
 
 
 # convenience 
-def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
+def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
     """
     Makes a spiral.
     :param n_rot: number of rotations
@@ -370,7 +403,7 @@ def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
     y = θ*np.cos(θ)/(np.pi*2)
     z = np.zeros_like(θ)
 
-    return mesh(x=x, y=y, z=z, **kwargs)
+    return mesh(name, x=x, y=y, z=z, **kwargs)
 
 # Enhanced meshes
 class Tube(core.MeshObject):
