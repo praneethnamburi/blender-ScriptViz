@@ -11,7 +11,7 @@ import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
-from . import new, trf, utils
+from . import new, trf, utils, vef
 
 class Draw:
     """
@@ -33,15 +33,16 @@ class Draw:
     # (or call a method that does this job)
     def ngon(self, **kwargs):
         """
-        For basic polygon creation. 
-        See bpn.new.ngon for input management
+        For basic polygon creation.
         See bpn.vef.ngon for math
         Supercedes a circle because of stupid return type in a circle.
         a = Draw()
         geom = a.ngon(n=6, r=1)
         """
-        kwargs_current, kwargs_forward = pn.clean_kwargs(kwargs, {'return_type':'vef', 'fill':False}, {'fill':['fill'], 'return_type':['return_type', 'out']})
-        v, e, f = new.ngon(**{**kwargs_current, **kwargs_forward})
+        kwargs_fun, _ = pn.clean_kwargs(kwargs, {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':False}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']})
+        v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
+        if not kwargs_fun['fill']:
+            f = []
         self.addvef(v, e, f)
         return self.geom_last
 

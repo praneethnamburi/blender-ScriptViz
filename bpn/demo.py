@@ -201,7 +201,7 @@ def zoo():
     new.cone(name='mycone3', seg=3, r1=3, r2=2, d=0, cap_ends=False, coll_name='zoo')
 
     new.polygon(name='hex', seg=6, coll_name='zoo')
-    new.ngon(name='circle', n=32, r=1, coll_name='zoo')
+    new.ngon('circle', n=32, r=1, coll_name='zoo')
 
     new.polygon(name='hex', seg=6, coll_name='zoo')
 

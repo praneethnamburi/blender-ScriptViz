@@ -215,7 +215,7 @@ def greasepencil(gp_name='newGP'):
     return bpy.data.grease_pencils.new(gp_name)
 
 # easy object creation
-def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
+def easycreate(mshfunc, name=None, **kwargs):
     """
     **kwargs : u=16, v=8, r=0.5 for uv sphere
     **kwargs : size=0.5 for uv cube
@@ -248,21 +248,16 @@ def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
     if str(mshfunc) == str(bmesh.ops.create_monkey):
         kwargs = {}
 
-    if 'bpn' in str(return_type) and 'Msh' in str(return_type):
-        if names['msh_name'] in [m.name for m in bpy.data.meshes]:
-            msh = bpy.data.meshes[names['msh_name']]
-        else:
-            msh = bpy.data.meshes.new(names['msh_name'])
-            bm = bmesh.new()
-            mshfunc(bm, **kwargs)
-            bm.to_mesh(msh)
-            bm.free()
-            msh.update()
-        return mesh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
-    elif 'BMesh' in str(return_type):
+    if names['msh_name'] in [m.name for m in bpy.data.meshes]:
+        msh = bpy.data.meshes[names['msh_name']]
+    else:
+        msh = bpy.data.meshes.new(names['msh_name'])
         bm = bmesh.new()
         mshfunc(bm, **kwargs)
-        return bm
+        bm.to_mesh(msh)
+        bm.free()
+        msh.update()
+    return mesh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
 
 sphere = partial(easycreate, bmesh.ops.create_uvsphere)
 monkey = partial(easycreate, bmesh.ops.create_monkey)
@@ -270,28 +265,17 @@ cube = partial(easycreate, bmesh.ops.create_cube)
 cone = partial(easycreate, bmesh.ops.create_cone)
 polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 'r2':1.8})
 
-def ngon(**kwargs):
+def ngon(name=None, **kwargs):
     """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
-    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':-1, 'fill':True, 'return_type':'bpn.Msh'}
-    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill'], 'return_type':['return_type', 'out']}
+    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':True}
+    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
     kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
-    # if offset isn't specified, compute it
-    if kwargs_fun['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
-        kwargs_fun['theta_offset_deg'] = _ngon_offset_deg(kwargs_fun['n'])
-            
     v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
     if not kwargs_fun['fill']:
         f = []
 
-    if 'bpn' in str(kwargs_fun['return_type']) and 'Msh' in str(kwargs_fun['return_type']):
-        return mesh(v=v, e=e, f=f, **kwargs_msh)
-    elif 'vef' in kwargs_fun['return_type']:
-        return v, e, f
-
-def _ngon_offset_deg(n):
-    return ((n-2)*180/n)%90 if n%2 == 1 else 360/(2*n)
-
+    return mesh(name, v=v, e=e, f=f, **kwargs_msh)
 
 plane = partial(ngon, **{'n':4, 'r':2/np.sqrt(2), 'theta_offset_deg':45})
 
@@ -313,16 +297,12 @@ def torus(name=None, **kwargs):
     """
     names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
 
-    kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':-1}
+    kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':'auto'}
     kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}
     kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
-    if kwargs['theta_offset_deg'] == kwargs_def['theta_offset_deg']:
-        kwargs['theta_offset_deg'] = _ngon_offset_deg(kwargs['n_u'])
-
     a = turtle.Draw(**names)
-    v, e, _ = vef.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
-    start = a.addvef(v, e, [])
+    start = a.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
     bmesh.ops.rotate(a.bm, verts=start.v, cent=(0, 0, 0), matrix=mathutils.Matrix.Rotation(np.radians(90.0), 3, 'Y'))
     for vert in start.v:
         vert.co += mathutils.Vector((0., -kwargs['r_v'], 0.))
