@@ -27,7 +27,7 @@ def loadSTL(files):
 
     Recommended use:
         Instead of directly using this function, use 
-        p = bpn.core.Msh(stl=fname, name='mySTL', coll_name='myColl')
+        p = new.mesh(stl=fname, name='mySTL', coll_name='myColl')
     """
     if isinstance(files, str):
         files = [files]

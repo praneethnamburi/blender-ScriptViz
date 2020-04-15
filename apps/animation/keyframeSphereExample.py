@@ -33,12 +33,12 @@ bpy = bpn.bpy
 # core.Collection(traj_coll_name)
 # for obj_name in obj_names:
 #     p = np.array([eval(k) for k in anim_data.loc[anim_data['object'] == obj_name]['value']])
-#     bpn.Msh(x=p[:, 0], y=p[:, 1], z=p[:, 2], name=obj_name+'_trajectory', coll_name=traj_coll_name)
+#     new.mesh(x=p[:, 0], y=p[:, 1], z=p[:, 2], name=obj_name+'_trajectory', coll_name=traj_coll_name)
 
 
 # #-------basic extrusion------- extend this!!
 # bpn.new.circle(name='circle', n=6)
-# h = bpn.Msh(name='circle')
+# h = new.mesh(name='circle')
 
 # newV = h.v + np.array([1, 1, 1])
 # v = [tuple(k) for k in np.concatenate([h.v, newV])]
@@ -50,7 +50,7 @@ bpy = bpn.bpy
 # connF = np.array([[connE[i, 0], connE[i, 1], connE[i+1, 1], connE[i+1, 0]] for i in np.arange(-1, np.shape(connE)[0]-1)])
 # f = [tuple(k) for k in connF]
 
-# bpn.Msh(name='hexCopy', v=v, e=e, f=f)
+# new.mesh(name='hexCopy', v=v, e=e, f=f)
 
 # # ------------assign vertices to groups
 # get vertices in group
@@ -59,7 +59,7 @@ bpy = bpn.bpy
 # {k.index : k.name for k in o.vertex_groups}
 # It looks like objects have the names of vertex groups, and meshes have the info for group membership of each vertex
 # Vertex groups appear to ve a property of the object, rather than the mesh somehow. 
-# Change bpn.Msh class to be an object 
+# Change new.mesh class to be an object 
 
 # Frame event handlers!------------
 
@@ -72,7 +72,7 @@ bpy = bpn.bpy
 
 # def flat_top(obj):
 #     """
-#     input: bpn.Msh object 
+#     input: new.mesh object 
 #     """
 #     v_orig = obj.v
 #     v_targ = copy.deepcopy(v_orig)
@@ -93,7 +93,7 @@ s = bpn.demo.plane_slice()
 
 def morph(obj):
     """
-    input: bpn.Msh object 
+    input: new.mesh object 
     """
     v_orig = obj.vInit
     v_targ = obj.v

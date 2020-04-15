@@ -26,7 +26,7 @@ def get(name=None, mode=None, priority='Object'):
     Takes as input the name of a prop in the blender environment.
     Returns a 'wrapped' version of the object.
 
-    MESH bpy.types.Object - core.Msh
+    MESH bpy.types.Object - core.MeshObject
     Other bpy.types.Object - core.Object
     Prop in bpy.data.* - core.Thing
     
@@ -71,16 +71,27 @@ def get(name=None, mode=None, priority='Object'):
             thing_type = thing_type[0]
         return thing_type
 
+    def _check_item_exists(item_name, item_enhanced_class):
+        """
+        Search for the enhanced item in the classes before creating them
+        This can work because all the core classes are being tracked using pntools.tracker
+        This way, the dispatcher won't create new enhanced objects every time it is called
+        """
+        this_item = [o for o in item_enhanced_class.all if o.name == item_name]
+        if this_item:
+            return this_item[0]
+        return item_enhanced_class(item_name)
+
     def _enhance_item(item): # item is bpy.data.(sometype)
         thing_type = _fix_type(type(item))
         if not thing_type:
             return []
         thing_type = thing_type.__name__
         if thing_type == 'Object' and item.type == 'MESH':
-            return core.Msh(obj_name=item.name)
+            return _check_item_exists(item.name, core.MeshObject)
         if hasattr(core, thing_type):
-            return getattr(core, thing_type)(item)
-        return core.Thing(item, thing_type)
+            return _check_item_exists(item.name, getattr(core, thing_type))
+        return _check_item_exists(item.name, core.Thing)
 
     def _get_one_with_name(name):
         """Returns one dispatched object."""

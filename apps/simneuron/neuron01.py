@@ -2,11 +2,12 @@
 NEURON tutorial code. To check if it is working in this environment.
 """
 
-import numpy as np
-from neuron import h
-import bpn
+from bpn_init import * #pylint: disable=wildcard-import, unused-wildcard-import
 
-bpn.env.reset()
+sys.path.append('c:\\nrn\\lib\\python')
+from neuron import h
+
+env.reset()
 
 h.load_file('stdrun.hoc')
 soma = h.Section(name='soma')
@@ -22,4 +23,4 @@ t_vec.record(h._ref_t)
 h.tstop = 40.0
 h.run()
 
-plt = bpn.Msh(name='neuronSim', x=np.array(t_vec)/10, z=(np.array(v_vec)+70)/10, y=np.zeros_like(np.array(t_vec)))
+plt = new.mesh(name='neuronSim', x=np.array(t_vec)/10, z=(np.array(v_vec)+70)/10, y=np.zeros_like(np.array(t_vec)))

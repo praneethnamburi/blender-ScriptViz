@@ -1,16 +1,13 @@
 """Demonstrate matrix multiplication on points forming 2d objects using blender."""
 
-import numpy as np
+from bpn_init import * #pylint: disable=wildcard-import, unused-wildcard-import
 
-import bpn
+bpy.data.scenes['Scene'].cursor.location[0] = -10
 
-bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor.location[0] = -100
-
-msh = bpn.get('Plane')
-
-if not msh:
-    msh = bpn.new.plane(name='Plane')
+if 'Plane' not in [o.name for o in bpy.data.objects]:
+    msh = new.plane(name='Plane')
+else:
+    msh = get('Plane')
 
 coords = msh.v.T
 

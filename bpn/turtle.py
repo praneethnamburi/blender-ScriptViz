@@ -11,7 +11,7 @@ import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
-from . import core, new, trf, utils
+from . import new, trf, utils
 
 class Draw:
     """
@@ -140,10 +140,10 @@ class Draw:
     def __pos__(self):
         """
         Create the object and add it to the scene.
-        Returns bpn.core.Msh
+        Returns core.MeshObject
         """
         self.__neg__()
-        return core.Msh(msh_name=self.names['msh_name'], obj_name=self.names['obj_name'], coll_name=self.names['coll_name'])
+        return new.mesh(msh_name=self.names['msh_name'], obj_name=self.names['obj_name'], coll_name=self.names['coll_name'])
 
     def __neg__(self):
         """
@@ -312,7 +312,7 @@ class SubMsh:
     """
     def __init__(self, parent, **kwargs):
         """
-        :param parent: (bpn.core.Msh)
+        :param parent: (core.MeshObject)
         :param vi: (1D int32 numpy array) indices of parent vertices
         :param ei: (1D int32 numpy array) indices of parent edges
         :param fi: (1D int32 numpy array) indices of parent faces

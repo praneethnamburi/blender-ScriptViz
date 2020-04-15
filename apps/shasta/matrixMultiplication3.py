@@ -1,13 +1,10 @@
 """Demonstrate matrix multiplication on points forming 3d objects using blender."""
 
-import numpy as np
+from bpn_init import * #pylint: disable=wildcard-import, unused-wildcard-import
 
-import bpn # pylint: disable=unused-import
+bpy.data.scenes['Scene'].cursor.location[0] = -10
 
-bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor.location[0] = -100
-
-msh = bpn.get('Suzy')
+msh = get('Suzy')
 if not msh:
     msh = bpn.new.monkey('Suzy')
 

@@ -1,13 +1,8 @@
 """Demonstrate matrix multiplication on points using blender."""
 
-# make sure you're in Object Mode in the 3D Viewport
+from bpn_init import * #pylint: disable=wildcard-import, unused-wildcard-import
 
-import numpy as np
-
-import bpn
-
-bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor.location[0] = -100
+bpy.data.scenes['Scene'].cursor.location[0] = -10
 
 origin = [0, 0, 0]
 v1 = [1, 2, 0]
@@ -29,9 +24,7 @@ v2 = m1@v1
 verts = {'v1': v1, 'v2':v2}
 
 for vertName, vertPos in verts.items():
-    try:
-        vMsh = bpn.Msh(name=vertName)
-        coords = vMsh.v
-        vMsh.v = np.array([origin, vertPos])
-    except:
-        vMsh = bpn.Msh(x=[origin[0], vertPos[0]], y=[origin[1], vertPos[1]], z=[origin[2], vertPos[2]], name=vertName)
+    if vertName not in [o.name for o in bpy.data.objects]:
+        new.mesh(name=vertName, x=[origin[0], vertPos[0]], y=[origin[1], vertPos[1]], z=[origin[2], vertPos[2]])
+    else:
+        get(vertName).v = np.array([origin, vertPos])

@@ -1,11 +1,8 @@
-import bpn # pylint: disable=unused-import
+from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
 
-bpy = bpn.bpy
-bpy.data.scenes['Scene'].cursor.location[0] = -100
+bpy.data.scenes['Scene'].cursor.location[0] = -10
 
-# bpn.env.reset()
+# env.reset()
 
-bpy.ops.mesh.primitive_cube_add(location=(1.0, 0.0, 0.0))
-
-m = bpn.Msh(name='Cube')
+m = new.cube(name='Cube')
 m.v = m.v*2

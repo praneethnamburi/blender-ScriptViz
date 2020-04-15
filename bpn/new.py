@@ -1,7 +1,9 @@
 """
 Creation submodule for bpn.
+Everything here should return instances of core classes.
 """
 import os
+import types
 from functools import partial
 import numpy as np
 
@@ -45,14 +47,163 @@ def obj(msh, col, obj_name='newObj'):
         col.objects.link(o)
     return o
 
-def mesh(msh_name='newMsh'):
+def mesh(name=None, **kwargs): # formerly bpn.Msh
     """
-    Creates a new blender mesh.
-    Returns a reference to the mesh if it already exists.
+    Create a mesh object from various types of input
+    Returns core.MeshObject
+
+    :param name: name='thing' (str) both the mesh and the object will receive this name
+            name will get overwritten by msh_name or obj_name if present
+    :param kwargs: (create mesh from vertices and faces, 2d array, or function)
+        msh_name='new_mesh'  
+            (str) name of the mesh loaded in blender
+            (str) name of an object loaded in blender (get the associated mesh)
+            (bpy.types.Mesh) the bpy mesh object
+        obj_name='new_obj' (str) name of the object to assign the mesh
+        coll_name='new_coll' (str) name of the collection to locate the object / to place the created object        
+        stl=stlfilename (str) name of stl file to import
+
+        Create a mesh from a function:
+            xyfun (function with two float inputs and one float output)
+                xyfun = lambda x, y: x*x+y*y
+                A 2d matrix, z, gets created if a function is supplied
+
+        Create a mesh from 2d list or numpy array (xyz):
+            z (2d list or matrix to render in blender)
+            x (list) list or numpy array
+                x = np.arange(-2, 2, 0.02)
+            y (list)
+                y = np.arange(-2, 3, 0.2)
+        
+        Create a mesh from vertices and faces (vef):
+            v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
+                Vertices
+            f (numpy array of face indices nFx4 is most common, but also a 2d list of size nF typically with 4-element faces)
+                Faces
+
+        Create a 3d plot (xyz):
+            z (list) with n elements
+            x (list) with n elements
+            y (list) with n elements
+            
+        Create a 'line' from vertices and edges (vef):
+            v (numpy array of size nVx3, or a 2d list of size nV with 3 element lists of locations)
+                Vertices
+            e (numpy array of size nEx2, or a 2d list of size nE with 2 element lists of vertex index)
+                Edges connecting vertices
+        
+        More generally, supply v=myVertices, e=myEdges, f=myFaces to create a mesh
+    
+    Broadly, using this function, core.MeshObjects can be created from:
+    - (type=stl) an STL file import
+    - (type=blend) the blender environment
+    - (type=vfedata) creating vertex, faces, and edges from data
+        - (type=fun) a 2d function that takes two floats as input and produces one output
+            xyfun -> x (list), y (list), z (2D list) -> v, f (e=automatically calculated) -> mesh
+            xyfun (function with two float inputs and one float output)
+                xyfun = lambda x, y: x*x+y*y
+        - (type=mat) a 2d matrix or list
+            - x (list), y(list), z (2D list) -> v, f (e=automatically created) -> mesh
+        - (type=plot) a 3d plot
+            - x (list), y(list), z (list) -> v, e (no faces) -> mesh
+    Examples:
+        # make a mesh from python data
+        new.mesh(name=name, v=vertices, f=faces)
+        new.mesh(v=v1, f=f1)
+        new.mesh(v=v1, e=e1)
+        new.mesh(v=v1, e=e1, f=f1)
+
+        # make a mesh from an STL file
+        new.mesh(stl=stlfile)
+        new.mesh(stl=stlfile, name='awesome') # mesh and object get the same name
+        new.mesh(stl=stlfile, coll_name='myColl') # put msh in a collection coll_name
+        new.mesh(stlfile, name='awesome', msh_name='awesomeMesh', coll_name='myColl')
+        new.mesh(stlfile, msh_name='awesomeMesh', obj_name='awesomeObj', coll_name='myColl')
+
+        # get a mesh from the blender environment
+        new.mesh(name=blender mesh name)
+        new.mesh(name=blender obj name)
+        new.mesh(name=blender mesh object) # works, but not recommended
+
+        # make a mesh from a 2d function
+        new.mesh(xyfun=lambda x, y: x*x+y*y, name='parabola')
     """
+    def _make_mesh(msh_name, kwargs):
+        """
+        This mesh creation function is invoked only if mesh specified by msh_name does not exist.
+        """
+        if 'z' in kwargs or 'xyfun' in kwargs:
+            if 'x' not in kwargs:
+                if 'z' in kwargs and len(np.shape(kwargs['z'])) == 2:
+                    x = np.arange(0, np.shape(kwargs['z'])[0])
+                elif 'xyfun' in kwargs:
+                    x = np.arange(-2, 2, 0.1)
+            else:
+                x = kwargs['x']
+            if 'y' not in kwargs:
+                if 'z' in kwargs and len(np.shape(kwargs['z'])) == 2:
+                    y = np.arange(0, np.shape(kwargs['z'])[1])
+                elif 'xyfun' in kwargs:
+                    y = np.arange(-2, 2, 0.1)
+            else:
+                y = kwargs['y']
+
+        if 'xyfun' in kwargs:
+            xyfun = kwargs['xyfun']
+            assert isinstance(xyfun, types.FunctionType)
+            assert xyfun.__code__.co_argcount == 2 # function has two input arguments
+            kwargs['z'] = np.array([[xyfun(xv, yv) for yv in y] for xv in x])
+
+        if 'z' in kwargs:
+            z = np.array(kwargs['z'])
+            if len(np.shape(z)) == 2: # 2D array, surface plot
+                nX = len(x)
+                nY = len(y)
+                assert nX == np.shape(z)[0]
+                assert nY == np.shape(z)[1]
+                # matrix to vertices and faces
+                kwargs['v'] = [(xv, yv, z[ix][iy]) for iy, yv in enumerate(y) for ix, xv in enumerate(x)]
+                kwargs['f'] = [(iy*nX+ix, iy*nX+ix+1, (iy+1)*nX+(ix+1), (iy+1)*nX+ix) for iy in np.arange(0, nY-1) for ix in np.arange(0, nX-1)]
+            if len(np.shape(z)) == 1: # 3D plot!
+                kwargs['v'], kwargs['e'], _ = vef.xyz2vef(x, y, z)
+
+        if 'v' in kwargs and ('f' in kwargs or 'e' in kwargs):
+            if 'e' not in kwargs:
+                kwargs['e'] = []
+            if 'f' not in kwargs:
+                kwargs['f'] = []
+            msh = bpy.data.meshes.new(msh_name)
+            msh.from_pydata(kwargs['v'], kwargs['e'], kwargs['f'])
+            if not kwargs['e']:
+                msh.update(calc_edges=True)
+            else:
+                msh.update()
+        return msh # blender mesh
+
+    names, kwargs = utils.clean_names(name, kwargs, {'priority_msh': 'current', 'priority_obj': 'current'}, mode='msh')
+    msh_name = names['msh_name']
+    obj_name = names['obj_name']
+    coll_name = names['coll_name']
+    if 'stl' in kwargs:
+        stlfile = kwargs['stl']
+        assert os.path.isfile(stlfile)
+        s = core.MeshObject(io.loadSTL([stlfile])['objects'][0])
+        s.name = obj_name
+        s.data.name = msh_name
+        s.to_coll(coll_name)
+        return s
+
+    # if obj_name exists, use object and corresponding mesh
+    if obj_name in [o.name for o in bpy.data.objects]:
+        s = core.MeshObject(obj_name)
+        s.to_coll(coll_name)
+        return s
+
+    # if mesh exists, assign it to the object, and put it in collection
     if msh_name in [m.name for m in bpy.data.meshes]:
-        return bpy.data.meshes[msh_name]
-    return bpy.data.meshes.new(msh_name)
+        return core.MeshObject(obj_name, bpy.data.meshes[msh_name])
+    return core.MeshObject(obj_name, _make_mesh(msh_name, kwargs))
+
 
 def greasepencil(gp_name='newGP'):
     """
@@ -107,7 +258,7 @@ def easycreate(mshfunc, name=None, return_type='bpn.Msh', **kwargs):
             bm.to_mesh(msh)
             bm.free()
             msh.update()
-        return core.Msh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
+        return mesh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
     elif 'BMesh' in str(return_type):
         bm = bmesh.new()
         mshfunc(bm, **kwargs)
@@ -134,7 +285,7 @@ def ngon(**kwargs):
         f = []
 
     if 'bpn' in str(kwargs_fun['return_type']) and 'Msh' in str(kwargs_fun['return_type']):
-        return core.Msh(v=v, e=e, f=f, **kwargs_msh)
+        return mesh(v=v, e=e, f=f, **kwargs_msh)
     elif 'vef' in kwargs_fun['return_type']:
         return v, e, f
 
@@ -239,18 +390,17 @@ def spiral(n_rot=3, res=10, offset_rot=0, **kwargs):
     y = θ*np.cos(θ)/(np.pi*2)
     z = np.zeros_like(θ)
 
-    return core.Msh(x=x, y=y, z=z, **kwargs)
+    return mesh(x=x, y=y, z=z, **kwargs)
 
 # Enhanced meshes
-class Tube(core.Msh):
+class Tube(core.MeshObject):
     """
     Creates a 'Tube' object with a specified number of cross sections
     and vertical sections.
     """
     def __init__(self, name=None, x=0, y=0, z=0, **kwargs):
         names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'tube_msh', 'obj_name':'tube_obj', 'priority_obj':'new', 'priority_msh':'new'})
-        kwargs_ngon, kwargs = pn.clean_kwargs(kwargs, {'n':6, 'r':0.3, 'theta_offset_deg':-1}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg']})
-        kwargs_this, kwargs_bpnmsh = pn.clean_kwargs(kwargs, {'shade':'smooth', 'subsurf':True, 'subsurf_levels':2, 'subsurf_render_levels':2})
+        kwargs_ngon, _ = pn.clean_kwargs(kwargs, {'n':6, 'r':0.3, 'theta_offset_deg':-1}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg']})
         
         spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x, y, z)])
         normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
@@ -258,11 +408,8 @@ class Tube(core.Msh):
         a = turtle.Draw(**names)
         a.skin(spine, **kwargs_ngon)
         a_exp = a.export()
-        -a
-        super().__init__(**{**names, **kwargs_bpnmsh})
-        self.shade(kwargs_this['shade'])
-        if kwargs_this['subsurf']:
-            self.subsurf(kwargs_this['subsurf_levels'], kwargs_this['subsurf_render_levels'])
+        this_obj = +a
+        super().__init__(this_obj.name, this_obj.data)
 
         self.xsec = self.XSec(self, normals, a_exp)
 

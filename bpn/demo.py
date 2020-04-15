@@ -50,10 +50,10 @@ def spheres():
     for thisFrame, thisLoc in zip(frameID, loc):
         bpy.context.scene.frame_set(thisFrame)
         for attr in attrs:
-            setattr(s1.bo, attr, thisLoc)
-            s1.bo.keyframe_insert(data_path=attr, frame=thisFrame)
+            setattr(s1(), attr, thisLoc)
+            s1().keyframe_insert(data_path=attr, frame=thisFrame)
 
-    # Animation with core.Msh's 'key' function.
+    # Animation with core.Object's 'key' function.
     s2 = new.sphere(name='sphere2', msh_name='sph', coll_name='Spheres')
     s2.key(1)
     s2.loc = (2, 2, 2)
@@ -95,8 +95,8 @@ def dna():
     v2 = [(xv, yv, zv) for xv, yv, zv in zip(x, y, z)]
     e2 = [(i, i+1) for i in np.arange(0, n-1)]
 
-    s1 = core.Msh(v=v2, e=e2, name='strand1', coll_name='Plots')
-    s2 = core.Msh(x=-x, y=-y, z=z, name='strand2', coll_name='Plots')
+    s1 = new.mesh(v=v2, e=e2, name='strand1', coll_name='Plots')
+    s2 = new.mesh(x=-x, y=-y, z=z, name='strand2', coll_name='Plots')
     
     frames = (1, 50, 100, 150, 200)
 
@@ -111,7 +111,7 @@ def dna():
 def heart():
     """Plot a heart"""
     a = np.linspace(-1.0*np.pi, 1.0*np.pi, 100)
-    core.Msh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='heart', coll_name='Plots')
+    new.mesh(x=np.sqrt(np.abs(a))*np.sin(a), y=np.abs(a)*np.cos(a), z=np.zeros_like(a), name='heart', coll_name='Plots')
 
 def arch():
     """2D surface plots"""
@@ -119,9 +119,9 @@ def arch():
         return lambda x, y: np.sqrt(alpha-np.abs(x))
 
     for i in np.arange(1, 7):
-        rf = core.Msh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], msh_name='sqrt_1'+str(i), obj_name='sqrt_1'+str(i), coll_name='Arch')
+        rf = new.mesh(xyfun=xyifun(i), x=np.linspace(0, i, 60), y=[1, 2], msh_name='sqrt_1'+str(i), obj_name='sqrt_1'+str(i), coll_name='Arch')
         rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
-        rf = core.Msh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='Arch')
+        rf = new.mesh(xyfun=xyifun(i), x=np.linspace(-i, 0, 60), y=[1, 2], msh_name='sqrt_2'+str(i), obj_name='sqrt_2'+str(i), coll_name='Arch')
         rf.loc = rf.loc + mathutils.Vector((0.0, 3.0, 0.0))
 
 def parabola():
@@ -136,13 +136,13 @@ def parabola():
     fun = lambda x, y: x*x+y*y
     x1 = np.arange(-2, 2.5, 0.02)
     y1 = np.arange(-2, 2.5, 0.2)
-    p_fun = core.Msh(xyfun=fun, x=x1, y=y1, name='parabola_fun', coll_name='surface')
+    p_fun = new.mesh(xyfun=fun, x=x1, y=y1, name='parabola_fun', coll_name='surface')
     p_fun.loc += mathutils.Vector((4.0, -4.0, 0.0))
 
     def fun2mat(xyfun, tx=np.array([]), ty=np.array([])):
         """
         This functionality is already in the bpn module.
-        It is here only to illustrate the versatility of core.Msh creation
+        It is here only to illustrate the versatility of new.mesh creation
         """
         assert isinstance(xyfun, types.FunctionType)
         assert xyfun.__code__.co_argcount == 2 # function has two input arguments
@@ -154,7 +154,7 @@ def parabola():
 
     # method 2: MATLAB-style surf, using a 2d matrix Z
     z1 = fun2mat(fun, x1, y1)
-    p_xyz = core.Msh(x=x1, y=y1, z=z1, name='parabola_xyz', coll_name='surface')
+    p_xyz = new.mesh(x=x1, y=y1, z=z1, name='parabola_xyz', coll_name='surface')
     p_xyz.loc += mathutils.Vector((-4.0, -4.0, 0.0))
 
     def mat2mesh(tz, tx=np.array([]), ty=np.array([])):
@@ -182,14 +182,15 @@ def parabola():
 
     # method 3: by specifying the vertices and faces - this is here mainly for testing
     v1, f1 = mat2mesh(z1, tx=x1, ty=y1)
-    p_vf = core.Msh(v=v1, f=f1, name='parabola_vf', coll_name='surface')
+    p_vf = new.mesh(v=v1, f=f1, name='parabola_vf', coll_name='surface')
     p_vf.loc += mathutils.Vector((0, 4.0, 0.0))
 
 def zoo():
     """
     Create a zoo of primitives. 
     """
-    core.Msh.track_start()
+    #pylint: disable=no-member
+    core.MeshObject.track_start()
     new.sphere(obj_name='sph30', msh_name='sp30', r=0.7, u=3, v=2, coll_name='zoo')
     new.monkey(name='L', msh_name='M', coll_name='zoo')
     new.sphere(name='Sph', r=2, u=6, v=8, coll_name='zoo')
@@ -204,11 +205,11 @@ def zoo():
 
     new.polygon(name='hex', seg=6, coll_name='zoo')
 
-    for obj in core.Msh.all:
+    for obj in core.MeshObject.all:
         obj.translate(np.random.randint(-6, 6, 3))
         obj.to_coll('zoo')
 
-    core.Msh.track_end()
+    core.MeshObject.track_end()
 
 def spiral():
     """
@@ -219,7 +220,7 @@ def spiral():
 
     s = new.sphere(name='sphere', r=0.3, u=4, v=2)
     s.key(1, 'l')
-    for idx, loc in enumerate(list(sp.v_world)):
+    for idx, loc in enumerate(list(sp.pts.in_world().co)):
         s.key(idx+2, 'l', [tuple(loc)])
 
 def plane_slice():
@@ -261,12 +262,9 @@ def tongue(poly_smooth=True):
     sph.v = v
     sph.morph(n_frames=25, frame_start=100)
     env.Key().goto(125)
-    sph.bo.modifiers.new('subd', type='SUBSURF')
-    sph.bo.modifiers['subd'].levels = 2
-    sph.bo.modifiers['subd'].render_levels = 2
+    sph.subsurf(2, 2)
+    sph.shade('smooth')
 
-    for p in sph.bm.polygons:
-        p.use_smooth = poly_smooth
     return sph
 
 def draw_basic():
@@ -361,7 +359,9 @@ def bulge_tube():
     y1 = np.cos(θ)
     x1 = θ/2
 
-    t = new.Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0, shade='flat', subsurf=True)
+    t = new.Tube('myTube', x=x1, y=y1, z=z1, n=4, th=0)
+    t.shade('flat') # pylint: disable=no-member
+    t.subsurf(2, 2)
 
     x = t.xsec.all[5]
     x.scale((3, 8, 1))
@@ -379,8 +379,10 @@ def spring():
     y1 = np.cos(θ)
     x1 = θ/2
     s = new.Tube('spring', x=x1, y=y1, z=z1)
+    s.shade('smooth') #pylint: disable=no-member
+    s.subsurf(2, 2)
     s.xsec.centers = np.vstack((x1/2, y1, z1)).T
-    s.morph(frame_start=100)
+    s.morph(frame_start=100) #pylint: disable=no-member
     return s
 
 def mobius():
@@ -394,7 +396,9 @@ def mobius():
     spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
     normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))
 
-    t = new.Tube('mobius', x=θ, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0, shade='flat', subsurf=True)
+    t = new.Tube('mobius', x=θ, y=np.zeros_like(θ), z=np.zeros_like(θ), n=8, th=0)
+    t.shade('flat') #pylint: disable=no-member
+    t.subsurf(3, 3)
     t.scale((1, 1, 0.3))
     t.apply_matrix()
 

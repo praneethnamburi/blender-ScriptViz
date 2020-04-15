@@ -210,71 +210,6 @@ class Tracker:
         self.all = self.cache
         self.clear_cache()
 
-class Track:
-    """
-    The Tracker class converts a class into an object, and therefore, is very inconvenient when it comes to module imports.
-    In that case, use this class like so:
-        class TestClass(Track):
-        def __init__(self, num):
-            self.num = num
-            # self.track(self)
-            super().__init__() # include this line at the end of __init__ after inheritance
-    """
-    all = []
-    cache = []
-    def __init__(self):
-        self.track(self)
-
-    @classmethod
-    def track(cls, obj):
-        """Just used by the initalization function to track object."""
-        cls.all.append(obj)
-    
-    @classmethod
-    def clear(cls):
-        """Forget the objects tracked so far."""
-        cls.all = []
-    
-    @classmethod
-    def clear_cache(cls):
-        """Clear cache used by temporary tracking sessions."""
-        cls.cache = []
-
-    @classmethod
-    def track_start(cls):
-        """
-        Start a tracking session. Move current objects to cache, and clean.
-        Note that objects are tracked even without this method if a class is being tracked.
-        Use this to create temporary tracking sessions.
-        """
-        cls.cache = cls.all
-        cls.all = []
-
-    @classmethod
-    def track_end(cls):
-        """End tracking session."""
-        cls.all = cls.cache
-        cls.cache = []
-
-    @classmethod
-    def dictAccess(cls, key='id', val=None):
-        """
-        Give access to the object based on key. 
-        
-        Note:
-        If keys (id) of different objects are the same, then only the
-        last reference will be preserved.
-
-        :param key: Property of the object being tracked (to be used as the key).
-        :param val: Property of the object being tracked (to be used as the value).
-                    When set to None, val is set to the object itself.
-        :returns: A dictionary of property pairs for all objects in key(property1):val(property2)
-        """
-        if not val:
-            return {getattr(k, key):k for k in cls.all}
-        
-        return {getattr(k, key):getattr(k, val) for k in cls.all}
-
 class OnDisk:
     """
     Raise error if function output not on disk. Decorator.
@@ -451,38 +386,38 @@ def printDict(myDict):
     """Print a dictionary in the command line."""
     [print(k, ':', myDict[k]) for k in myDict] #pylint: disable=expression-not-assigned
 
-## Dropbox
-def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imagebags/objectome', savName=None, cachePath='./_temp'):
-    """
-    Download metadata recursively from all entries in a dropbox folder.
-    Save the metadata in the temporary cache of the project. 
-    Return the metadata entries. For mkturk images, use these entries
-    with the class mkturkImg.
-    """
+# ## Dropbox
+# def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imagebags/objectome', savName=None, cachePath='./_temp'):
+#     """
+#     Download metadata recursively from all entries in a dropbox folder.
+#     Save the metadata in the temporary cache of the project. 
+#     Return the metadata entries. For mkturk images, use these entries
+#     with the class mkturkImg.
+#     """
     
-    if not savName:
-        savName = f"{cachePath}/{dbxPath[1:].replace('/', '_')}.dbxmeta"
+#     if not savName:
+#         savName = f"{cachePath}/{dbxPath[1:].replace('/', '_')}.dbxmeta"
 
-    if not os.path.exists(savName):
-        print("Downloading metadata from dropbox path: ", dbxPath)
-        import dropbox
-        dbx = dropbox.Dropbox(json.loads(open(dbxAuth).read())['DBX_MKTURK_TOKEN'])
-        allFiles = dbx.files_list_folder(dbxPath, recursive=True)
-        entries = allFiles.entries
-        while allFiles.has_more:
-            allFiles = dbx.files_list_folder_continue(allFiles.cursor)
-            entries = entries + allFiles.entries
+#     if not os.path.exists(savName):
+#         print("Downloading metadata from dropbox path: ", dbxPath)
+#         import dropbox
+#         dbx = dropbox.Dropbox(json.loads(open(dbxAuth).read())['DBX_MKTURK_TOKEN'])
+#         allFiles = dbx.files_list_folder(dbxPath, recursive=True)
+#         entries = allFiles.entries
+#         while allFiles.has_more:
+#             allFiles = dbx.files_list_folder_continue(allFiles.cursor)
+#             entries = entries + allFiles.entries
 
-        dlTime = datetime.datetime.now().isoformat()
-        with open(savName, 'wb') as f:
-            pickle.dump([entries, dlTime], f)
-        print("Picked metadata at: ", savName)
-    else:
-        print("Reading from temporary cache: ", savName)
-        with open(savName, 'rb') as f:
-            entries, dlTime = pickle.load(f)
+#         dlTime = datetime.datetime.now().isoformat()
+#         with open(savName, 'wb') as f:
+#             pickle.dump([entries, dlTime], f)
+#         print("Picked metadata at: ", savName)
+#     else:
+#         print("Reading from temporary cache: ", savName)
+#         with open(savName, 'rb') as f:
+#             entries, dlTime = pickle.load(f)
 
-    return entries, dlTime
+#     return entries, dlTime
 
 # input handling
 def clean_kwargs(kwargs, kwargs_def, kwargs_alias=None):
@@ -626,3 +561,93 @@ class PortProperties:
         self.trg_attr_name = trg_attr_name
     def __call__(self, trg_class):
         return port_properties(self.src_class, trg_class, self.trg_attr_name)
+
+class MixIn:
+    """
+    MixIn
+    """
+    def __init__(self, src_class):
+        self.src_class = src_class
+    def __call__(self, trg_class):
+        src_attrs = {attr_name:attr for attr_name, attr in self.src_class.__dict__.items() if attr_name[0] != '_'}
+        for src_attr_name, src_attr in src_attrs.items():
+            if not hasattr(trg_class, src_attr_name): # no overwrites
+                if isinstance(src_attr, list):
+                    src_attr = deepcopy(src_attr)
+                setattr(trg_class, src_attr_name, src_attr)
+        return trg_class
+
+def tracker(trg_class):
+    """
+    Use this as a decorator to track classes.
+    include self.track(self) in the decorated class' __init__
+    If there is a tracker in the parent class, don't add self.track(self) to the child class.
+    BUT, decorate the child class!!
+    """
+    src_class = TrackMethods
+    src_attrs = {attr_name:attr for attr_name, attr in src_class.__dict__.items() if attr_name[0] != '_'}
+    # deliberately overwrite all and cache
+    trg_class.all = deepcopy(src_class.all)
+    trg_class.cache = deepcopy(src_class.cache)
+    for src_attr_name, src_attr in src_attrs.items():
+        if not hasattr(trg_class, src_attr_name): # no overwrites
+            setattr(trg_class, src_attr_name, src_attr)
+    return trg_class
+
+class TrackMethods:
+    """
+    This is just a method container.
+    see tracker function
+    """
+    all = []
+    cache = []
+
+    @classmethod
+    def track(cls, obj):
+        """Just used by the initalization function to track object."""
+        cls.all.append(obj)
+    
+    @classmethod
+    def track_clear(cls):
+        """Forget the objects tracked so far."""
+        cls.all = []
+    
+    @classmethod
+    def track_clear_cache(cls):
+        """Clear cache used by temporary tracking sessions."""
+        cls.cache = []
+
+    @classmethod
+    def track_start(cls):
+        """
+        Start a tracking session. Move current objects to cache, and clean.
+        Note that objects are tracked even without this method if a class is being tracked.
+        Use this to create temporary tracking sessions.
+        """
+        cls.cache = cls.all
+        cls.all = []
+
+    @classmethod
+    def track_end(cls):
+        """End tracking session."""
+        cls.all = cls.cache
+        cls.cache = []
+
+    @classmethod
+    def dict_access(cls, key='id', val=None):
+        """
+        Give access to the object based on key. 
+        
+        Note:
+        If keys (id) of different objects are the same, then only the
+        last reference will be preserved.
+
+        :param key: Property of the object being tracked (to be used as the key).
+        :param val: Property of the object being tracked (to be used as the value).
+                    When set to None, val is set to the object itself.
+        :returns: A dictionary of property pairs for all objects in key(property1):val(property2)
+        """
+        if not val:
+            return {getattr(k, key):k for k in cls.all}
+        
+        return {getattr(k, key):getattr(k, val) for k in cls.all}
