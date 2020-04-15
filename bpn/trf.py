@@ -51,7 +51,7 @@ from numpy.linalg.linalg import inv, norm
 from sklearn.decomposition import PCA
 
 import pntools as pn
-from . import core, utils
+from . import new, utils
 
 class CoordFrame:
     """
@@ -167,7 +167,7 @@ class CoordFrame:
             self.gp.strokes['crd_i'].points.foreach_set('co', pcf.co[[0, 1]].flatten())
             self.gp.strokes['crd_j'].points.foreach_set('co', pcf.co[[0, 2]].flatten())
             self.gp.strokes['crd_k'].points.foreach_set('co', pcf.co[[0, 3]].flatten())
-            self.gp.g.update_tag()
+            self.gp().update_tag()
         else:
             # create
             names, kwargs = utils.clean_names(name, kwargs, {
@@ -185,7 +185,7 @@ class CoordFrame:
                 'line_width': 80,
                 'scale': 1
                 })
-            self.gp = core.Pencil(name, **{**names, **kwargs})
+            self.gp = new.pencil(name, **{**names, **kwargs})
             self.name = names['obj_name']
             pcf = self.as_points().transform(scaletf(kwargs['scale']), self.m)
             self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=kwargs['line_width']*kwargs['scale'], name='crd_i')

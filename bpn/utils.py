@@ -77,10 +77,10 @@ def get(name=None, mode=None, priority='Object'):
             return []
         thing_type = thing_type.__name__
         if thing_type == 'Object' and item.type == 'MESH':
-            return check_core_item_exists(item.name, core.MeshObject)
+            return make_core_item(item.name, core.MeshObject)
         if hasattr(core, thing_type):
-            return check_core_item_exists(item.name, getattr(core, thing_type))
-        return check_core_item_exists(item.name, core.Thing)
+            return make_core_item(item.name, getattr(core, thing_type))
+        return make_core_item(item.name, core.Thing)
 
     def _get_one_with_name(name):
         """Returns one dispatched object."""
@@ -112,7 +112,7 @@ def get(name=None, mode=None, priority='Object'):
             ret_list += _get_all_with_name(this_name)
         return ret_list
 
-def check_core_item_exists(item_name, item_enhanced_class):
+def make_core_item(item_name, item_enhanced_class):
     """
     Search for the enhanced item in the classes before creating them
     This can work because all the core classes are being tracked using pntools.tracker
@@ -343,3 +343,21 @@ def copy_curve(curve_src):
         for attr in attrs_spline:
             setattr(spl_targ, attr, getattr(spl, attr))
     return curve_targ
+
+
+def new_gp_color(mtrl_name, rgba):
+    """
+    Create a new grease pencil color.
+    Create the material if it doesn't exist.
+    Return an existing one if it exists.
+    Update the rgba if material with mtrl_name already exists.
+    Returns:
+        Material object (bpy.data.materials)
+    """
+    if mtrl_name in [m.name for m in bpy.data.materials]:
+        mtrl = bpy.data.materials[mtrl_name]
+    else:
+        mtrl = bpy.data.materials.new(mtrl_name)
+    bpy.data.materials.create_gpencil_data(mtrl)
+    mtrl.grease_pencil.color = rgba
+    return mtrl

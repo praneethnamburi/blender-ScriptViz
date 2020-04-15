@@ -225,27 +225,34 @@ def pencil(name=None, **kwargs):
     """
     Create a new grease pencil object.
     """
-    names, kwargs = utils.clean_names(name, kwargs, {'priority_gp': 'current', 'priority_obj': 'current'}, mode='gp')
+    names, kwargs = utils.clean_names(name, kwargs, {'layer_name':'main', 'priority_gp': 'current', 'priority_obj': 'current'}, mode='gp')
     gp_name = names['gp_name']
     obj_name = names['obj_name']
     coll_name = names['coll_name']
+    layer_name = names['layer_name']
 
-    # if obj_name exists, use object and corresponding grease pencil
-    if obj_name in [o.name for o in bpy.data.objects]:
-        s = core.GreasePencilObject(gp_name)
-        s.to_coll(coll_name)
-        return s
-
-    # if gp exists, and obj doesn't exist, assign it to the object, and put it in collection
-    if gp_name in [g.name for g in bpy.data.grease_pencils]:
-        s = core.GreasePencilObject(obj_name, bpy.data.grease_pencils[gp_name])
-        s.to_coll(coll_name)
-        return s
-    
-    # if gp doesn't exist, make it, make an object, and put it in the collection
     s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name)())
+    # if grease pencil doesn't exist, make it
+    gp = s.data
+    # create a layer (which also inserts a keyframe at 0)
+    gp.layer = layer_name
+
+    # set up the colors for grease_pencil drawing
+    kwargs, _ = pn.clean_kwargs(kwargs, {
+        'palette_list': ['MATLAB', 'blender_ax'], 
+        'palette_prefix': ['MATLAB_', ''], 
+        'palette_alpha': [1, 0.8],
+        })
+    this_palette = {}
+    for pal_name, pal_pre, pal_alpha in zip(kwargs['palette_list'], kwargs['palette_prefix'], kwargs['palette_alpha']):
+        this_palette = {**this_palette, **utils.color_palette(pal_name, pal_pre, pal_alpha)} # material library for this grease pencil
+    for mtrl_name, rgba in this_palette.items(): # create material library
+        gp.new_color(mtrl_name, rgba)
+
+    s.color = 0
     s.to_coll(coll_name)
     return s
+
 
 # easy object creation
 def easycreate(mshfunc, name=None, **kwargs):

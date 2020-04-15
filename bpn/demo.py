@@ -243,7 +243,7 @@ def plane_slice():
     sph.slice_z(slice_dir='pos')
     len_z = np.max(sph.v[:, -1]) - np.min(sph.v[:, -1])
     sph.translate(z=len_z)
-    sph.morph(frame_start=151)
+    sph.morph(frame_start=151)  #pylint:disable=no-member
     return sph
 
 def tongue(poly_smooth=True):
@@ -260,10 +260,13 @@ def tongue(poly_smooth=True):
     sel = np.logical_and.reduce((v[:, 0] > -eps, v[:, 0] < eps, v[:, 1] > -eps, v[:, 1] < eps)) #pylint: disable=no-member
     v[sel, 0:2] = v[sel, 0:2] - 0.2
     sph.v = v
-    sph.morph(n_frames=25, frame_start=100)
+    sph.morph(n_frames=25, frame_start=100) #pylint:disable=no-member
     env.Key().goto(125)
     sph.subsurf(2, 2)
-    sph.shade('smooth')
+    if poly_smooth:
+        sph.shade('smooth')  #pylint:disable=no-member
+    else:
+        sph.shade('flat')  #pylint:disable=no-member
 
     return sph
 
@@ -323,7 +326,7 @@ def draw_spring():
 def grease_pencil():
     """Illustrate making animated 2d plots with grease pencil."""
     # equivalent of MATLAB's figure()
-    gp = core.Pencil(gp_name='myGP', obj_name='myGPobj', coll_name='Pencil', layer_name='sl1')
+    gp = new.pencil(gp_name='myGP', obj_name='myGPobj', coll_name='Pencil', layer_name='sl1')
 
     θ = np.radians(np.arange(0, 360*2+1, 1))
     z1 = np.sin(θ)

@@ -51,7 +51,7 @@ def rig():
 
 def draw_axes():
     """Draw the grid and axes."""
-    gpax = Pencil('axes', coll_name='ax', layer_name='main')
+    gpax = new.pencil('axes', coll_name='ax', layer_name='main')
     gpax.color = color_ptvector
     smp = np.r_[-grid_lim:grid_lim:0.05]*grid_scale
 
@@ -101,12 +101,12 @@ def label_axes():
 def make_sphere():
     """Sphere to represent points in 3D space."""
     sph = new.sphere('sphere', r=0.07*grid_scale, coll_name='spheres')
-    sph.shade('smooth')
+    sph.shade('smooth')  #pylint:disable=no-member
     sph.subsurf(2, 3)
     b = bpy.data.materials.new('ball_mat')
     b.diffuse_color = color_ball
     b.metallic = 0.7
-    sph.bm.materials.append(b)
+    sph.data().materials.append(b)
     sph.show(1)
     return sph
 
@@ -129,15 +129,15 @@ def wave_pts(amp, f, phi, t_end=4):
 
 def draw_wave():
     """Set up greasepencil for drawing sine wave strokes."""
-    wav = Pencil('wave', coll_name='plot', layer_name='main')
+    wav = new.pencil('wave', coll_name='plot', layer_name='main')
     wav.color = color_ghost
     wav.color = color_wave
 
     # point the sine wave to the camera
-    wo_frame = trf.CoordFrame(wav.o.matrix_world, unit_vectors=False)
+    wo_frame = trf.CoordFrame(wav().matrix_world, unit_vectors=False)
     cam_frame = trf.CoordFrame(c.camera().matrix_world)
-    wav.o.matrix_world = wo_frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))).m
-    wav.o.location = np.array((2, -2, 1))*grid_scale
+    wav().matrix_world = wo_frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))).m
+    wav().location = np.array((2, -2, 1))*grid_scale
     bpy.context.view_layer.update()
     return wav
 
@@ -166,7 +166,7 @@ def sin_eqn():
 
     cam_frame = trf.CoordFrame(c.camera().matrix_world)
     txt_eqn.frame = txt_eqn.frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
-    txt_eqn().location = w.o.location + Vector((0.4*grid_scale, -0.4*grid_scale, 0.8*grid_scale))
+    txt_eqn().location = w().location + Vector((0.4*grid_scale, -0.4*grid_scale, 0.8*grid_scale))
     return txt_eqn
 
 # animation
@@ -326,7 +326,7 @@ def make_animation(func_list, save=None, name=None):
 def clear_animation():
     """Clear animation data."""
     env.clear('actions')
-    for g in (axg.g, w.g):
+    for g in (axg.data(), w.data()):
         for l in g.layers:
             l.clear()
 
@@ -334,7 +334,7 @@ def clear_animation():
 background()
 c = rig()
 draw_axes()
-axg = Pencil('guides', coll_name='ax', layer_name='main')
+axg = new.pencil('guides', coll_name='ax', layer_name='main')
 pal = utils.color_palette('blender_ax')
 txt = label_axes()
 s_all = [make_sphere()]

@@ -72,13 +72,13 @@ c.key(1, 'fov', 120)
 c.key(100, 'fov', 40)
 
 # Draw trajectories!
-pc_eff = Pencil('eff', layer_name='elbow_lat')
+pc_eff = new.pencil('eff', layer_name='elbow_lat')
 crd = pos_eff['RH_ElbowLat'] - pos_eff['RH_AcromioClavicular'] + np.array(rot_origin)
 pc_eff.stroke(PC(crd, np.eye(4)), color=1, keyframe=0, layer='elbow_lat', line_width=6)
 crd = pos_eff['RH_ElbowMed'] - pos_eff['RH_AcromioClavicular'] + np.array(rot_origin)
 pc_eff.stroke(PC(crd, np.eye(4)), color=1, keyframe=0, layer='elbow_med', line_width=6)
 
-pc_ineff = Pencil('ineff', layer_name='elbow_lat')
+pc_ineff = new.pencil('ineff', layer_name='elbow_lat')
 crd = pos_ineff['RH_ElbowLat'] - pos_ineff['RH_AcromioClavicular'] + np.array(rot_origin)
 pc_ineff.stroke(PC(crd, np.eye(4)), color=2, keyframe=0, layer='elbow_lat', line_width=6)
 crd = pos_ineff['RH_ElbowMed'] - pos_ineff['RH_AcromioClavicular'] + np.array(rot_origin)
