@@ -231,7 +231,7 @@ def pencil(name=None, **kwargs):
     coll_name = names['coll_name']
     layer_name = names['layer_name']
 
-    s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name)())
+    s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name))
     # if grease pencil doesn't exist, make it
     gp = s.data
     # create a layer (which also inserts a keyframe at 0)

@@ -669,21 +669,22 @@ class Mesh(Thing):
 
 
 @pn.tracker
-@pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
-class MeshObject(Object):
+class CompoundObject(Object):
     """
-    This is a core.Object. Automatically calls the appropriate methods
-    and properties from Object and Mesh classes.
-    For example:
-        new.sphere('sph')
-        s = MeshObject('sph')
-        s.v -> automatically returns vertices from them mesh
+    Blender has different types of objects.
+    This class enables accessing 'wrapped' data.
+    For example, a mesh object's data will be wrapped with the Mesh class
+    https://docs.blender.org/manual/en/latest/scene_layout/object/types.html
     """
-    def __init__(self, name, *args, **kwargs):
+    def __init__(self, name, obj_type, data_class, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
-        assert self().type == 'MESH'
-        self._data = Mesh(self().data) # self() returns bpy.data.objects[obj_name] and self().data acts on that blender object
-
+        assert self().type == obj_type
+        self._data_class = data_class
+        if args and isinstance(args[0], data_class):
+            self._data = args[0]
+        else:
+            self._data = data_class(self().data)
+        
     @property
     def data(self):
         """Mesh data. Initalized at the time of object creation."""
@@ -694,9 +695,24 @@ class MeshObject(Object):
         if not isinstance(new_data, str):
             assert hasattr(new_data, 'name')
             new_data = new_data.name
-        self._data = Mesh(new_data)
-        self().data = self.data() # replace the blender data
+        self._data = self._data_class(new_data)
+        self().data = self.data() # pylint:disable=not-callable # replace the blender data
         bpy.context.view_layer.update()
+
+
+@pn.tracker
+@pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
+class MeshObject(CompoundObject):
+    """
+    This is a core.Object. Automatically calls the appropriate methods
+    and properties from Object and Mesh classes.
+    For example:
+        new.sphere('sph')
+        s = MeshObject('sph')
+        s.v -> automatically returns vertices from them mesh
+    """
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, 'MESH', Mesh, *args, **kwargs)
 
     @property
     def pts(self):
@@ -817,7 +833,7 @@ class GreasePencil(Thing):
         
 @pn.tracker
 @pn.PortProperties(GreasePencil, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
-class GreasePencilObject(Object):
+class GreasePencilObject(CompoundObject):
     """
     This is a core.Object. Automatically calls the appropriate methods
     and properties from Object and Greasepencil classes.
@@ -827,25 +843,9 @@ class GreasePencilObject(Object):
         s.v -> automatically returns vertices from them mesh
     """
     def __init__(self, name, *args, **kwargs):
-        super().__init__(name, *args, **kwargs)
-        assert self().type == 'GPENCIL'
-        self._data = GreasePencil(self().data) # self() returns bpy.data.objects[obj_name] and self().data acts on that blender object
+        super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
         self._color = None
         self.strokes = {}
-
-    @property
-    def data(self):
-        """Grease pencil data. Initalized at the time of object creation."""
-        return self._data
-
-    @data.setter
-    def data(self, new_data):
-        if not isinstance(new_data, str):
-            assert hasattr(new_data, 'name')
-            new_data = new_data.name
-        self._data = GreasePencil(new_data)
-        self().data = self.data() # replace the blender data
-        bpy.context.view_layer.update()
 
     @property
     def color_index(self):
