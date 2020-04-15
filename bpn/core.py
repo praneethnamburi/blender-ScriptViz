@@ -236,11 +236,9 @@ class Thing:
         type_name = thing_type.__name__.lower()
         self.blend_coll = getattr(bpy.data, utils.plural(type_name)) # bpy.data.objects, bpy.data.meshes
         self.blend_name = thing_name
-        self.created = False
-        # if it is not in the collection, create a new one
+        # if it is not in the blend_coll, create a new one
         if thing_name not in [t.name for t in self.blend_coll]:
             self.blend_coll.new(thing_name, *args)
-            self.created = True
         
         for key, val in kwargs.items():
             setattr(self(), key, val)
@@ -269,7 +267,7 @@ class Collection(Thing):
     """Wrapper around a bpy.types.Collection thing"""
     def __init__(self, name):
         super().__init__(name, 'Collection')
-        if self.created:
+        if self.name not in [c.name for c in bpy.context.scene.collection.children[:]]:
             bpy.context.scene.collection.children.link(self())
     
     def hide(self):
