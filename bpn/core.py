@@ -876,7 +876,6 @@ class GreasePencilObject(CompoundObject):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
         self._color = None
-        # self.strokes = {} # initializing this will need some work
 
         # initialize hidden variables
         if not self().material_slots[:]:

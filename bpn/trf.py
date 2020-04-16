@@ -162,36 +162,39 @@ class CoordFrame:
         Create one if it does not exist.
         Update if it exists.
         """
-        if self.gp is not None: # update 
-            pcf = self.as_points()
-            self.gp.strokes['crd_i'].points.foreach_set('co', pcf.co[[0, 1]].flatten())
-            self.gp.strokes['crd_j'].points.foreach_set('co', pcf.co[[0, 2]].flatten())
-            self.gp.strokes['crd_k'].points.foreach_set('co', pcf.co[[0, 3]].flatten())
+        names, kwargs = utils.clean_names(name, kwargs, {
+            'gp_name': 'Frame',
+            'obj_name': 'CoordFrame',
+            'coll_name': 'CoordFrames',
+            'layer_name': 'crd',
+            'priority_obj': 'new',
+            'priority_gp': 'new'
+            }, 'gp')
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'palette_list': ['blender_ax'], 
+            'palette_prefix': [''], 
+            'palette_alpha': [0.8],
+            'line_width': 80,
+            'scale': 1
+            })
+        pcf = CoordFrame(self.m, unit_vectors=True).as_points().transform(scaletf(kwargs['scale']), self.m)
+        if self.gp is not None: # update
+            for cnt in (0, 1, 2):
+                this_stroke = [stroke for key, stroke in self.gp.strokes.items() if 'stroke{:03d}'.format(cnt) in key][0]
+                this_stroke.points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
             self.gp().update_tag()
         else:
             # create
-            names, kwargs = utils.clean_names(name, kwargs, {
-                'gp_name': 'Frame',
-                'obj_name': 'CoordFrame',
-                'coll_name': 'CoordFrames',
-                'layer_name': 'crd',
-                'priority_obj': 'new',
-                'priority_gp': 'new'
-                }, 'gp')
-            kwargs, _ = pn.clean_kwargs(kwargs, {
-                'palette_list': ['blender_ax'], 
-                'palette_prefix': [''], 
-                'palette_alpha': [0.8],
-                'line_width': 80,
-                'scale': 1
-                })
             self.gp = new.pencil(name, **{**names, **kwargs})
             self.name = names['obj_name']
-            pcf = self.as_points().transform(scaletf(kwargs['scale']), self.m)
             self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=kwargs['line_width']*kwargs['scale'], name='crd_i')
             self.gp.stroke(PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=kwargs['line_width']*kwargs['scale'], name='crd_j')
             self.gp.stroke(PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=kwargs['line_width']*kwargs['scale'], name='crd_k')
         return self.gp
+    
+    def __repr__(self):
+        exponent = np.min((np.round(-np.log10(np.max(np.abs(self.m[:-1, :])))) + 3, 6))
+        return self.__class__.__name__+'\n'+str(np.round(self.m*(10**exponent))/(10**exponent))
 
 
 class PointCloud:
@@ -338,6 +341,10 @@ class PointCloud:
             return self.in_world().co[0, :]
         return self.in_world().co
 
+    def __repr__(self):
+        exponent = np.min((np.round(-np.log10(np.max(np.abs(self.co)))) + 3, 6))
+        return self.__class__.__name__+'\n'+str(np.round(self.co*(10**exponent))/(10**exponent))
+
 
 def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_frame_mat=None):
     """
@@ -401,6 +408,13 @@ def m4(m=None, **kwargs):
         # return world coordinate system if no inputs are given
         return np.eye(4)
 
+    # by default, i, j, k are unit vectors
+    # This is my convention
+    # This is not the case for blender's matrix_world
+    # to remove this restriction, pass unit_vectors=False as input
+    if 'unit_vectors' not in kwargs: 
+        kwargs['unit_vectors'] = True
+
     if m is not None:
         m = np.array(m)
         assert np.shape(m) in ((3, 3), (4, 4))
@@ -409,18 +423,17 @@ def m4(m=None, **kwargs):
         k = m[0:3, 2]
         if np.shape(m) == (4, 4):
             origin = m[0:3, 3]
+        if kwargs['unit_vectors']:
+            i = norm_vec(i)
+            j = norm_vec(j)
+            k = norm_vec(k)
 
     # if conflicting input is given, individual assignments over-ride matrix assignment
     if 'origin' in kwargs:
         origin = kwargs['origin']
     if 'center' in kwargs:
         origin = kwargs['center']
-    # by default, i, j, k are unit vectors
-    # This is my convention
-    # This is not the case for blender's matrix_world
-    # to remove this restriction, pass unit_vectors=False as input
-    if 'unit_vectors' not in kwargs: 
-        kwargs['unit_vectors'] = True
+    
     if 'i' in kwargs:
         i = kwargs['i']
         assert len(i) == 3
