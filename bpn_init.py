@@ -37,7 +37,7 @@ from bpn.trf import PointCloud as PC
 from bpn.resources import CircularRig
 # functions
 from bpn.io import readattr, animate_simple
-from bpn.utils import get
+from bpn.utils import get, enhance
 
 # Convenience
 Matrix = mathutils.Matrix

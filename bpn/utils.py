@@ -62,43 +62,21 @@ def get(name=None, mode=None, priority='Object'):
         if len(name) == 1:
             name = name[0]
     
-    def _fix_type(thing_type):
-        # lights cause an issue here
-        if plural(thing_type.__name__.lower()) not in env.PROP_FIELDS:
-            thing_type = [k for k in thing_type.__mro__[:-1] if plural(k.__name__.lower()) in env.PROP_FIELDS]
-            if not thing_type:
-                return [] # window manager caused issue when searching for ALL objects
-            thing_type = thing_type[0]
-        return thing_type
-
-    def _enhance_item(item): # item is bpy.data.(sometype)
-        thing_type = _fix_type(type(item))
-        if not thing_type:
-            return []
-        thing_type = thing_type.__name__
-        if thing_type == 'Object' and item.type == 'MESH':
-            return core.MeshObject(item.name)
-        if thing_type == 'Object' and item.type == 'GPENCIL':
-            return core.GreasePencilObject(item.name)
-        if hasattr(core, thing_type):
-            return getattr(core, thing_type)(item.name)
-        return core.Thing(item.name, thing_type)
-
     def _get_one_with_name(name):
         """Returns one dispatched object."""
         all_items = env.Props().get(name)
         if all_items: # at least one item found
             all_obj_items = [item for item in all_items if type(item).__name__ == priority]
             if all_obj_items: # one of the items was object item
-                return _enhance_item(all_obj_items[0])
-            return _enhance_item(all_items[0])
+                return enhance(all_obj_items[0])
+            return enhance(all_items[0])
         print('No prop found with name: ' + name)
         return []
     
     def _get_all_with_name(name):
         """Returns a list of dispatched objects (even if there is only one)."""
         assert isinstance(name, str)
-        return [_enhance_item(item) for item in env.Props().get(name) if _enhance_item(item)]
+        return [enhance(item) for item in env.Props().get(name) if enhance(item)]
 
     if mode is None and name is None: # no inputs given, return the last object
         return _get_one_with_name([o.name for o in bpy.data.objects][-1])
@@ -114,6 +92,37 @@ def get(name=None, mode=None, priority='Object'):
             ret_list += _get_all_with_name(this_name)
         return ret_list
 
+def enhance(item): # item is bpy.data.(sometype)
+    """
+    Turns a bpy.data.(sometype) into a bpn.core object
+
+    Heart of the dispatcher. Use the dispatcher (get) for getting things
+    by name. Use this for converting a bpy.types.ID to bpn.core object.
+
+    get is useful when you're in blender's python console
+    enhance is useful when developing code
+    """
+    assert isinstance(item, bpy.types.ID)
+    def _fix_type(thing_type): # thing_type is bpy.types.(sometype)
+        # lights cause an issue here
+        if plural(thing_type.__name__.lower()) not in env.PROP_FIELDS:
+            thing_type = [k for k in thing_type.__mro__[:-1] if plural(k.__name__.lower()) in env.PROP_FIELDS]
+            if not thing_type:
+                return [] # window manager caused issue when searching for ALL objects
+            thing_type = thing_type[0]
+        return thing_type
+
+    thing_type = _fix_type(type(item))
+    if not thing_type:
+        return []
+    thing_type = thing_type.__name__
+    if thing_type == 'Object' and item.type == 'MESH':
+        return core.MeshObject(item.name)
+    if thing_type == 'Object' and item.type == 'GPENCIL':
+        return core.GreasePencilObject(item.name)
+    if hasattr(core, thing_type):
+        return getattr(core, thing_type)(item.name)
+    return core.Thing(item.name, thing_type)
 
 ### Name management
 def new_name(name, curr_names):

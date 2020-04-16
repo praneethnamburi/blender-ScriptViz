@@ -53,6 +53,12 @@ class Thing:
     def __neg__(self):
         """Remove that object."""
         self.blend_coll.remove(self())
+
+    def __str__(self):
+        return object.__repr__(self)
+    
+    def __repr__(self):
+        return self.__module__+"."+self.__class__.__name__+"('"+self.name+"')"
     
     @property
     def name(self):
@@ -84,6 +90,20 @@ class Collection(Thing):
         """Show collection in the viewport, and enable rendering."""
         bpy.context.scene.view_layers[0].layer_collection.children[self.name].hide_viewport = False
         bpy.context.scene.view_layers[0].layer_collection.children[self.name].exclude = False
+    
+    def __getitem__(self, key):
+        """
+        Try:
+            demo.zoo() # create a bunch of objects
+            get('zoo')[:]
+            get('zoo')['L'] # get object named 'L' from collection 'zoo'
+            get('zoo')[0] # get the first object in collection 'zoo' (not recommended)
+        """
+        all_blobj = self().objects[key]
+        if isinstance(all_blobj, bpy.types.ID):
+            return utils.enhance(all_blobj)
+        return [utils.enhance(o) for o in all_blobj]
+
     
     # Group transformations for objects in a collection!
 
@@ -447,7 +467,7 @@ class Object(Thing):
         this_o.data = this_m.name # pylint: disable=attribute-defined-outside-init
         if isinstance(msh_name, str):
             this_o.data.name = msh_name
-        return utils.get(this_o.name)
+        return utils.enhance(this_o)
 
 
 class Mesh(Thing):
@@ -839,7 +859,7 @@ class GreasePencil(Thing):
         return ret
 
 
-@pn.PortProperties(GreasePencil, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
+@pn.PortProperties(GreasePencil, 'data') # instance of CompundObject OR GreasePencilObject MUST have 'data' attribute/property that is an instance of Mesh class
 class GreasePencilObject(CompoundObject):
     """
     This is a core.Object. Automatically calls the appropriate methods
@@ -977,3 +997,20 @@ class GreasePencilObject(CompoundObject):
                 else:
                     ret[layer.info+'_key{:04d}'.format(kf.frame_number)] = None
         return ret
+
+
+class Curve(Thing):
+    """
+    Wrapper around a bpy.types.Curve object.
+    Blender appears to have three types of curves - CURVE, SURFACE, FONT
+    """
+    def __init__(self, name, **kwargs):
+        """args[0] is in (CURVE, SURFACE, FONT)"""
+        super().__init__(name, 'Curve', 'CURVE', **kwargs)
+
+
+@pn.PortProperties(Curve, 'data') # CurveObject (or CompoundObject) MUST define data as an attribute or property
+class CurveObject(CompoundObject):
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, 'CURVE', Curve, *args, **kwargs)
+ 

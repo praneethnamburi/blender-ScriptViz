@@ -24,11 +24,14 @@ def load_bones(bones=None, coll_name='Bones'):
     with bpy.data.libraries.load(SKELETON) as (data_from, data_to):
         data_to.objects = [name for name in data_from.objects if name in bones]
     
+    ret = {}
     for obj in data_to.objects:
         if obj is not None:
-            utils.get(obj.name).to_coll(coll_name)
+            obj = utils.enhance(obj)
+            ret[obj.name] = obj
+            obj.to_coll(coll_name)
     
-    return {bone:utils.get(bone) for bone in bones}
+    return ret
 
 class CircularRig:
     """

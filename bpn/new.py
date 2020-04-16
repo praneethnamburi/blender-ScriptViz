@@ -331,11 +331,10 @@ def bezier_circle(name=None, **kwargs):
     if h is None:
         h = r*(np.sqrt(2)/2 - 4*(0.5**3))/(3*(0.5**3)) # handle length for cubic bezier approx. of a circle
 
-    path = bpy.data.curves.new(names['curve_name'], 'CURVE')
-    path_obj = bpy.data.objects.new(names['obj_name'], path)
-    utils.get(path_obj.name).to_coll(names['coll_name'])
+    path_obj = core.CurveObject(names['obj_name'], core.Curve(names['curve_name']))
+    path_obj.to_coll(names['coll_name'])
 
-    spl = path.splines.new(type='BEZIER')
+    spl = path_obj().data.splines.new(type='BEZIER')
     spl.bezier_points.add(3)
     spl.bezier_points[0].co = (-r, 0, 0)
     spl.bezier_points[1].co = (0, r, 0)
@@ -361,7 +360,7 @@ def bezier_circle(name=None, **kwargs):
     spl.resolution_v = 12
     spl.tilt_interpolation = 'LINEAR' #('LINEAR', 'CARDINAL', 'BSPLINE', 'EASE')
 
-    return utils.get(path_obj.name)
+    return path_obj
 
 
 # convenience 

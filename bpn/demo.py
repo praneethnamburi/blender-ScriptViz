@@ -36,7 +36,7 @@ import bpy #pylint: disable=import-error
 import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import core, new, env, turtle, trf, utils
+from . import new, env, turtle, trf, utils
 
 def spheres():
     """
@@ -204,7 +204,7 @@ def zoo():
     new.polygon(name='hex', seg=6, coll_name='zoo')
 
     for obj in bpy.data.collections['zoo'].objects:
-        utils.get(obj.name).translate(np.random.randint(-6, 6, 3))
+        utils.enhance(obj).translate(np.random.randint(-6, 6, 3))
 
 
 def spiral():
@@ -316,8 +316,7 @@ def draw_spring():
     spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x1, y1, z1)])
     a = turtle.Draw('testskin')
     a.skin(spine, n=4, r=0.3)
-    +a # pylint:disable=pointless-statement
-    return utils.get('testskin')
+    return +a
 
 def grease_pencil():
     """Illustrate making animated 2d plots with grease pencil."""
