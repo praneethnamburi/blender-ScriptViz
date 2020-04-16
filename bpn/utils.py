@@ -1,5 +1,20 @@
 """
 Utility functions
+
+Dispatchers: get, enhance
+    get will return either one bpn.core object, or a list of bpn.core objects
+    Use get in the blender console.
+    When developing software, stick to enhance and avoid get.
+
+Name management:
+    new_name      - blender-style name conflict resolution
+    clean_names   - name management for creation functions
+    bpy_type      - string -> blender class name ('Object' -> bpy.types.Object)
+    bpy_data_coll - string -> blend data collection ('Object' -> bpy.data.objects)
+
+Color management:
+    color_palette - preset color palettes, returns {color_name: rgba}
+    new_gp_color  - create a new grease pencil color
 """
 import os
 import re
@@ -34,40 +49,46 @@ def get(name=None, mode=None, priority='Object'):
     :param obj_name: (str) name of the object in blender's environment
     :param mode: (None, 'all') if 'all', returns all things with the name (priority given to objects)
 
-    If there are objects and curves with the same name, then 
-    utils.get(['x_label', 'y_label'], priority='Curve') will return the curves
-    utils.get(['x_label', 'y_label']) will return the objects
-    utils.get(['x_label', 'y_label'], 'all') will return both objects and curves
-    utils.get('abe.*') to get all objects that contain 'abe'
-    utils.get('abe.*', 'all') to get all items that contain 'abe'
+    If there are objects and curves with the same name, then use
+        utils.get(['x_label', 'y_label'], priority='Curve') to get the curves
+        utils.get(['x_label', 'y_label']) to get the objects
+        utils.get(['x_label', 'y_label'], 'all') to get both objects and curves
+
+    Regular expressions: (With regular expression input, generic 'Thing' objects are filtered out.)
+        utils.get('abe.*') to get all objects that contain 'abe'
+        utils.get('abe.*', 'all') to get all items that contain 'abe'
+        utils.get('^z') to get things starting with 'z'
+        utils.get('^z') to get things ending with '_R'
+        utils.get(['^my', '_R$']) to get things starting with my OR ending with '_R$'    
 
     Return all objects of a certain type:
-    utils.get('collections')
+        utils.get('collections')
     """
-    assert mode in (None, 'all')
-    assert isinstance(name, (str, list)) or name is None
-    assert not (mode == 'all' and name is None)
+    def _input_check(name, mode):
+        assert mode in (None, 'all')
+        assert isinstance(name, (str, list)) or name is None
+        assert not (mode == 'all' and name is None)
 
-    if isinstance(name, str): # special case: return all items of a given type
-        if name in env.PROP_FIELDS:
-            return [enhance(t) for t in env.Props()(return_empty=True)[name]]
+        regex_flag = False
+        regex = re.compile('[.^$*+}{|)(]')
+        if isinstance(name, str):
+            if regex.search(name) is not None: # not a normal string
+                name = env.Props().search(name)
+                regex_flag = True
 
-    regex = re.compile('[.^$*+}{|)(]')
-    if isinstance(name, str):
-        if regex.search(name) is not None: # not a normal string
-            name = env.Props().search(name)
-
-    if isinstance(name, list): # if name is a list of regular expressions
-        checked_name = []
-        for this_name in name:
-            if regex.search(this_name) is not None:
-                checked_name += env.Props().search(this_name)
-            else:
-                checked_name += [this_name]
-        name = list(np.unique(checked_name))
-        name = [n for n in name if '/' not in n]
-        if len(name) == 1:
-            name = name[0]
+        if isinstance(name, list): # if name is a list of regular expressions
+            checked_name = []
+            for this_name in name:
+                if regex.search(this_name) is not None:
+                    checked_name += env.Props().search(this_name)
+                    regex_flag = True
+                else:
+                    checked_name += [this_name]
+            name = list(np.unique(checked_name))
+            name = [n for n in name if '/' not in n]
+            if len(name) == 1:
+                name = name[0]
+        return name, mode, regex_flag
     
     def _get_one_with_name(name):
         """Returns one dispatched object."""
@@ -85,19 +106,33 @@ def get(name=None, mode=None, priority='Object'):
         assert isinstance(name, str)
         return [enhance(item) for item in env.Props().get(name) if enhance(item)]
 
-    if mode is None and name is None: # no inputs given, return the last object
-        return _get_one_with_name([o.name for o in bpy.data.objects][-1])
-    if mode is None and isinstance(name, str): # return one object
-        return _get_one_with_name(name)
-    if mode is None and isinstance(name, list):
-        return [_get_one_with_name(this_name) for this_name in name]
-    if mode == 'all' and isinstance(name, str):
-        return _get_all_with_name(name)
-    if mode == 'all' and isinstance(name, list): # here for completeness, don't recommend using it
-        ret_list = []
-        for this_name in name:
-            ret_list += _get_all_with_name(this_name)
-        return ret_list
+    def _dispatcher(name, mode):
+        if mode is None and name is None: # no inputs given, return the last object
+            return _get_one_with_name([o.name for o in bpy.data.objects][-1])
+        if mode is None and isinstance(name, str): # return one object
+            return _get_one_with_name(name)
+        if mode is None and isinstance(name, list):
+            return [_get_one_with_name(this_name) for this_name in name]
+        if mode == 'all' and isinstance(name, str):
+            return _get_all_with_name(name)
+        if mode == 'all' and isinstance(name, list): # here for completeness, don't recommend using it
+            ret_list = []
+            for this_name in name:
+                ret_list += _get_all_with_name(this_name)
+            return ret_list
+        return [] # In theory, this statement should never be reached
+    
+    if isinstance(name, str) and name in env.PROP_FIELDS: # special case: return all items of a given type
+        return [enhance(t) for t in env.Props()(return_empty=True)[name]]
+
+    name, mode, regex_flag = _input_check(name, mode)
+    ret_list = _dispatcher(name, mode)
+    if regex_flag and isinstance(ret_list, list):
+        ret_list = [o for o in ret_list if o.__class__.__name__ != 'Thing']
+    if len(ret_list) == 1: # after filtering, there was only one element
+        return ret_list[0]
+    return ret_list
+
 
 def enhance(item): # item is bpy.data.(sometype)
     """
@@ -226,7 +261,8 @@ def bpy_data_coll(this_type):
         thing_coll_name = 'node_groups'
     return getattr(bpy.data, thing_coll_name)
 
-# common color palettes
+
+# color management
 def color_palette(name='MATLAB', prefix='', alpha=0.8):
     """
     Commonly used color palettes for plotting.
@@ -267,6 +303,25 @@ def color_palette(name='MATLAB', prefix='', alpha=0.8):
 
     return None
 
+def new_gp_color(mtrl_name, rgba):
+    """
+    Create a new grease pencil color.
+    Create the material if it doesn't exist.
+    Return an existing one if it exists.
+    Update the rgba if material with mtrl_name already exists.
+    Returns:
+        Material object (bpy.data.materials)
+    """
+    if mtrl_name in [m.name for m in bpy.data.materials]:
+        mtrl = bpy.data.materials[mtrl_name]
+    else:
+        mtrl = bpy.data.materials.new(mtrl_name)
+    bpy.data.materials.create_gpencil_data(mtrl)
+    mtrl.grease_pencil.color = rgba
+    return mtrl
+
+
+# Curve management - move this to core.Curve?
 def align_curve(bez_curve, halign='center', valign='middle'):
     """
     Align a bezier curve.
@@ -351,21 +406,3 @@ def copy_curve(curve_src):
         for attr in attrs_spline:
             setattr(spl_targ, attr, getattr(spl, attr))
     return curve_targ
-
-
-def new_gp_color(mtrl_name, rgba):
-    """
-    Create a new grease pencil color.
-    Create the material if it doesn't exist.
-    Return an existing one if it exists.
-    Update the rgba if material with mtrl_name already exists.
-    Returns:
-        Material object (bpy.data.materials)
-    """
-    if mtrl_name in [m.name for m in bpy.data.materials]:
-        mtrl = bpy.data.materials[mtrl_name]
-    else:
-        mtrl = bpy.data.materials.new(mtrl_name)
-    bpy.data.materials.create_gpencil_data(mtrl)
-    mtrl.grease_pencil.color = rgba
-    return mtrl
