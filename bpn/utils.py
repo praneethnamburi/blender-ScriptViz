@@ -129,8 +129,8 @@ def get(name=None, mode=None, priority='Object'):
     ret_list = _dispatcher(name, mode)
     if regex_flag and isinstance(ret_list, list):
         ret_list = [o for o in ret_list if o.__class__.__name__ != 'Thing']
-    if len(ret_list) == 1: # after filtering, there was only one element
-        return ret_list[0]
+        if len(ret_list) == 1: # after filtering, there was only one element
+            ret_list = ret_list[0]
     return ret_list
 
 
