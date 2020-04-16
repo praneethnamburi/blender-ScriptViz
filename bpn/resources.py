@@ -83,7 +83,8 @@ class CircularRig:
         :param targ: (core.Object, bpy.types.Object)
         """
         def __init__(self, this_thing, coll_name, path, size, targ=None):
-            super().__init__(this_thing.name.lower(), this_thing, coll_name=coll_name)
+            super().__init__(this_thing.name.lower(), this_thing)
+            self.to_coll(coll_name)
             self.add_container(size=size)
             if isinstance(path, (int, float)):
                 self.path = new.bezier_circle(r=path, curve_name=this_thing.name+'Path', obj_name=this_thing.name.lower()+'_path', coll_name=coll_name)

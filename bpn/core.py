@@ -120,7 +120,8 @@ class Object(Thing):
     
     @frame.setter
     def frame(self, new_frame):
-        self().matrix_world = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
+        m = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
+        self().matrix_world = mathutils.Matrix(m)
         bpy.context.view_layer.update()
 
     def frame_reset(self):

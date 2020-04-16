@@ -38,7 +38,7 @@ h.pts = h.pts.reframe_pca(k=-1, i=3)
 h.update_normals()
 he = h.copy('H_effcopy')
 hi = h.copy('H_ineffcopy')
-h.bo.hide_set(True)
+h().hide_set(True)
 c = resources.CircularRig()
 c.center = h.frame.origin
 pos_eff, traj_eff = get_traj('armReach_effTrial')
