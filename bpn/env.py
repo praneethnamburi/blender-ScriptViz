@@ -72,19 +72,25 @@ class Props:
         return Props({p:self.__dict__[p] - other.__dict__[p] for p in PROP_FIELDS})
     def __xor__(self, other): # exclusive or
         return (self | other) - (self & other)
-    def __call__(self, names=None):
-        """Dictionary of lists of objects, skip empty collections."""
+    def __call__(self, names=None, return_empty=False):
+        """
+        Dictionary of lists of objects, skip empty collections.
+        Example:
+            env.Props()(return_empty=True)['meshes']
+        """
         self.clean()
         if isinstance(names, str):
             names = [names]
         if not names:
+            if return_empty:
+                return {p:list(propset) for p, propset in self.__dict__.items()}
             return {p:list(propset) for p, propset in self.__dict__.items() if propset != set()}
-        else: # list of names
-            res = {}
-            for p, propset in self.__dict__.items():
-                if propset != set():
-                    res[p] = [prop for prop in propset if prop.name in names]
-            return {p:proplist for p, proplist in res.items() if proplist}
+        # list of names
+        res = {}
+        for p, propset in self.__dict__.items():
+            if propset != set():
+                res[p] = [prop for prop in propset if prop.name in names]
+        return {p:proplist for p, proplist in res.items() if proplist}
     def clean(self):
         """Remove invalid objects (i.e., deleted from blender)."""
         self.__dict__ = {p : {k for k in self.__dict__[p] if 'invalid' not in  str(k)} for p in PROP_FIELDS}

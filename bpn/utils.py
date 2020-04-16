@@ -40,10 +40,17 @@ def get(name=None, mode=None, priority='Object'):
     utils.get(['x_label', 'y_label'], 'all') will return both objects and curves
     utils.get('abe.*') to get all objects that contain 'abe'
     utils.get('abe.*', 'all') to get all items that contain 'abe'
+
+    Return all objects of a certain type:
+    utils.get('collections')
     """
     assert mode in (None, 'all')
     assert isinstance(name, (str, list)) or name is None
     assert not (mode == 'all' and name is None)
+
+    if isinstance(name, str): # special case: return all items of a given type
+        if name in env.PROP_FIELDS:
+            return [enhance(t) for t in env.Props()(return_empty=True)[name]]
 
     regex = re.compile('[.^$*+}{|)(]')
     if isinstance(name, str):
