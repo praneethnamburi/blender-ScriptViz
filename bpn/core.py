@@ -360,6 +360,10 @@ class Object(Thing):
             if typ == 'move' and oldC: # if it was part of a collection
                 oldC().objects.unlink(self())
     
+    def in_coll(self, coll_name):
+        """Put the same object in another collection."""
+        self.to_coll(coll_name, 'copy') # does NOT make a copy of the object. See copy and deepcopy for that
+    
     # modifiers
     def get_modifier(self, modifier_type):
         """Returns bpy.types.Modifier, or makes a new one if a modifier does not exist."""
