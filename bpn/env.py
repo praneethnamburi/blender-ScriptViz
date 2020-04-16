@@ -2,12 +2,15 @@
 Environment control in blender.
 
 Classes:
-    Props - Snapshot of prop collections in blender's data.
+    Props       - Snapshot of prop collections in blender's data.
     ReportDelta - Decorator for functions to report changes the function made to blender after execution.
+    Key         - Timeline management (lim and auto_lim are really useful)
 
 Functions:
-    reset() - Reset the current blender scene programatically (useful to preserve console history and variables)
-    shade() - Change the shading in 3D viewport
+    reset - Reset the current blender scene programatically (useful to preserve console history and variables)
+    clear - clear specific things e.g. - env.clear('actions')
+    shade - Change the shading in 3D viewport
+    background - Set the backgrund color
 """
 import re
 import functools
@@ -145,6 +148,7 @@ class Props:
                     iterFlag = True
         return children
 
+
 class ReportDelta:
     """
     This class is primarily meant to be used as a decorator.
@@ -201,6 +205,51 @@ class ReportDelta:
         return self.deltaReport
 
 
+class Key:
+    """
+    Easy access to set animation limits.
+
+    After a series of animation commands, use env.Key().auto_lim()
+    """
+    @property
+    def start(self):
+        """First frame of animation."""
+        return bpy.context.scene.frame_start
+    @start.setter
+    def start(self, val):
+        bpy.context.scene.frame_start = val
+    begin = start
+
+    @property
+    def end(self):
+        """Last frame of animation."""
+        return bpy.context.scene.frame_end
+    @end.setter
+    def end(self, val):
+        bpy.context.scene.frame_end = val
+    stop = end
+
+    @property
+    def lim(self):
+        """Current animation limits."""
+        return self.begin, self.end
+    @lim.setter
+    def lim(self, val):
+        self.begin = val[0]
+        self.end = val[1]
+
+    def auto_lim(self):
+        """Use this function after doing an animation."""
+        action_list = np.array([action.frame_range for action in bpy.data.actions if action.users > 0])
+        if action_list.size:
+            self.lim = np.min(action_list), np.max(action_list)
+
+    def goto(self, frame):
+        """Go to a frame given by frame."""
+        assert isinstance(frame, int)
+        bpy.context.scene.frame_current = frame
+
+
 def reset():
     """
     Reset the current scene programatically.
@@ -245,6 +294,7 @@ def clear(clist=None):
             except AttributeError:
                 pass
 
+
 def shade(shading='WIREFRAME', area='Layout'):
     """
     Set 3D viewport shading
@@ -257,46 +307,7 @@ def shade(shading='WIREFRAME', area='Layout'):
             if space.type == 'VIEW_3D' and this_area.type == 'VIEW_3D':
                 space.shading.type = shading
 
-class Key:
-    """
-    Easy access to set animation limits.
-
-    After a series of animation commands, use env.Key().auto_lim()
-    """
-    @property
-    def start(self):
-        """First frame of animation."""
-        return bpy.context.scene.frame_start
-    @start.setter
-    def start(self, val):
-        bpy.context.scene.frame_start = val
-    begin = start
-
-    @property
-    def end(self):
-        """Last frame of animation."""
-        return bpy.context.scene.frame_end
-    @end.setter
-    def end(self, val):
-        bpy.context.scene.frame_end = val
-    stop = end
-
-    @property
-    def lim(self):
-        """Current animation limits."""
-        return self.begin, self.end
-    @lim.setter
-    def lim(self, val):
-        self.begin = val[0]
-        self.end = val[1]
-
-    def auto_lim(self):
-        """Use this function after doing an animation."""
-        action_list = np.array([action.frame_range for action in bpy.data.actions if action.users > 0])
-        if action_list.size:
-            self.lim = np.min(action_list), np.max(action_list)
-
-    def goto(self, frame):
-        """Go to a frame given by frame."""
-        assert isinstance(frame, int)
-        bpy.context.scene.frame_current = frame
+def background(color_world=(0., 0., 0.)):
+    """Set up background."""
+    bpy.data.worlds[0].use_nodes = False
+    bpy.data.worlds[0].color = color_world
