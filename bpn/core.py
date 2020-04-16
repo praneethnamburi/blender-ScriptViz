@@ -337,7 +337,7 @@ class Object(Thing):
         oldC = self.coll
         if not isinstance(coll_name, str):
             coll_name = coll_name.name
-        newC = utils.make_core_item(coll_name, Collection)
+        newC = utils.make(coll_name, Collection)
         if coll_name not in [c.name for c in self().users_collection]: # link only if the object isn't in collection already
             newC().objects.link(self())
             if typ == 'move' and oldC: # if it was part of a collection
@@ -677,6 +677,10 @@ class CompoundObject(Object):
     https://docs.blender.org/manual/en/latest/scene_layout/object/types.html
     """
     def __init__(self, name, obj_type, data_class, *args, **kwargs):
+        if name in [o.name for o in bpy.data.objects]:
+            # an object with that name exists, but is not the correct type of object
+            if bpy.data.objects[name].type != obj_type:
+                name = utils.new_name(name, [o.name for o in bpy.data.objects])
         super().__init__(name, *args, **kwargs)
         assert self().type == obj_type
         self._data_class = data_class
@@ -782,6 +786,16 @@ class GreasePencil(Thing):
         super().__init__(name, 'GreasePencil', **kwargs)
         self._layer = None
         self._keyframe = None
+
+        # initialize hidden variables
+        if not self().layers[:]:
+            self.layer = 'main' # this will also take care of the keyframe
+        else:
+            self.layer = self().layers[0].info
+            if self.layer.frames[:]:
+                self.keyframe = self.layer.frames[0].frame_number
+            else:
+                self.keyframe = 0 # if there was a layer without keyframes in it
     
     @property
     def layer(self):
@@ -817,20 +831,20 @@ class GreasePencil(Thing):
             self._layer.frames.new(keynum)
         self._keyframe = [kf for kf in self.layer.frames if kf.frame_number == keynum][0]
     
-    def new_color(self, mtrl_name, rgba):
-        """
-        Add a new color to the current object's material slot.
-        Create the material if it doesn't exist.
-        Update the rgba if material with mtrl_name already exists.
-        Add it to the material slot of the current object.
-        Returns:
-            Material object (bpy.data.materials)
-        """
-        mtrl = utils.new_gp_color(mtrl_name, rgba)
-        if mtrl_name not in [m.name for m in self().materials if m is not None]:
-            self().materials.append(mtrl)
-        return mtrl
-        
+    @property
+    def layers(self):
+        """Return names of all layers."""
+        return [l.info for l in self().layers]
+    
+    @property
+    def keyframes(self):
+        """Return a mapping of layers: keyframes"""
+        ret = {}
+        for layer in self().layers:
+            ret[layer.info] = [kf.frame_number for kf in layer.frames]
+        return ret
+
+
 @pn.tracker
 @pn.PortProperties(GreasePencil, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
 class GreasePencilObject(CompoundObject):
@@ -845,7 +859,13 @@ class GreasePencilObject(CompoundObject):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
         self._color = None
-        self.strokes = {}
+        # self.strokes = {} # initializing this will need some work
+
+        # initialize hidden variables
+        if not self().material_slots[:]:
+            self.color = {'white': (1.0, 1.0, 1.0, 1.0)}
+        else:
+            self.color = 0
 
     @property
     def color_index(self):
@@ -881,13 +901,27 @@ class GreasePencilObject(CompoundObject):
             assert len(val) == 4
             for v in val:
                 assert 0.0 <= v <= 1.0
-            self.data.new_color(key, val)
+            self.new_color(key, val)
             color_name = key # convert it into a number 
         if isinstance(this_color, str):
             assert this_color in [m.name for m in self().material_slots]
             color_name = this_color
 
         self._color = color_name
+
+    def new_color(self, mtrl_name, rgba):
+        """
+        Add a new color to the current object's material slot.
+        Create the material if it doesn't exist.
+        Update the rgba if material with mtrl_name already exists.
+        Add it to the material slot of the current object.
+        Returns:
+            Material object (bpy.data.materials)
+        """
+        mtrl = utils.new_gp_color(mtrl_name, rgba)
+        if mtrl_name not in [m.name for m in self().data.materials if m is not None]:
+            self().data.materials.append(mtrl)
+        return mtrl
 
     def stroke(self, ptcloud, **kwargs):
         """
@@ -907,7 +941,6 @@ class GreasePencilObject(CompoundObject):
             'color': None, # defaults to current color self._color
             'keyframe': None, # defaults to self._keyframe
             'display_mode': '3DSPACE',
-            'name': 'stroke'
             })
 
         # set where, when and color
@@ -920,7 +953,6 @@ class GreasePencilObject(CompoundObject):
 
         assert type(ptcloud).__name__ == 'PointCloud'
         gp_stroke = self.data.keyframe.strokes.new()
-        kwargs['name'] = utils.new_name(kwargs['name'], list(self.strokes.keys()))
         gp_stroke.display_mode = kwargs['display_mode']
 
         gp_stroke.points.add(count=ptcloud.n)
@@ -935,8 +967,20 @@ class GreasePencilObject(CompoundObject):
             else:
                 assert len(kwargs[attr]) == n_pts
             gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
-        self.strokes[kwargs['name']] = gp_stroke
         return gp_stroke
 
         # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
         # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes
+
+    @property
+    def strokes(self):
+        """Return a list of all the strokes."""
+        ret = {}
+        for layer in self().data.layers:
+            for kf in layer.frames:
+                if kf.strokes[:]:
+                    for i, stroke in enumerate(kf.strokes[:]):
+                        ret[layer.info+'_key{:04d}'.format(kf.frame_number)+'_stroke{:03d}'.format(i)] = stroke
+                else:
+                    ret[layer.info+'_key{:04d}'.format(kf.frame_number)] = None
+        return ret

@@ -22,7 +22,8 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     returns: core.Object
     """
     if name is None:
-        name = utils.new_name('empty', [o.name for o in bpy.data.objects])
+        name = 'empty'
+    name = utils.new_name(name, [o.name for o in bpy.data.objects])
     s = core.Object(name, None, empty_display_type=typ, empty_display_size=size)
     s.to_coll(coll_name)
     return s
@@ -201,10 +202,7 @@ def pencil(name=None, **kwargs):
     layer_name = names['layer_name']
 
     s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name))
-    # if grease pencil doesn't exist, make it
-    gp = s.data
-    # create a layer (which also inserts a keyframe at 0)
-    gp.layer = layer_name
+    s.layer = layer_name
 
     # set up the colors for grease_pencil drawing
     kwargs, _ = pn.clean_kwargs(kwargs, {
@@ -216,7 +214,7 @@ def pencil(name=None, **kwargs):
     for pal_name, pal_pre, pal_alpha in zip(kwargs['palette_list'], kwargs['palette_prefix'], kwargs['palette_alpha']):
         this_palette = {**this_palette, **utils.color_palette(pal_name, pal_pre, pal_alpha)} # material library for this grease pencil
     for mtrl_name, rgba in this_palette.items(): # create material library
-        gp.new_color(mtrl_name, rgba)
+        s.new_color(mtrl_name, rgba)
 
     s.color = 0
     s.to_coll(coll_name)
@@ -333,10 +331,9 @@ def bezier_circle(name=None, **kwargs):
     if h is None:
         h = r*(np.sqrt(2)/2 - 4*(0.5**3))/(3*(0.5**3)) # handle length for cubic bezier approx. of a circle
 
-    col = core.Collection(names['coll_name'])()
     path = bpy.data.curves.new(names['curve_name'], 'CURVE')
     path_obj = bpy.data.objects.new(names['obj_name'], path)
-    col.objects.link(path_obj)
+    utils.get(path_obj.name).to_coll(names['coll_name'])
 
     spl = path.splines.new(type='BEZIER')
     spl.bezier_points.add(3)

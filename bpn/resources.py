@@ -24,10 +24,9 @@ def load_bones(bones=None, coll_name='Bones'):
     with bpy.data.libraries.load(SKELETON) as (data_from, data_to):
         data_to.objects = [name for name in data_from.objects if name in bones]
     
-    col = core.Collection(coll_name)()
     for obj in data_to.objects:
         if obj is not None:
-            col.objects.link(obj)
+            utils.get(obj.name).to_coll(coll_name)
     
     return {bone:utils.get(bone) for bone in bones}
 

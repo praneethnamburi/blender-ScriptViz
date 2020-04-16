@@ -77,10 +77,12 @@ def get(name=None, mode=None, priority='Object'):
             return []
         thing_type = thing_type.__name__
         if thing_type == 'Object' and item.type == 'MESH':
-            return make_core_item(item.name, core.MeshObject)
+            return make(item.name, core.MeshObject)
+        if thing_type == 'Object' and item.type == 'GPENCIL':
+            return make(item.name, core.GreasePencilObject)
         if hasattr(core, thing_type):
-            return make_core_item(item.name, getattr(core, thing_type))
-        return make_core_item(item.name, core.Thing)
+            return make(item.name, getattr(core, thing_type))
+        return make(item.name, core.Thing)
 
     def _get_one_with_name(name):
         """Returns one dispatched object."""
@@ -112,12 +114,16 @@ def get(name=None, mode=None, priority='Object'):
             ret_list += _get_all_with_name(this_name)
         return ret_list
 
-def make_core_item(item_name, item_enhanced_class):
+def make(item_name, item_enhanced_class):
     """
     Search for the enhanced item in the classes before creating them
     This can work because all the core classes are being tracked using pntools.tracker
     This way, the dispatcher won't create new enhanced objects every time it is called
     """
+    if not hasattr(item_enhanced_class, 'all'): # class is not being tracked
+        return item_enhanced_class(item_name)
+    if item_enhanced_class.all: # if there is at least one item in the tracked list
+        item_enhanced_class.clean_tracked()
     this_item = [o for o in item_enhanced_class.all if o.name == item_name]
     if this_item:
         return this_item[0]

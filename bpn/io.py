@@ -76,7 +76,7 @@ def loadSVG(svgfile, name=None, **kwargs):
 
     s = _loadSVG(svgfile)
     col_def = s['collections'][0]
-    col = core.Collection(kwargs_names['coll_name'])()
+    col = utils.make(kwargs_names['coll_name'], core.Collection)()
 
     if kwargs['combine_curves']:
         utils.combine_curves(s['objects'], s['materials'])
