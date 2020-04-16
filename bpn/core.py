@@ -17,7 +17,6 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 from . import new, utils, trf
 
-@pn.tracker
 class Thing:
     """
     Wrapper around blender's bpy.data.*
@@ -27,7 +26,6 @@ class Thing:
         key_light = core.Thing('Key', 'Light', 'SUN', energy=2.5, angle=0.2, color=(0., 0., 0.))
     """
     def __init__(self, thing_name, thing_type, *args, **kwargs):
-        self.track(self) #pylint:disable=no-member
         if isinstance(thing_type, str):
             thing_type = utils.bpy_type(thing_type)
         if isinstance(thing_name, thing_type):
@@ -70,7 +68,6 @@ class Thing:
             print(new_name+' already present. Used '+new_name_checked)
 
 
-@pn.tracker
 class Collection(Thing):
     """Wrapper around a bpy.types.Collection thing"""
     def __init__(self, name, **kwargs):
@@ -91,7 +88,6 @@ class Collection(Thing):
     # Group transformations for objects in a collection!
 
 
-@pn.tracker
 class Object(Thing):
     """
     Wrapper around a bpy.types.Object thing
@@ -337,7 +333,7 @@ class Object(Thing):
         oldC = self.coll
         if not isinstance(coll_name, str):
             coll_name = coll_name.name
-        newC = utils.make(coll_name, Collection)
+        newC = Collection(coll_name)
         if coll_name not in [c.name for c in self().users_collection]: # link only if the object isn't in collection already
             newC().objects.link(self())
             if typ == 'move' and oldC: # if it was part of a collection
@@ -453,7 +449,6 @@ class Object(Thing):
         return utils.get(this_o.name)
 
 
-@pn.tracker
 class Mesh(Thing):
     """Wrapper around a bpy.types.Mesh object."""
     def __init__(self, name, **kwargs):
@@ -668,7 +663,6 @@ class Mesh(Thing):
             p.use_smooth = poly_smooth
 
 
-@pn.tracker
 class CompoundObject(Object):
     """
     Blender has different types of objects.
@@ -704,7 +698,6 @@ class CompoundObject(Object):
         bpy.context.view_layer.update()
 
 
-@pn.tracker
 @pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
 class MeshObject(CompoundObject):
     """
@@ -780,8 +773,8 @@ class MeshObject(CompoundObject):
     slice_z = functools.partialmethod(slice_ax, axis='z')
 
 
-@pn.tracker
 class GreasePencil(Thing):
+    """Wrapper around blender's grease pencil."""
     def __init__(self, name, **kwargs):
         super().__init__(name, 'GreasePencil', **kwargs)
         self._layer = None
@@ -845,7 +838,6 @@ class GreasePencil(Thing):
         return ret
 
 
-@pn.tracker
 @pn.PortProperties(GreasePencil, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
 class GreasePencilObject(CompoundObject):
     """

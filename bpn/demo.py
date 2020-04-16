@@ -189,8 +189,6 @@ def zoo():
     """
     Create a zoo of primitives. 
     """
-    #pylint: disable=no-member
-    core.MeshObject.track_start()
     new.sphere(obj_name='sph30', msh_name='sp30', r=0.7, u=3, v=2, coll_name='zoo')
     new.monkey(name='L', msh_name='M', coll_name='zoo')
     new.sphere(name='Sph', r=2, u=6, v=8, coll_name='zoo')
@@ -205,11 +203,9 @@ def zoo():
 
     new.polygon(name='hex', seg=6, coll_name='zoo')
 
-    for obj in core.MeshObject.all:
-        obj.translate(np.random.randint(-6, 6, 3))
-        obj.to_coll('zoo')
+    for obj in bpy.data.collections['zoo'].objects:
+        utils.get(obj.name).translate(np.random.randint(-6, 6, 3))
 
-    core.MeshObject.track_end()
 
 def spiral():
     """
