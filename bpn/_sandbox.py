@@ -8,9 +8,9 @@ pn.reload()
 env.reset()
 #-----------------
 
-grid_scale = 0.4 # 0.4 => 0.4 m in the world is 1 unit in coordinate frame
+grid_scale = 1 # 0.4 => 0.4 m in the world is 1 unit in coordinate frame
 grid_lim = 8 # how many lines on each side of an axis to show a grid?
-sine_scale = 0.15 # separate scale for the 2D plot 0.15 m = 1 unit for 2D plot (separate X and Y units??)
+sine_scale = 0.375 # separate scale for the 2D plot 0.15 m = 1 unit for 2D plot (separate X and Y units??)
 txt_size = (80, 80, 80) # size of axis titles
 line_width_wave = 8
 line_width_ptguides = 6
@@ -21,19 +21,14 @@ color_ptvector = {'ptvector': (0.6, 0.6, 0.6, 0.6)}
 color_ball = (0.8, 0.8, 0.8, 0.8)
 color_world = (0, 0, 0)
 out = 'vid'
-# text_eqn = r'$A\sin(2 \pi f t + \phi)$'
-# text_xlabel = r'$\leftarrow$\textit{Phase($\phi$)}'
-# text_ylabel = r'\textit{Frequency(f)} $\rightarrow$'
-# text_zlabel = r'\textit{Amplitude(A)} $\rightarrow$'
-text_eqn = r'\textit{Walking}'
-text_xlabel = r'$\leftarrow$\textit{?}'
-text_ylabel = r'\textit{?} $\rightarrow$'
-text_zlabel = r'\textit{?} $\rightarrow$'
-
-def background():
-    """Set up background."""
-    bpy.data.worlds[0].use_nodes = False
-    bpy.data.worlds[0].color = color_world
+text_eqn = r'$A\sin(2 \pi f t + \phi)$'
+text_xlabel = r'$\leftarrow$\textit{Phase($\phi$)}'
+text_ylabel = r'\textit{Frequency(f)} $\rightarrow$'
+text_zlabel = r'\textit{Amplitude(A)} $\rightarrow$'
+# text_eqn = r'\textit{Walking}'
+# text_xlabel = r'$\leftarrow$\textit{?}'
+# text_ylabel = r'\textit{?} $\rightarrow$'
+# text_zlabel = r'\textit{?} $\rightarrow$'
 
 def rig():
     """Set up camera and lights."""
@@ -73,28 +68,28 @@ def label_axes():
                              scale=txt_size,
                              color=pal['crd_k'], 
                              coll_name='ax')
-    h_txt['ax_k'].frame = h_txt['ax_k'].frame.transform(np.linalg.inv(trf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0))))
+    h_txt['ax_k'].frame = h_txt['ax_k'].frame.transform(trf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0)))
     h_txt['ax_j'] = new.Text(text_ylabel, 'y_label',
                              halign='left', 
                              valign='top', 
                              scale=txt_size,
                              color=pal['crd_j'], 
                              coll_name='ax')
-    h_txt['ax_j'].frame = h_txt['ax_j'].frame.transform(np.linalg.inv(trf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0))))
+    h_txt['ax_j'].frame = h_txt['ax_j'].frame.transform(trf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0)))
     h_txt['ax_i'] = new.Text(text_xlabel, 'x_label',
                              halign='right', 
                              valign='top', 
                              scale=txt_size,
                              color=pal['crd_i'], 
                              coll_name='ax')
-    h_txt['ax_i'].frame = h_txt['ax_i'].frame.transform(np.linalg.inv(trf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))))
+    h_txt['ax_i'].frame = h_txt['ax_i'].frame.transform(trf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0)))
 
     h_txt['ax_i']().location = Vector((1*grid_scale, 0, -0.02*grid_scale))
     h_txt['ax_j']().location = Vector((0, 1*grid_scale, -0.02*grid_scale))
     h_txt['ax_k']().location = Vector((0, -0.02*grid_scale, 0.5*grid_scale))
     bpy.context.view_layer.update()
 
-    h_txt['ax_k']().matrix_world = Matrix.Rotation(np.pi/3, 4, 'Z')@h_txt['ax_k']().matrix_world
+    # h_txt['ax_k']().matrix_world = Matrix.Rotation(np.pi/3, 4, 'Z')@h_txt['ax_k']().matrix_world
     return h_txt
 
 
@@ -106,7 +101,7 @@ def make_sphere():
     b = bpy.data.materials.new('ball_mat')
     b.diffuse_color = color_ball
     b.metallic = 0.7
-    sph.data().materials.append(b)
+    sph().data.materials.append(b)
     sph.show(1)
     return sph
 
@@ -143,6 +138,7 @@ def draw_wave():
 
 def sin_eqn():
     """Equation for sine wave."""
+    print(color_wave)
     txt_eqn = new.Text(
         text_eqn, 'plot_title',
         halign='left', 
@@ -165,7 +161,7 @@ def sin_eqn():
     #     mtrl.diffuse_color = pal['crd_i']
 
     cam_frame = trf.CoordFrame(c.camera().matrix_world)
-    txt_eqn.frame = txt_eqn.frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k)))
+    txt_eqn.frame = txt_eqn.frame.transform(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))
     txt_eqn().location = w().location + Vector((0.4*grid_scale, -0.4*grid_scale, 0.8*grid_scale))
     return txt_eqn
 
@@ -326,12 +322,12 @@ def make_animation(func_list, save=None, name=None):
 def clear_animation():
     """Clear animation data."""
     env.clear('actions')
-    for g in (axg.data(), w.data()):
+    for g in (axg().data, w().data):
         for l in g.layers:
             l.clear()
 
 
-background()
+env.background(color_world)
 c = rig()
 draw_axes()
 axg = new.pencil('guides', coll_name='ax', layer_name='main')
@@ -341,7 +337,7 @@ s_all = [make_sphere()]
 w = draw_wave()
 txt['eqn'] = sin_eqn()
 
-
+make_animation(sweep_freq)
 # make_animation(sweep_freq, save='vid')
 # clear_animation()
 # make_animation(sweep_amp, save='vid')

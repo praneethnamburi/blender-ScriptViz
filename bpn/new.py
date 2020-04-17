@@ -201,10 +201,7 @@ def pencil(name=None, **kwargs):
     coll_name = names['coll_name']
     layer_name = names['layer_name']
 
-    s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name))
-    s.layer = layer_name
-
-    # set up the colors for grease_pencil drawing
+    # Create palette in the blender file
     kwargs, _ = pn.clean_kwargs(kwargs, {
         'palette_list': ['MATLAB', 'blender_ax'], 
         'palette_prefix': ['MATLAB_', ''], 
@@ -214,7 +211,13 @@ def pencil(name=None, **kwargs):
     for pal_name, pal_pre, pal_alpha in zip(kwargs['palette_list'], kwargs['palette_prefix'], kwargs['palette_alpha']):
         this_palette = {**this_palette, **utils.color_palette(pal_name, pal_pre, pal_alpha)} # material library for this grease pencil
     for mtrl_name, rgba in this_palette.items(): # create material library
-        s.new_color(mtrl_name, rgba)
+        utils.new_gp_color(mtrl_name, rgba) # will only create if it doesn't exist
+
+    s = core.GreasePencilObject(obj_name, core.GreasePencil(gp_name))
+    s.layer = layer_name
+    # assign colors to this pencil's material slots
+    for color in this_palette:
+        s.color = color
 
     s.color = 0
     s.to_coll(coll_name)
@@ -486,7 +489,7 @@ class Text(core.Object):
         orig_dir = os.getcwd()
         os.chdir(utils.PATH['cache'])
         write_tex_file(tmp_name + '.tex')
-        os.system("pdflatex " + tmp_name + '.tex')
+        os.system("pdflatex " + tmp_name + '.tex -quiet')
         os.system("pdftocairo -svg " + tmp_name + '.pdf ' + tmp_name + '.svg')
         os.chdir(orig_dir)
 

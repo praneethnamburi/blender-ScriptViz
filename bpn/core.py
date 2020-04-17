@@ -868,10 +868,6 @@ class GreasePencilObject(CompoundObject):
     """
     This is a core.Object. Automatically calls the appropriate methods
     and properties from Object and Greasepencil classes.
-    For example:
-        new.sphere('sph')
-        s = MeshObject('sph')
-        s.v -> automatically returns vertices from them mesh
     """
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
@@ -903,7 +899,7 @@ class GreasePencilObject(CompoundObject):
         tuple - 4-element tuple : select the closest color
         dict - create new material
             one key, value pair {name: 4-tuple rgba}
-            if material with that name exists, create a new name
+            if material with that name exists, print a warning and DO NOTHING
         """
         if isinstance(this_color, int):
             assert this_color < len(self().material_slots)
@@ -912,32 +908,22 @@ class GreasePencilObject(CompoundObject):
             assert len(this_color) == 1 # supply only one color at a time?'
             key = list(this_color.keys())[0] # key is the name
             val = list(this_color.values())[0]
-            # pick a new name if a material with current name exists
-            this_color[utils.new_name(key, [m.name for m in bpy.data.materials])] = this_color.pop(key)
-            assert len(val) == 4
-            for v in val:
-                assert 0.0 <= v <= 1.0
-            self.new_color(key, val)
-            color_name = key # convert it into a number 
+            if key in [m.name for m in bpy.data.materials]:
+                print('Color '+key+' already exists in the palette!')
+            else: # make a new color
+                assert len(val) == 4
+                for v in val:
+                    assert 0.0 <= v <= 1.0
+                utils.new_gp_color(key, val)
+            color_name = key
         if isinstance(this_color, str):
-            assert this_color in [m.name for m in self().material_slots]
             color_name = this_color
+        
+        # add color to the material slot if it does not exist
+        if color_name not in [m.name for m in self().data.materials if m is not None]:
+            self().data.materials.append(bpy.data.materials[color_name])
 
         self._color = color_name
-
-    def new_color(self, mtrl_name, rgba):
-        """
-        Add a new color to the current object's material slot.
-        Create the material if it doesn't exist.
-        Update the rgba if material with mtrl_name already exists.
-        Add it to the material slot of the current object.
-        Returns:
-            Material object (bpy.data.materials)
-        """
-        mtrl = utils.new_gp_color(mtrl_name, rgba)
-        if mtrl_name not in [m.name for m in self().data.materials if m is not None]:
-            self().data.materials.append(mtrl)
-        return mtrl
 
     def stroke(self, ptcloud, **kwargs):
         """
@@ -1014,6 +1000,7 @@ class Curve(Thing):
 
 @pn.PortProperties(Curve, 'data') # CurveObject (or CompoundObject) MUST define data as an attribute or property
 class CurveObject(CompoundObject):
+    """Wrapper for curve object"""
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'CURVE', Curve, *args, **kwargs)
  
