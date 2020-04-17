@@ -32,7 +32,7 @@ text_zlabel = r'\textit{Amplitude(A)} $\rightarrow$'
 
 def rig():
     """Set up camera and lights."""
-    cr = resources.CircularRig()
+    cr = new.CircularRig()
     cr.center = np.array((0, 0, 0.5))*grid_scale
     cr.target = np.array((0, 0, 1))*grid_scale
     cr.camera.theta = np.pi/6

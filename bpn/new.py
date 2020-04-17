@@ -13,7 +13,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import vef, utils, core, turtle, trf, io
+from . import vef, utils, core, turtle, trf, io, env
 
 def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     """
@@ -28,6 +28,8 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     s.to_coll(coll_name)
     return s
 
+
+# Compound object creation
 def mesh(name=None, **kwargs): # formerly bpn.Msh
     """
     Create a mesh object from various types of input
@@ -223,105 +225,6 @@ def pencil(name=None, **kwargs):
     s.to_coll(coll_name)
     return s
 
-
-# easy object creation
-def easycreate(mshfunc, name=None, **kwargs):
-    """
-    **kwargs : u=16, v=8, r=0.5 for uv sphere
-    **kwargs : size=0.5 for uv cube
-
-    Warning: Avoid empty creates such as new.sphere()!
-    """
-    names, kwargs = utils.clean_names(name, kwargs, {'priority_obj':'new', 'priority_msh':'current'})
-
-    # input control
-    if str(mshfunc) == str(bmesh.ops.create_uvsphere):
-        kwargs_def = {'u_segments':16, 'v_segments':8, 'diameter':0.5}
-        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], 'diameter': ['r', 'diameter']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-
-    if str(mshfunc) == str(bmesh.ops.create_cube):
-        kwargs_def = {'size':1}
-        kwargs_alias = {'size': ['size', 'sz', 's', 'r']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-    
-    if str(mshfunc) == str(bmesh.ops.create_cone):
-        kwargs_def = {'segments':12, 'diameter1':2, 'diameter2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
-        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-
-    if str(mshfunc) == str(bmesh.ops.create_circle):
-        kwargs_def = {'segments':32, 'radius':1, 'cap_ends':False, 'cap_tris':False}
-        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'radius':['radius', 'r'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-
-    if str(mshfunc) == str(bmesh.ops.create_monkey):
-        kwargs = {}
-
-    if names['msh_name'] in [m.name for m in bpy.data.meshes]:
-        msh = bpy.data.meshes[names['msh_name']]
-    else:
-        msh = bpy.data.meshes.new(names['msh_name'])
-        bm = bmesh.new()
-        mshfunc(bm, **kwargs)
-        bm.to_mesh(msh)
-        bm.free()
-        msh.update()
-    return mesh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
-
-sphere = partial(easycreate, bmesh.ops.create_uvsphere)
-monkey = partial(easycreate, bmesh.ops.create_monkey)
-cube = partial(easycreate, bmesh.ops.create_cube)
-cone = partial(easycreate, bmesh.ops.create_cone)
-polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 'r2':1.8})
-
-def ngon(name=None, **kwargs):
-    """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
-    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':True}
-    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
-    kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-    
-    v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
-    if not kwargs_fun['fill']:
-        f = []
-
-    return mesh(name, v=v, e=e, f=f, **kwargs_msh)
-
-plane = partial(ngon, **{'n':4, 'r':2/np.sqrt(2), 'theta_offset_deg':45})
-
-# No faces, just edges - redundant now, just use ngon
-circle = partial(easycreate, bmesh.ops.create_circle)
-
-# other primitives:
-# cylinder, grid, ico_sphere, torus
-
-def torus(name=None, **kwargs):
-    """
-    Make a torus in the x-y plane
-    torus('mytorus', u=6, v=32, r=1, t=0.3)
-        u = number of subdivisions in a saggital section (small circle)
-        v = number of subdivisions in the horizontal section (big circle)
-        r = radius of the doughnut
-        t = thickness (radius)
-        th = degrees to rotate the small circle
-    """
-    names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
-
-    kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':'auto'}
-    kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}
-    kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
-    
-    a = turtle.Draw(**names)
-    start = a.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
-    bmesh.ops.rotate(a.bm, verts=start.v, cent=(0, 0, 0), matrix=mathutils.Matrix.Rotation(np.radians(90.0), 3, 'Y'))
-    for vert in start.v:
-        vert.co += mathutils.Vector((0., -kwargs['r_v'], 0.))
-    end = a.spin(angle=2*np.pi-2*np.pi/kwargs['n_v'], steps=kwargs['n_v']-1, axis='z', cent=(0., 0., 0.))
-    a.join(start.e + end.e)
-    tor = +a
-    return tor
-
-# bezier curves
 def bezier_circle(name=None, **kwargs):
     """
     Bezier circle of radius r.
@@ -366,7 +269,92 @@ def bezier_circle(name=None, **kwargs):
     return path_obj
 
 
-# convenience 
+# Primitives
+def easycreate(mshfunc, name=None, **kwargs):
+    """
+    **kwargs : u=16, v=8, r=0.5 for uv sphere
+    **kwargs : size=0.5 for uv cube
+
+    Warning: Avoid empty creates such as new.sphere()!
+    """
+    names, kwargs = utils.clean_names(name, kwargs, {'priority_obj':'new', 'priority_msh':'current'})
+
+    # input control
+    if str(mshfunc) == str(bmesh.ops.create_uvsphere):
+        kwargs_def = {'u_segments':16, 'v_segments':8, 'diameter':0.5}
+        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], 'diameter': ['r', 'diameter']}
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+
+    if str(mshfunc) == str(bmesh.ops.create_cube):
+        kwargs_def = {'size':1}
+        kwargs_alias = {'size': ['size', 'sz', 's', 'r']}
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    
+    if str(mshfunc) == str(bmesh.ops.create_cone):
+        kwargs_def = {'segments':12, 'diameter1':2, 'diameter2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
+        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
+        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+
+    if str(mshfunc) == str(bmesh.ops.create_monkey):
+        kwargs = {}
+
+    if names['msh_name'] in [m.name for m in bpy.data.meshes]:
+        msh = bpy.data.meshes[names['msh_name']]
+    else:
+        msh = bpy.data.meshes.new(names['msh_name'])
+        bm = bmesh.new()
+        mshfunc(bm, **kwargs)
+        bm.to_mesh(msh)
+        bm.free()
+        msh.update()
+    return mesh(msh_name=msh.name, obj_name=names['obj_name'], coll_name=names['coll_name'], pargs=kwargs)
+
+sphere = partial(easycreate, bmesh.ops.create_uvsphere)
+monkey = partial(easycreate, bmesh.ops.create_monkey)
+cube = partial(easycreate, bmesh.ops.create_cube)
+cone = partial(easycreate, bmesh.ops.create_cone)
+polygon = partial(cone, **{'d':0, 'cap_ends':False, 'cap_tris':False, 'r1':2.2, 'r2':1.8})
+
+def ngon(name=None, **kwargs):
+    """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
+    kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':True}
+    kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
+    kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    
+    v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
+    if not kwargs_fun['fill']:
+        f = []
+
+    return mesh(name, v=v, e=e, f=f, **kwargs_msh)
+
+plane = partial(ngon, **{'n':4, 'r':2/np.sqrt(2), 'theta_offset_deg':45})
+
+def torus(name=None, **kwargs):
+    """
+    Make a torus in the x-y plane
+    torus('mytorus', u=6, v=32, r=1, t=0.3)
+        u = number of subdivisions in a saggital section (small circle)
+        v = number of subdivisions in the horizontal section (big circle)
+        r = radius of the doughnut
+        t = thickness (radius)
+        th = degrees to rotate the small circle
+    """
+    names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'torus', 'obj_name':'torus', 'priority_msh':'current', 'priority_obj':'new'})
+
+    kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':'auto'}
+    kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}
+    kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    
+    a = turtle.Draw(**names)
+    start = a.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
+    bmesh.ops.rotate(a.bm, verts=start.v, cent=(0, 0, 0), matrix=mathutils.Matrix.Rotation(np.radians(90.0), 3, 'Y'))
+    for vert in start.v:
+        vert.co += mathutils.Vector((0., -kwargs['r_v'], 0.))
+    end = a.spin(angle=2*np.pi-2*np.pi/kwargs['n_v'], steps=kwargs['n_v']-1, axis='z', cent=(0., 0., 0.))
+    a.join(start.e + end.e)
+    tor = +a
+    return tor
+
 def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
     """
     Makes a spiral.
@@ -379,6 +367,10 @@ def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
     z = np.zeros_like(θ)
 
     return mesh(name, x=x, y=y, z=z, **kwargs)
+
+# other primitives:
+# cylinder, grid, ico_sphere
+
 
 # Enhanced meshes
 class Tube(core.MeshObject):
@@ -447,6 +439,7 @@ class Tube(core.MeshObject):
             for i in range(np.shape(new_normal_dir)[0]):
                 self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
 
+
 class Text(core.Object):
     """
     Convert a LaTeX expression into an svg and import that into blender.
@@ -509,3 +502,181 @@ class Text(core.Object):
             self.base_obj_name = emp.name
         
         super().__init__(self.base_obj_name)
+
+
+class ObjectOnCircle(core.Object):
+    """
+    Make an object from a 'thing' e.g. light, camera
+    Put the object on a container, and make the object track a target
+    :param this_thing: (core.thing, bpy.types.Camera, bpy.types.Light)
+    :param coll_name: Collection name to put the thing
+    :param r: (float) radius of the circle
+    :param size: (float) overall 'size' of your rig
+    :param targ: (core.Object, bpy.types.Object)
+    """
+    def __init__(self, this_thing, coll_name, path, size, targ=None):
+        super().__init__(this_thing.name.lower(), this_thing)
+        self.to_coll(coll_name)
+        self.add_container(size=size)
+        if isinstance(path, (int, float)):
+            self.path = bezier_circle(r=path, curve_name=this_thing.name+'Path', obj_name=this_thing.name.lower()+'_path', coll_name=coll_name)
+        if isinstance(path, core.Object):
+            self.path = path
+        self.container.follow_path(self.path)
+        if targ is not None:
+            self.track_to(targ)
+    
+    @property
+    def theta(self):
+        """Angle of the container object in the XY plane."""
+        return self.offset2theta(self.container().constraints[0].offset_factor)
+    
+    @theta.setter
+    def theta(self, new_theta):
+        self.container().constraints[0].offset_factor = self.theta2offset(new_theta%(2*np.pi))
+        bpy.context.view_layer.update()
+
+    @property
+    def center(self):
+        """Location of the circular path object."""
+        return self.path.loc
+
+    @center.setter
+    def center(self, new_center):
+        self.path.loc = new_center
+    
+    @staticmethod
+    def theta2offset(theta):
+        """theta in radians"""
+        return (0.75 - theta/(2*np.pi))%1.0
+    
+    @staticmethod
+    def offset2theta(offset):
+        """offset sets relative rig locations"""
+        assert 0 <= offset <= 1
+        return (3*np.pi/2 - 2*np.pi*offset)%(2*np.pi)
+
+
+# Rigs
+class CircularRig:
+    """
+    Easily control a camera and lights rig.
+    Set the positions of the camera and lights, and animate.
+
+    Use these properties for initializing the rig:
+        theta - angle of the camera in the XY plane (in radians)
+        center - center of the camera path (defined as the center of the rig)
+
+    Example:
+        c = CircularRig()
+        c.theta = -np.pi/2
+    """
+    def __init__(self, rig_name='CircularRig', size=0.15):
+        assert not env.Props().get(rig_name)    
+        self.rig_name = rig_name
+        self.size = size
+        
+        self.targ = empty('target', 'SPHERE', size=0.25, coll_name=self.rig_name)
+        self.targ.scl = size
+
+        cam = core.Thing('Camera', 'Camera')
+        self.camera = ObjectOnCircle(cam, self.rig_name, 2, self.size, self.targ)
+        self.camera.scl = size
+
+        key_light = core.Thing('Key', 'Light', 'SUN', energy=2.5, angle=0.2, color=(1., 1., 1.))
+        self.key_light = ObjectOnCircle(key_light, self.rig_name, 2.5, self.size, self.targ)
+
+        fill_light = core.Thing('Fill', 'Light', 'SUN', energy=0.2, angle=0.2, color=(1., 1., 1.))
+        self.fill_light = ObjectOnCircle(fill_light, self.rig_name, 3, self.size, self.targ)
+
+        back_light = core.Thing('Back', 'Light', 'SPOT', energy=15, spot_size=np.pi/6, spot_blend=0.15, shadow_soft_size=0.1, color=(1., 1., 1.))
+        self.back_light = ObjectOnCircle(back_light, self.rig_name, 5, self.size, self.targ)
+
+        self.key_light.theta = self.camera.theta - np.pi/4
+        self.fill_light.theta = self.camera.theta + np.pi/3
+        self.back_light.theta = self.camera.theta + 5*np.pi/6
+
+        self.key_light.center = (0, 0, 0.15)
+        self.fill_light.center = (0, 0, 0.15)
+        self.back_light.center = (0, 0, 1)
+
+    @property
+    def theta(self):
+        """Camera angle in the XY plane."""
+        return self.camera.theta
+
+    @theta.setter
+    def theta(self, new_theta):
+        self.key_light.theta = new_theta + self.key_light.theta - self.camera.theta
+        self.fill_light.theta = new_theta + self.fill_light.theta - self.camera.theta
+        self.back_light.theta = new_theta + self.back_light.theta - self.camera.theta
+        self.camera.theta = new_theta
+        
+    @property
+    def center(self):
+        """Center of the rig. Defined as the center of the camera path."""
+        return self.camera.center
+
+    @center.setter
+    def center(self, new_center):
+        new_center = np.array(new_center)
+        assert len(new_center) == 3
+        self.key_light.center = new_center + self.key_light.center - self.camera.center
+        self.fill_light.center = new_center + self.fill_light.center - self.camera.center
+        self.back_light.center = new_center + self.back_light.center - self.camera.center
+        self.camera.center = new_center
+
+    @property
+    def target(self):
+        """Location of the object that the camera and lights point to."""
+        return np.array(self.targ.loc)
+
+    @target.setter
+    def target(self, new_target):
+        new_target = np.array(new_target)
+        assert len(new_target) == 3
+        self.targ.loc = new_target
+
+    @property
+    def fov(self):
+        """Horizontal field of view of the camera."""
+        return 2*np.arctan(0.5*self.camera().data.sensor_width/self.camera().data.lens)*180/np.pi
+
+    @fov.setter
+    def fov(self, hor_angle_deg):
+        self.camera().data.lens = 0.5*self.camera().data.sensor_width/np.tan(hor_angle_deg*np.pi/360)
+        bpy.context.view_layer.update()
+
+    def scale(self, scl_factor=1):
+        """Scale the rig by scale factor in (int) scl_factor."""
+        self.camera.path.scale(scl_factor)
+        self.key_light.path.scale(scl_factor)
+        self.fill_light.path.scale(scl_factor)
+        self.back_light.path.scale(scl_factor)
+        bpy.context.view_layer.update()
+
+    def key(self, frame=None, targ='lens', value=None):
+        """Camera and target keyframe insertion."""
+        if frame is None:
+            frame = bpy.context.scene.frame_current
+        else:
+            assert isinstance(frame, int)
+        if value is None:
+            value = self.camera().data.lens if targ in ('lens', 'fov') else value 
+            value = self.target if targ == 'target' else value
+            value = self.theta if targ == 'camera_angle' else value
+
+        if targ in ('lens', 'fov'):
+            if targ == 'lens':
+                self.camera().data.lens = value
+            else:
+                self.fov = value
+            self.camera().data.keyframe_insert(data_path='lens', frame=frame)
+        
+        if targ == 'target':
+            self.target = value
+            self.targ().keyframe_insert(data_path='location', frame=frame)
+        
+        if targ == 'camera_angle':
+            self.camera.theta = value
+            self.camera.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
