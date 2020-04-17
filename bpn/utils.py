@@ -246,13 +246,11 @@ def bpy_type(type_name):
     type_name = exc.get(type_name, type_name)
     return getattr(bpy.types, type_name) # bpy.types.Object
 
-def bpy_data_coll(this_type):
+def bpy_coll_name(this_type):
     """
-    bpy.types.Object -> bpy.data.objects
-    'Object' -> bpy.data.objects
-
-    Useful:
-        [k for k in dir(bpy.data) if hasattr(getattr(bpy.data, k), 'new')]
+    bpy.types.Object -> 'objects'
+    'Object' -> 'objects'
+    Useful for going from bpy.types.(Something) to bpy.data.(something)
     """
     if isinstance(this_type, str):
         this_type = bpy_type(this_type)
@@ -261,7 +259,7 @@ def bpy_data_coll(this_type):
         thing_coll_name = 'grease_pencils'
     if thing_coll_name == 'nodegroups':
         thing_coll_name = 'node_groups'
-    return getattr(bpy.data, thing_coll_name)
+    return thing_coll_name
 
 
 # color management

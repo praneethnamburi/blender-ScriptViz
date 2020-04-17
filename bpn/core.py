@@ -37,7 +37,6 @@ class Thing:
     
         self.blend_name = thing_name
         self.blend_type = thing_type # bpy.types.Object
-        self.blend_coll = utils.bpy_data_coll(thing_type) # bpy.data.objects, bpy.data.meshes
 
         # if it is not in the blend_coll, create a new one
         if thing_name not in [t.name for t in self.blend_coll]:
@@ -45,6 +44,11 @@ class Thing:
         
         for key, val in kwargs.items():
             setattr(self(), key, val)
+
+    @property
+    def blend_coll(self): # bpy.data.objects, bpy.data.meshes
+        """Get the blender collection on demand."""
+        return getattr(bpy.data, utils.bpy_coll_name(self.blend_type))
 
     def __call__(self):
         """Return the blender object."""
