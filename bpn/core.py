@@ -707,7 +707,11 @@ class CompoundObject(Object):
             self._data = args[0]
         else:
             self._data = data_class(self().data)
-        
+    
+    def __neg__(self):
+        super().__neg__()
+        self.data.__neg__()
+
     @property
     def data(self):
         """Mesh data. Initalized at the time of object creation."""

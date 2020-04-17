@@ -558,7 +558,7 @@ class ObjectOnCircle(core.Object):
 
 
 # Rigs
-class CircularRig:
+class CircularRig(core.Collection):
     """
     Easily control a camera and lights rig.
     Set the positions of the camera and lights, and animate.
@@ -572,7 +572,8 @@ class CircularRig:
         c.theta = -np.pi/2
     """
     def __init__(self, rig_name='CircularRig', size=0.15):
-        assert not env.Props().get(rig_name)    
+        assert not env.Props().get(rig_name)
+        super().__init__(rig_name)  
         self.rig_name = rig_name
         self.size = size
         
@@ -599,6 +600,11 @@ class CircularRig:
         self.key_light.center = (0, 0, 0.15)
         self.fill_light.center = (0, 0, 0.15)
         self.back_light.center = (0, 0, 1)
+
+    def __neg__(self): # convenient destructor for the rig
+        for o in self[:]:
+            o.__neg__()
+        super().__neg__()
 
     @property
     def theta(self):
