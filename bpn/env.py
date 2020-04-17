@@ -161,7 +161,7 @@ class ReportDelta:
     deltaReport = demo_animateDNA()
     OR
     when using from a terminal, or from within a script, use
-    deltaReport = bpn.ReportDeltaData(bpn.demo_animateDNA)()
+    deltaReport = env.ReportDelta(demo.DNA)()
 
     Primarily created for use with loadSTL, but works well with any function that changes the scene.
     To capture the state of blender environment, and compare between states, use the Props class.
