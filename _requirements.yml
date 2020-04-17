@@ -1,5 +1,6 @@
 name: blender2830
 channels:
+  - projectchrono
   - anaconda
   - conda-forge
   - brian-team
@@ -82,6 +83,7 @@ dependencies:
   - prompt-toolkit=3.0.4=py_0
   - prompt_toolkit=3.0.4=0
   - ptvsd=4.3.2=py37hfa6e2cd_1
+  - pychrono=5.0.0=py37_9
   - pycparser=2.20=py_0
   - pygments=2.6.1=py_0
   - pyopenssl=19.1.0=py37_0
