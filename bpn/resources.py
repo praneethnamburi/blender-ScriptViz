@@ -4,11 +4,9 @@ e.g. skeletal system.
 """
 import os
 
-import numpy as np
-
 import bpy #pylint: disable=import-error
 
-from . import new, utils, core, env
+from . import utils
 
 SKELETON = "D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem_originAtCenter_xForward.blend"
 
