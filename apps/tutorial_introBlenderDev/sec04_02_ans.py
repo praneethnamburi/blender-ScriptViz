@@ -1,8 +1,8 @@
-import bpn # pylint: disable=unused-import
-from bpn import Props
+from bpn_init import * #pylint: disable=wildcard-import, unused-wildcard-import
 
-bpy = bpn.bpy
-bpn.env.reset()
+env.reset()
+
+Props = env.Props
 
 # Instantiating a class using parenthesis
 print(Props())
@@ -12,7 +12,7 @@ print(Props()())
 
 # More magic methods. 
 a = Props()
-bpn.new.cube()
+new.cube()
 b = Props()
 print((b-a)())
 

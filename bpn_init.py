@@ -7,6 +7,7 @@ Usage:
     pn.reload() # useful when developing the module alongside the app
     env.reset() # if you want to delete objects, this is useful!
 """
+#pylint:disable=unused-import
 # Imports from the standard library
 import os
 import sys
@@ -30,14 +31,9 @@ import bpn
 # modules
 from bpn import new, env, demo, utils, turtle, vef, trf, io, core, resources
 # classes
-from bpn.env import Props, ReportDelta
-from bpn.turtle import Draw
-from bpn.trf import CoordFrame as Frm
-from bpn.trf import PointCloud as PC
-from bpn.resources import CircularRig
+from bpn.new import CircularRig
 # functions
-from bpn.io import readattr, animate_simple
-from bpn.utils import get, enhance
+from bpn.utils import get
 
 # Convenience
 Matrix = mathutils.Matrix

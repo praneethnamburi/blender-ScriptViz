@@ -8,6 +8,8 @@ pn.reload()
 env.reset()
 #-----------------
 
+PC = trf.PointCloud
+
 def get_traj(xlname='armReach_ineffTrial'):
     fname = 'D:\\Workspace\\blenderPython\\apps\\animation\\'+xlname+'.xlsx'
     sheet_name = 'animation'
@@ -20,7 +22,7 @@ def get_traj(xlname='armReach_ineffTrial'):
     norm = lambda n: np.sqrt(np.sum(n**2, axis=1, keepdims=True))
     hat = lambda n: n/norm(n)
     
-    anatomy_frame = Frm(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))
+    anatomy_frame = trf.CoordFrame(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))
     pos = {ob: PC(loc(ob), np.eye(4)).in_frame(anatomy_frame).co for ob in pt_names}
     origin = pos['RH_AcromioClavicular']
     k_hat = hat((pos['RH_ElbowLat'] + pos['RH_ElbowMed'])/2 - origin)
@@ -39,7 +41,7 @@ h.update_normals()
 he = h.copy('H_effcopy')
 hi = h.copy('H_ineffcopy')
 h().hide_set(True)
-c = resources.CircularRig()
+c = new.CircularRig()
 c.center = h.frame.origin
 pos_eff, traj_eff = get_traj('armReach_effTrial')
 pos_ineff, traj_ineff = get_traj('armReach_ineffTrial')
