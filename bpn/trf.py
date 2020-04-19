@@ -557,7 +557,7 @@ class Quat:
     """
     Unit quaternions for 3D rotation.
     This class will force inputs to be unit vectors.
-    q = cos(angle/2) + sin(angle/2)*unit_normal
+    q = cos(angle/2) + sin(angle/2)*unit_normal (normal in world frame)
     Example:
         q = Quat([1, 2, 3, 4]) # will be nomalized!
         q[:] will return the normalized quaternion
@@ -565,6 +565,8 @@ class Quat:
         q.normal (normal along the rotation)
         q2*q -> multiply two quaternions (two successive transforms: q, followed by q2)
         q*v -> apply rotation to a 3-element vector v
+        q*coord_frame -> transform the frame in world coordinates
+        q*point_cloud -> transform the coordinates of the point cloud in the frame of the point cloud
     """
     def __init__(self, vec, theta=None):
         """
