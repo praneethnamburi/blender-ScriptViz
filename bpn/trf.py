@@ -50,8 +50,6 @@ import numpy as np
 from numpy.linalg.linalg import inv, norm
 from sklearn.decomposition import PCA
 
-import pntools as pn
-from . import new, utils
 
 class CoordFrame:
     """
@@ -72,11 +70,6 @@ class CoordFrame:
     """
     def __init__(self, m=None, **kwargs):
         self._m = m4(m, **kwargs)
-        if 'name' in kwargs:
-            self.name = kwargs['name']
-        else:
-            self.name = None
-        self.gp = None # store reference to greasepencil object after using show.
 
     @property
     def m(self):
@@ -86,8 +79,6 @@ class CoordFrame:
     @m.setter
     def m(self, new_m):
         self._m = new_m
-        if self.gp is not None:
-            self.show()
 
     @property
     def origin(self):
@@ -155,42 +146,6 @@ class CoordFrame:
         """Return point locations in the world frame."""
         coord_world = apply_matrix(self.m, coord_local)
         return coord_world
-    
-    def show(self, name=None, **kwargs):
-        """
-        Display the coordinate frame.
-        Create one if it does not exist.
-        Update if it exists.
-        """
-        names, kwargs = utils.clean_names(name, kwargs, {
-            'gp_name': 'Frame',
-            'obj_name': 'CoordFrame',
-            'coll_name': 'CoordFrames',
-            'layer_name': 'crd',
-            'priority_obj': 'new',
-            'priority_gp': 'new'
-            }, 'gp')
-        kwargs, _ = pn.clean_kwargs(kwargs, {
-            'palette_list': ['blender_ax'], 
-            'palette_prefix': [''], 
-            'palette_alpha': [0.8],
-            'line_width': 80,
-            'scale': 1
-            })
-        pcf = CoordFrame(self.m, unit_vectors=True).as_points().transform(scaletf(kwargs['scale']), self.m)
-        if self.gp is not None: # update
-            for cnt in (0, 1, 2):
-                this_stroke = [stroke for key, stroke in self.gp.strokes.items() if 'stroke{:03d}'.format(cnt) in key][0]
-                this_stroke.points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
-            self.gp().update_tag()
-        else:
-            # create
-            self.gp = new.pencil(name, **{**names, **kwargs})
-            self.name = names['obj_name']
-            self.gp.stroke(PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=kwargs['line_width']*kwargs['scale'], name='crd_i')
-            self.gp.stroke(PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=kwargs['line_width']*kwargs['scale'], name='crd_j')
-            self.gp.stroke(PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=kwargs['line_width']*kwargs['scale'], name='crd_k')
-        return self.gp
     
     def __repr__(self):
         exponent = np.min((np.round(-np.log10(np.max(np.abs(self.m[:-1, :])))) + 3, 6))
@@ -652,4 +607,5 @@ class Quat:
         v = np.array(other) # if list or tuple
         α = self.angle
         u = self.normal
-        return (v - u*np.dot(u, v))*np.cos(α) + np.cross(u, v)*np.sin(α) + u*np.dot(u, v)
+        udp = u*np.array([np.dot(v, u)]).T
+        return (v - udp)*np.cos(α) + np.cross(u, v)*np.sin(α) + udp

@@ -123,6 +123,7 @@ class Object(Thing):
     """
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'Object', *args, **kwargs)
+        self._frame_gp = None # grease pencil object that displays the frame
         self.frame_orig = self.frame
 
         self.container = self().parent.name if self().parent else None
@@ -147,6 +148,8 @@ class Object(Thing):
         m = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
         self().matrix_world = mathutils.Matrix(m)
         bpy.context.view_layer.update()
+        if self._frame_gp is not None:
+            self.show_frame()
 
     def frame_reset(self):
         """Reset matrix_world to what it was when created."""
@@ -164,6 +167,44 @@ class Object(Thing):
         tfmat = trf.m4(trf.normal2tfmat(new_normal))
         self.frame = self.frame_orig.transform(tfmat)
         bpy.context.view_layer.update()
+        if self._frame_gp is not None:
+            self.show_frame()
+
+    def show_frame(self, name=None, **kwargs):
+        """
+        Display the coordinate frame.
+        Create one if it does not exist.
+        Update if it exists.
+        """
+        names, kwargs = utils.clean_names(name, kwargs, {
+            'gp_name': 'Frame',
+            'obj_name': 'CoordFrame',
+            'coll_name': 'CoordFrames',
+            'layer_name': 'crd',
+            'priority_obj': 'new',
+            'priority_gp': 'new'
+            }, 'gp')
+        kwargs, _ = pn.clean_kwargs(kwargs, {
+            'palette_list': ['blender_ax'], 
+            'palette_prefix': [''], 
+            'palette_alpha': [0.8],
+            'line_width': 80,
+            'scale': 1
+            })
+        pcf = trf.CoordFrame(self.frame.m, unit_vectors=True).as_points().transform(trf.scaletf(kwargs['scale']), self.frame.m)
+        if self._frame_gp is not None: # update
+            for cnt in (0, 1, 2):
+                this_stroke = [stroke for key, stroke in self._frame_gp.strokes.items() if 'stroke{:03d}'.format(cnt) in key][0]
+                this_stroke.points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
+            self._frame_gp().update_tag()
+        else:
+            # create
+            self._frame_gp = new.pencil(name, **{**names, **kwargs})
+            self._frame_gp.name = names['obj_name']
+            self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=kwargs['line_width']*kwargs['scale'], name='crd_i')
+            self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=kwargs['line_width']*kwargs['scale'], name='crd_j')
+            self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=kwargs['line_width']*kwargs['scale'], name='crd_k')
+        return self._frame_gp
 
     # transformations
     @property
@@ -791,7 +832,7 @@ class MeshObject(CompoundObject):
         v = self.data.v
         if slice_dir == 'neg':
             v[v[:, axis] < 0, axis] = 0
-        else:
+        else: 
             v[v[:, axis] > 0, axis] = 0
         self.data.v = v
 
