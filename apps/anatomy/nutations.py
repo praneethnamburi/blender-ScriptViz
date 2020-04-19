@@ -21,7 +21,7 @@ def locRotKeyFrame(obj_name, frameNum=1):
     bpy.data.objects[obj_name].keyframe_insert(data_path="location", frame=frameNum)
     bpy.data.objects[obj_name].keyframe_insert(data_path="rotation_euler", frame=frameNum)
 
-def initBones():
+def init_bones():
     """
     Run this code once after importing the skeletal system from ultimate human anatomy file.
     I changed the rotation and the scale manually so the units make sense, and then ran this script
@@ -33,29 +33,31 @@ def initBones():
             locRotKeyFrame(obj.name, FRAME_INRIGHT)
             locRotKeyFrame(obj.name, FRAME_OUTRIGHT)
 
-# Rotate the skeleton by 90 degrees around Z
-tfmat = np.array(Matrix.Rotation(np.pi/2, 4, 'Z'))
-tfmat2 = np.linalg.inv(tfmat)
-for this_obj in bpy.data.objects:
-    if this_obj.type == 'MESH':
-        o = get(this_obj.name)
-        o.frame = o.frame.transform(tfmat)
-        o.frame = o.frame.transform(tfmat2, o.frame)
-        o.pts = o.pts.transform(tfmat)
-        # o.pts = o.pts.transform(tfmat, np.eye(4))
-        # o.apply_matrix()
-        # setOriginToCenter(this_obj.name)
+def rotate_skeleton():
+    """Rotate the skeleton by 90 degrees around Z"""
+    tfmat = np.array(Matrix.Rotation(np.pi/2, 4, 'Z'))
+    tfmat2 = np.linalg.inv(tfmat)
+    for this_obj in bpy.data.objects:
+        if this_obj.type == 'MESH':
+            o = get(this_obj.name)
+            o.frame = o.frame.transform(tfmat)
+            o.frame = o.frame.transform(tfmat2, o.frame)
+            o.pts = o.pts.transform(tfmat)
+            # o.pts = o.pts.transform(tfmat, np.eye(4))
+            # o.apply_matrix()
+            # setOriginToCenter(this_obj.name)
 
-# reframe bones in PCA space of each bone
-arm_bone_names = [b.name for b in list(Props().get_children('Arm_Bones_L')) + list(Props().get_children('Arm_Bones_R'))]
-for this_obj in bpy.data.objects:
-    if this_obj.type == 'MESH':
-        o = get(this_obj.name)
-        o.pts = o.pts.reframe_pca(i=3, k=1-2*int(this_obj.name in arm_bone_names)) # down for arm bones
-        o.update_normals()
+def reframe_bones_pca():
+    """Reframe bones in PCA space of each bone"""
+    arm_bone_names = [b.name for b in list(env.Props().get_children('Arm_Bones_L')) + list(env.Props().get_children('Arm_Bones_R'))]
+    for this_obj in bpy.data.objects:
+        if this_obj.type == 'MESH':
+            o = get(this_obj.name)
+            o.pts = o.pts.reframe_pca(i=3, k=1-2*int(this_obj.name in arm_bone_names)) # down for arm bones
+            o.update_normals()
 
 # bpy.ops.wm.open_mainfile(filepath="D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem.blend", display_file_selector=False)
-# initBones()
+# init_bones()
 
 ### Saving nutations to excel, and applying them in another blend file
 

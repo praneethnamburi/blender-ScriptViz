@@ -8,6 +8,8 @@ pn.reload()
 env.reset()
 #-----------------
 
+from apps import anatomy
+
 PC = trf.PointCloud
 
 def get_traj(xlname='armReach_ineffTrial'):
@@ -32,7 +34,7 @@ def get_traj(xlname='armReach_ineffTrial'):
     return pos, [trf.CoordFrame(origin=o, i=i, j=j, k=k) for o, i, j, k in zip(origin, i_hat, j_hat, k_hat)]
 
 bone_names = ['Humerus_R', 'Scapula_R', 'Clavicle_R']
-bones = resources.load_bones(bone_names)
+bones = anatomy.load(bone_names)
 for bone in bones.values():
     bone.update_normals()
 h = bones['Humerus_R']
