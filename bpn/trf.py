@@ -596,3 +596,60 @@ def norm_vec(vec):
     if math.isclose(norm(vec), 0):
         return np.array(vec)
     return np.array(vec)/norm(vec)
+
+
+class Quat:
+    """
+    Unit quaternions for 3D rotation.
+    This class will force inputs to be unit vectors.
+    q = cos(angle/2) + sin(angle/2)*unit_normal
+    Example:
+        q = Quat([1, 2, 3, 4]) # will be nomalized!
+        q[:] will return the normalized quaternion
+        q.angle (rotation angle)
+        q.normal (normal along the rotation)
+        q2*q -> multiply two quaternions (two successive transforms: q, followed by q2)
+        q*v -> apply rotation to a 3-element vector v
+    """
+    def __init__(self, vec, theta=None):
+        """
+        Initialize a unit quaternion (for a rotation transform).
+        :param vec: (tuple, list, numpy array) 
+            4-element (w, x, y, z) if supplied without theta
+            3-lement (x, y, z) if supplied with theta
+        :param theta: (float) rotation angle in radians
+        """
+        if theta is None:
+            assert np.size(vec) == 4
+            self._vec = norm_vec(vec)
+        else:
+            assert np.size(vec) == 3
+            self._vec = np.r_[np.cos(theta/2), np.sin(theta/2)*norm_vec(vec)]
+    
+    w = property(lambda s: s._vec[0])
+    x = property(lambda s: s._vec[1])
+    y = property(lambda s: s._vec[2])
+    z = property(lambda s: s._vec[3])
+    xyz = property(lambda s: s._vec[1:])
+    angle = property(lambda s: 2*np.arccos(s.w))
+    normal = property(lambda s: np.array(s.xyz)/np.sin(s.angle/2))
+
+    def __getitem__(self, key): # q[:] will return the 4-element quaternion vector
+        return self._vec[key]
+
+    def __invert__(self): # ~q for conjugate
+        return Quat(np.r_[self.w, -self.xyz])
+
+    def __mul__(self, other):
+        if isinstance(other, Quat):
+            # multiplication of two quaternions
+            q_w = self.w*other.w - np.dot(self.xyz, other.xyz)
+            q_xyz = np.cross(self.xyz, other.xyz) + self.w*other.xyz + other.w*self.xyz
+            return Quat(np.r_[q_w, q_xyz])
+        
+        # rotate a vector using the quaternion
+        assert np.size(other) == 3 or np.size(other)/np.shape(other)[0] # 1x3 or nx3
+        v = np.array(other) # if list or tuple
+        α = self.angle
+        u = self.normal
+        return (v - u*np.dot(u, v))*np.cos(α) + np.cross(u, v)*np.sin(α) + u*np.dot(u, v)
