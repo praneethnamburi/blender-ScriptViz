@@ -651,3 +651,39 @@ class ModeSet:
             return funcOut
         return wrapperFunc
 ```
+
+### Retired from pntools, but may be useful in the future.
+```python
+## Dropbox
+def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imagebags/objectome', savName=None, cachePath='./_temp'):
+    """
+    Download metadata recursively from all entries in a dropbox folder.
+    Save the metadata in the temporary cache of the project. 
+    Return the metadata entries. For mkturk images, use these entries
+    with the class mkturkImg.
+    """
+    
+    if not savName:
+        savName = f"{cachePath}/{dbxPath[1:].replace('/', '_')}.dbxmeta"
+
+    if not os.path.exists(savName):
+        print("Downloading metadata from dropbox path: ", dbxPath)
+        import dropbox
+        dbx = dropbox.Dropbox(json.loads(open(dbxAuth).read())['DBX_MKTURK_TOKEN'])
+        allFiles = dbx.files_list_folder(dbxPath, recursive=True)
+        entries = allFiles.entries
+        while allFiles.has_more:
+            allFiles = dbx.files_list_folder_continue(allFiles.cursor)
+            entries = entries + allFiles.entries
+
+        dlTime = datetime.datetime.now().isoformat()
+        with open(savName, 'wb') as f:
+            pickle.dump([entries, dlTime], f)
+        print("Picked metadata at: ", savName)
+    else:
+        print("Reading from temporary cache: ", savName)
+        with open(savName, 'rb') as f:
+            entries, dlTime = pickle.load(f)
+
+    return entries, dlTime
+```

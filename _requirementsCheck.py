@@ -79,7 +79,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 if THIS_DIR not in sys.path:
     sys.path.append(THIS_DIR)
 
-import pntools as my
+import pntools as pn
 
 def writeBlenderStartupFile(fName_full):
     """
@@ -120,13 +120,13 @@ def listDiff(lstA, lstB):
 
 def main():
     print('Checking if Blender exists:')
-    blenderPath = my.locateCommand('blender')
+    blenderPath = pn.locate_command('blender')
     if not blenderPath:
         return
 
     print('Checking for the correct python:')
-    pythonPath = my.locateCommand('python', 'blender')
-    pythonPath = my.locateCommand('python3.7m', 'blender') if not pythonPath else pythonPath
+    pythonPath = pn.locate_command('python', 'blender')
+    pythonPath = pn.locate_command('python3.7m', 'blender') if not pythonPath else pythonPath
     if not pythonPath:
         return
 
@@ -137,7 +137,7 @@ def main():
     if not blenderVersionDirName:
         return
     assert len(blenderVersionDirName) == 1
-    blenderStartupPath = my.ospath(str(os.path.join(blenderBaseDir, blenderVersionDirName[0], 'scripts', 'startup')))
+    blenderStartupPath = pn.ospath(str(os.path.join(blenderBaseDir, blenderVersionDirName[0], 'scripts', 'startup')))
     if not blenderStartupPath:
         return
     writeBlenderStartupFile(os.path.join(blenderStartupPath, 'pnStartup.py'))

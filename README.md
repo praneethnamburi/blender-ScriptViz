@@ -128,3 +128,6 @@ names are very important in bpn. We use names to insulate bpn from bpy. That mea
 Objects and lights need to pass one argument through *args. I did not set it to have the flexibility of initializing empty objects with Nonetype.
 Classes inherited from Object also send *args up to Thing class (e.g. MeshObject, and GreasePencilObject)
 Rest of them ONLY send kwargs for initialization.
+
+Modules vef, trf and env currently do not depend on any other files within bpn.
+env requires blender and therefore, will stay within bpn, but the other two can become their own packages that bpn uses. Perhaps move them to pntools?

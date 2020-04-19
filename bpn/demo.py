@@ -427,7 +427,7 @@ def main():
     """
     Runs all the demos. Avoid using this!
     """
-    all_mem = pn.get_mod_members(sys.modules[__name__], False)
+    all_mem = pn.module_members(sys.modules[__name__], False)
     all_func = [eval(name) for name, typ in all_mem.items() if typ == 'function' and name != 'main'] #pylint: disable=eval-used
     for func in all_func:
         func()
