@@ -162,10 +162,22 @@ class Object(Thing):
 
     @normal.setter
     def normal(self, new_normal):
+        """
+        Only direction information is taken from new_normal. To scale,
+        explicitly set the scale, or use the scale transform.
+        """
         new_normal = np.array(new_normal)
         assert len(new_normal) == 3
-        tfmat = trf.m4(trf.normal2tfmat(new_normal))
-        self.frame = self.frame_orig.transform(tfmat)
+        # # Using transformation matrices
+        # tfmat = trf.m4(trf.normal2tfmat(new_normal))
+        # self.frame = self.frame_orig.transform(tfmat)
+        # Using Quaternions
+        n1 = trf.norm_vec(self.normal)
+        n2 = trf.norm_vec(new_normal)
+        q = trf.Quat(np.cross(n1, n2), np.arccos(np.dot(n1, n2)))
+        # new_frame_co = q*self.frame.as_points().co # transform in world coordinates
+        # self.frame = trf.PointCloud(new_frame_co, np.eye(4)).as_frame()
+        self.frame = q*self.frame # quaternion specified in world frame
         bpy.context.view_layer.update()
         if self._frame_gp is not None:
             self.show_frame()

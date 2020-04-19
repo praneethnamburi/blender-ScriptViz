@@ -596,16 +596,34 @@ class Quat:
         return Quat(np.r_[self.w, -self.xyz])
 
     def __mul__(self, other):
+        def _quat_quat_mul(q1, q2):
+            q_w = q1.w*q2.w - np.dot(q1.xyz, q2.xyz)
+            q_xyz = np.cross(q1.xyz, q2.xyz) + q1.w*q2.xyz + q2.w*q1.xyz
+            return Quat(np.r_[q_w, q_xyz])
+
+        def _quat_vec_mul(q, v):
+            # q is a quaternion
+            # v is nx3 numpy array, or a 3-element list, tuple or nparray
+            α = q.angle
+            u = q.normal
+            udp = u*np.array([np.dot(v, u)]).T
+            return (v - udp)*np.cos(α) + np.cross(u, v)*np.sin(α) + udp
+
         if isinstance(other, Quat):
             # multiplication of two quaternions
-            q_w = self.w*other.w - np.dot(self.xyz, other.xyz)
-            q_xyz = np.cross(self.xyz, other.xyz) + self.w*other.xyz + other.w*self.xyz
-            return Quat(np.r_[q_w, q_xyz])
+            return _quat_quat_mul(self, other)
         
-        # rotate a vector using the quaternion
+        if isinstance(other, PointCloud):
+            # simply transform the points in the point cloud
+            # to do the transformation in a reference frame, use
+            # q*this_point_cloud.in_frame()
+            return PointCloud(_quat_vec_mul(self, other.co), other.frame)
+
+        if isinstance(other, CoordFrame): 
+            # rotate a Coordinate frame with the quaternion
+            # assumes coordinate frame is specified in world coordinates
+            return PointCloud(_quat_vec_mul(self, other.as_points().co), np.eye(4)).as_frame()
+
+        # rotate a vector or nx3 points using the quaternion
         assert np.size(other) == 3 or np.size(other)/np.shape(other)[0] # 1x3 or nx3
-        v = np.array(other) # if list or tuple
-        α = self.angle
-        u = self.normal
-        udp = u*np.array([np.dot(v, u)]).T
-        return (v - udp)*np.cos(α) + np.cross(u, v)*np.sin(α) + udp
+        return _quat_vec_mul(self, np.array(other))
