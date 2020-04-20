@@ -333,10 +333,10 @@ def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_fram
     if type(out_frame_mat).__name__ == 'CoordFrame':
         out_frame_mat = out_frame_mat.m
     # ensure 4x4
-    vert_frame_mat = m4(vert_frame_mat, unit_vectors=False)
-    tf_frame_mat = m4(tf_frame_mat, unit_vectors=False)
-    out_frame_mat = m4(out_frame_mat, unit_vectors=False)
-    tfmat = m4(tfmat, unit_vectors=False)
+    vert_frame_mat = m4(vert_frame_mat)
+    tf_frame_mat = m4(tf_frame_mat)
+    out_frame_mat = m4(out_frame_mat)
+    tfmat = m4(tfmat)
 
     mat = inv(out_frame_mat)@tf_frame_mat@tfmat@inv(tf_frame_mat)@vert_frame_mat
     return apply_matrix(mat, vert)
@@ -356,19 +356,14 @@ def m4(m=None, **kwargs):
         m4(i=i1, j=j1, k=k1) In this case, origin is assumed to be at world origin
         m4() This will return a 4x4 identity matrix (world coordinate frame)
         m4(mat)
-    CAUTION:
-        m4(mat, unit_vectors=False) default: unit_vectors=True
+        m4(..., unit_vectors=True) to have i, j, k as unit vectors default: False
     """
     if not kwargs and m is None:
         # return world coordinate system if no inputs are given
         return np.eye(4)
 
-    # by default, i, j, k are unit vectors
-    # This is my convention
-    # This is not the case for blender's matrix_world
-    # to remove this restriction, pass unit_vectors=False as input
     if 'unit_vectors' not in kwargs: 
-        kwargs['unit_vectors'] = True
+        kwargs['unit_vectors'] = False
 
     if m is not None:
         m = np.array(m)
@@ -430,7 +425,7 @@ def apply_matrix(mat, vert):
     :param mat: (2D numpy array) 4 x 4, or 3 x 3 transformation matrix
     :param vert: (2D numpy array) nV x 3
     """
-    return (m4(mat, unit_vectors=False)@v4(vert).T).T[:, 0:3]
+    return (m4(mat)@v4(vert).T).T[:, 0:3]
 
 def normal2tfmat(n, out=None):
     """

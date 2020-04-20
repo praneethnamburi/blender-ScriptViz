@@ -226,7 +226,7 @@ def spiral2():
     """
     sp = new.spiral('spiral', n_rot=6)
     sp.scl = (0.5, 1, 1)
-    # sp.frame = trf.Quat([1, 0, 0], np.pi/6)*sp.frame
+    sp.frame = trf.Quat([1, 0, 0], np.pi/6)*sp.frame
 
     s = new.sphere('sph', u=4, v=3)
     s.show_frame() # this one is just to create the gp object
@@ -366,8 +366,10 @@ def grease_pencil():
     # gp.stroke(trf.PointCloud(pcf.co[[0, 1]]), color='crd_i', line_width=80)
     # gp.stroke(trf.PointCloud(pcf.co[[0, 2]]), color='crd_j', line_width=80)
     # gp.stroke(trf.PointCloud(pcf.co[[0, 3]]), color='crd_k', line_width=80)
-    gp_coord = pc1.frame.show()
-    return gp, gp_coord
+    emp = new.empty('pc1_frame', coll_name='Pencil')
+    emp.frame = pc1.frame
+    emp.show_frame()
+    return gp
 
 def bulge_tube():
     """
@@ -389,7 +391,9 @@ def bulge_tube():
 
     # show coordinate frames
     for i, x in enumerate(t.xsec.all):
-        x.frame.show(name=str(i), coll_name='bulge_tube_frames')
+        e = new.empty(name=str(i), coll_name='bulge_tube_frames')
+        e.frame = x.frame
+        e.show_frame()
     return t
 
 def spring():
