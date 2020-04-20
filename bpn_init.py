@@ -29,7 +29,7 @@ import pntools as pn
 import bpn
 
 # modules
-from bpn import new, env, demo, utils, turtle, vef, trf, io, core, resources
+from bpn import new, env, demo, utils, turtle, vef, trf, io, core
 # classes
 from bpn.new import CircularRig
 # functions

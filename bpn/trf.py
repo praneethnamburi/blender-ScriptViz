@@ -333,10 +333,10 @@ def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_fram
     if type(out_frame_mat).__name__ == 'CoordFrame':
         out_frame_mat = out_frame_mat.m
     # ensure 4x4
-    vert_frame_mat = m4(vert_frame_mat)
-    tf_frame_mat = m4(tf_frame_mat)
-    out_frame_mat = m4(out_frame_mat)
-    tfmat = m4(tfmat)
+    vert_frame_mat = m4(vert_frame_mat, unit_vectors=False)
+    tf_frame_mat = m4(tf_frame_mat, unit_vectors=False)
+    out_frame_mat = m4(out_frame_mat, unit_vectors=False)
+    tfmat = m4(tfmat, unit_vectors=False)
 
     mat = inv(out_frame_mat)@tf_frame_mat@tfmat@inv(tf_frame_mat)@vert_frame_mat
     return apply_matrix(mat, vert)
@@ -406,7 +406,16 @@ def m4(m=None, **kwargs):
             k = norm_vec(k)
     
     if 'origin' not in locals():
-        origin = np.zeros(3) 
+        origin = np.zeros(3)
+    
+    if 'i' not in locals():
+        i = [1, 0, 0]
+    
+    if 'j' not in locals():
+        j = [0, 1, 0]
+    
+    if 'k' not in locals():
+        k = [0, 0, 1]
     
     return np.array([\
         [i[0], j[0], k[0], origin[0]],\
@@ -421,7 +430,7 @@ def apply_matrix(mat, vert):
     :param mat: (2D numpy array) 4 x 4, or 3 x 3 transformation matrix
     :param vert: (2D numpy array) nV x 3
     """
-    return (m4(mat)@v4(vert).T).T[:, 0:3]
+    return (m4(mat, unit_vectors=False)@v4(vert).T).T[:, 0:3]
 
 def normal2tfmat(n, out=None):
     """
@@ -558,6 +567,13 @@ class Quat:
     Unit quaternions for 3D rotation.
     This class will force inputs to be unit vectors.
     q = cos(angle/2) + sin(angle/2)*unit_normal (normal in world frame)
+    Typical use:
+        s = new.sphere('sph', u=4, v=3)
+        s.show_frame()
+        # rotate the object around it's center in the 'World' y-direction by 45 degrees.
+        s.frame = trf.Quat([0, 1, 0], np.pi/4, origin=s.loc)*s.frame
+        # rotate the object around it's center in the local-frame's x-direction by 45 degrees.
+        s.frame = trf.Quat([1, 0, 0], np.pi/4, s.frame)*s.frame
     Example:
         q = Quat([1, 2, 3, 4]) # will be nomalized!
         q[:] will return the normalized quaternion
@@ -568,13 +584,16 @@ class Quat:
         q*coord_frame -> transform the frame in world coordinates
         q*point_cloud -> transform the coordinates of the point cloud in the frame of the point cloud
     """
-    def __init__(self, vec, theta=None):
+    def __init__(self, vec, theta=None, frame=None, **kwargs):
         """
         Initialize a unit quaternion (for a rotation transform).
         :param vec: (tuple, list, numpy array) 
             4-element (w, x, y, z) if supplied without theta
             3-lement (x, y, z) if supplied with theta
         :param theta: (float) rotation angle in radians
+        :param frame: (CoordFrame, 4x4 2d numpy array) Coordinate frame in which the quaternion's normal is specified.
+            Note that since normal is a 'direction', and the origin of the frame will serve as the origin for this direction.
+        :param kwargs: will be passed to CoordFrame to specify the frame of the quaternion's normal
         """
         if theta is None:
             assert np.size(vec) == 4
@@ -582,6 +601,11 @@ class Quat:
         else:
             assert np.size(vec) == 3
             self._vec = np.r_[np.cos(theta/2), np.sin(theta/2)*norm_vec(vec)]
+        if frame is None:
+            self.frame = CoordFrame(**kwargs) # word coordinate frame by default
+        else:
+            assert isinstance(frame, CoordFrame)
+            self.frame = frame
     
     w = property(lambda s: s._vec[0])
     x = property(lambda s: s._vec[1])
@@ -594,8 +618,8 @@ class Quat:
     def __getitem__(self, key): # q[:] will return the 4-element quaternion vector
         return self._vec[key]
 
-    def __invert__(self): # ~q for conjugate
-        return Quat(np.r_[self.w, -self.xyz])
+    def __invert__(self): # ~q*frame for inverse transform
+        return Quat(self.normal, -self.angle, self.frame)
 
     def __mul__(self, other):
         def _quat_quat_mul(q1, q2):
@@ -611,21 +635,25 @@ class Quat:
             udp = u*np.array([np.dot(v, u)]).T
             return (v - udp)*np.cos(α) + np.cross(u, v)*np.sin(α) + udp
 
+        def _quat_pc_mul(q, pc):
+            # bring pc to quaternion's frame, apply transform on the points, and return pc to its frame
+            return PointCloud(_quat_vec_mul(q, pc.in_frame(q.frame).co), q.frame).in_frame(pc.frame)
+
         if isinstance(other, Quat):
             # multiplication of two quaternions
             return _quat_quat_mul(self, other)
         
         if isinstance(other, PointCloud):
-            # simply transform the points in the point cloud
-            # to do the transformation in a reference frame, use
-            # q*this_point_cloud.in_frame()
+            # transform points in the quaternion's frame
             return PointCloud(_quat_vec_mul(self, other.co), other.frame)
 
         if isinstance(other, CoordFrame): 
             # rotate a Coordinate frame with the quaternion
             # assumes coordinate frame is specified in world coordinates
-            return PointCloud(_quat_vec_mul(self, other.as_points().co), np.eye(4)).as_frame()
+            return _quat_pc_mul(self, other.as_points()).in_world().as_frame()
 
         # rotate a vector or nx3 points using the quaternion
         assert np.size(other) == 3 or np.size(other)/np.shape(other)[0] # 1x3 or nx3
-        return _quat_vec_mul(self, np.array(other))
+        # assume they are specified in world coordinates, turn them into a point cloud
+        # apply the transformation in the quaternion's reference frame
+        return _quat_pc_mul(self, PointCloud(np.array(other), np.eye(4)).in_frame(self.frame))

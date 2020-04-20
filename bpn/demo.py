@@ -219,6 +219,28 @@ def spiral():
     for idx, loc in enumerate(list(sp.pts.in_world().co)):
         s.key(idx+2, 'l', [tuple(loc)])
 
+def spiral2():
+    """
+    Animating along a path, with internal rotation.
+    Demonstrates the use of Quaternions for rotation.
+    """
+    sp = new.spiral('spiral', n_rot=6)
+    sp.scl = (0.5, 1, 1)
+    # sp.frame = trf.Quat([1, 0, 0], np.pi/6)*sp.frame
+
+    s = new.sphere('sph', u=4, v=3)
+    s.show_frame() # this one is just to create the gp object
+    s.key(1)
+
+    sp_pts = sp.pts.in_world().co
+    for frame_number in range(0, np.shape(sp.pts.co)[0]):
+        s._frame_gp.keyframe = frame_number+1
+        s.loc = sp_pts[frame_number, :]
+        s.frame = trf.Quat([0, 0, 1], 5*np.pi/180, origin=s.loc)*s.frame
+        s.key(frame_number+1)
+
+    env.Key().auto_lim()
+
 def plane_slice():
     """
     Using the plane slicer to 'sculpt' simple objects.

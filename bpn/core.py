@@ -185,7 +185,7 @@ class Object(Thing):
         """
         names, kwargs = utils.clean_names(name, kwargs, {
             'gp_name': 'Frame',
-            'obj_name': 'CoordFrame',
+            'obj_name': self.name+'_frame',
             'coll_name': 'CoordFrames',
             'layer_name': 'crd',
             'priority_obj': 'new',
@@ -193,24 +193,22 @@ class Object(Thing):
             }, 'gp')
         kwargs, _ = pn.clean_kwargs(kwargs, {
             'palette_list': ['blender_ax'], 
-            'palette_prefix': [''], 
+            'palette_prefix': [''],
             'palette_alpha': [0.8],
             'line_width': 80,
-            'scale': 1
+            'scale': 1,
             })
         pcf = trf.CoordFrame(self.frame.m, unit_vectors=True).as_points().transform(trf.scaletf(kwargs['scale']), self.frame.m)
-        if self._frame_gp is not None: # update
-            for cnt in (0, 1, 2):
-                this_stroke = [stroke for key, stroke in self._frame_gp.strokes.items() if 'stroke{:03d}'.format(cnt) in key][0]
-                this_stroke.points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
-            self._frame_gp().update_tag()
-        else:
-            # create
+        if self._frame_gp is None:
             self._frame_gp = new.pencil(name, **{**names, **kwargs})
-            self._frame_gp.name = names['obj_name']
-            self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, 1]], np.eye(4)), color='crd_i', line_width=kwargs['line_width']*kwargs['scale'], name='crd_i')
-            self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, 2]], np.eye(4)), color='crd_j', line_width=kwargs['line_width']*kwargs['scale'], name='crd_j')
-            self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, 3]], np.eye(4)), color='crd_k', line_width=kwargs['line_width']*kwargs['scale'], name='crd_k')
+        for cnt in (0, 1, 2):
+            this_stroke_name = self._frame_gp.data.layer.info+'_key{:04d}'.format(self._frame_gp.data.keyframe.frame_number)+'_stroke{:03d}'.format(cnt)
+            this_stroke = [stroke for key_name, stroke in self._frame_gp.strokes.items() if key_name == this_stroke_name]
+            if this_stroke:
+                this_stroke[0].points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
+            else:
+                self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, cnt+1]], np.eye(4)), color='crd_'+('i', 'j', 'k')[cnt], line_width=kwargs['line_width']*kwargs['scale'])
+        self._frame_gp().update_tag()
         return self._frame_gp
 
     # transformations
