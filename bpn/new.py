@@ -571,13 +571,13 @@ class CircularRig(core.Collection):
         c = CircularRig()
         c.theta = -np.pi/2
     """
-    def __init__(self, rig_name='CircularRig', size=0.15):
+    def __init__(self, rig_name='CircularRig', size=0.20):
         assert not env.Props().get(rig_name)
         super().__init__(rig_name)  
         self.rig_name = rig_name
         self.size = size
         
-        self.targ = empty('target', 'SPHERE', size=0.25, coll_name=self.rig_name)
+        self.targ = empty('target', 'SPHERE', size=self.size, coll_name=self.rig_name)
         self.targ.scl = size
 
         cam = core.Thing('Camera', 'Camera')

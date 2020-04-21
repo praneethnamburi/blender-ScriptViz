@@ -75,11 +75,10 @@ def spheres():
 
     # coordinate frame display
     s5 = new.sphere('sphere5', msh_name='sph', coll_name='Spheres')
-    sf = s5.frame
-    sf.show('sphere5_CoordFrame', coll_name='Spheres')
+    s5.show_frame('sphere5_CoordFrame', coll_name='Spheres')
     s5.loc = (-2, -2, -1)
     s5.rotate((30, 90, 0))
-    sf.m = s5.frame.m
+    s5.show_frame()
 
 def dna():
     """

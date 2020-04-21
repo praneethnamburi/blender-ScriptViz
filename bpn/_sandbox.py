@@ -11,7 +11,7 @@ env.reset()
 grid_scale = 1 # 0.4 => 0.4 m in the world is 1 unit in coordinate frame
 grid_lim = 8 # how many lines on each side of an axis to show a grid?
 sine_scale = 0.375 # separate scale for the 2D plot 0.15 m = 1 unit for 2D plot (separate X and Y units??)
-txt_size = (80, 80, 80) # size of axis titles
+txt_size = (120, 120, 120) # size of axis titles
 line_width_wave = 8
 line_width_ptguides = 6
 color_grid = {'gray': (0.12, 0.12, 0.12, 0.12)}
@@ -39,9 +39,10 @@ def rig():
     cr.key_light.theta = np.pi/4
     cr.fill_light.theta = 0
     cr.back_light.theta = np.pi
-    cr.fov = 80
+    cr.fov = 90
     cr.key_light().data.energy = 4
     bpy.context.scene.camera = cr.camera()
+    cr.scale(2)
     return cr
 
 def draw_axes():
@@ -129,11 +130,8 @@ def draw_wave():
     wav.color = color_wave
 
     # point the sine wave to the camera
-    wo_frame = trf.CoordFrame(wav().matrix_world, unit_vectors=False)
-    cam_frame = trf.CoordFrame(c.camera().matrix_world)
-    wav().matrix_world = wo_frame.transform(np.linalg.inv(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))).m
-    wav().location = np.array((2, -2, 1))*grid_scale
-    bpy.context.view_layer.update()
+    wav.frame = wav.frame.transform(trf.m4(c.camera.frame.m[:-1, :-1], unit_vectors=True)) # copy directions from the camera
+    wav.loc = np.array((2, -2, 1))*grid_scale
     return wav
 
 def sin_eqn():
@@ -160,9 +158,8 @@ def sin_eqn():
     # for mtrl in bpy.data.objects[txt_eqn.obj_names[14]].data.materials:
     #     mtrl.diffuse_color = pal['crd_i']
 
-    cam_frame = trf.CoordFrame(c.camera().matrix_world)
-    txt_eqn.frame = txt_eqn.frame.transform(trf.m4(i=cam_frame.i, j=cam_frame.j, k=cam_frame.k))
-    txt_eqn().location = w().location + Vector((0.4*grid_scale, -0.4*grid_scale, 0.8*grid_scale))
+    txt_eqn.frame = txt_eqn.frame.transform(trf.m4(c.camera.frame.m[:-1, :-1], unit_vectors=True))
+    txt_eqn.loc = w.loc + Vector((0*grid_scale, -0*grid_scale, 0.5*grid_scale))
     return txt_eqn
 
 # animation
