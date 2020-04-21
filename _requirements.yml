@@ -138,6 +138,7 @@ dependencies:
   - zipp=2.2.0=py_0
   - zlib=1.2.11=h62dcd97_3
   - pip:
+    - blinker==1.4
     - pymunk==5.6.0
     - scipy==1.4.1
 prefix: C:\Users\Praneeth\.conda\envs\blender2830
