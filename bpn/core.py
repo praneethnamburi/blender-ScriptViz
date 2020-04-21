@@ -148,8 +148,6 @@ class Object(Thing):
         m = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
         self().matrix_world = mathutils.Matrix(m)
         bpy.context.view_layer.update()
-        if self._frame_gp is not None:
-            self.show_frame()
 
     def frame_reset(self):
         """Reset matrix_world to what it was when created."""
@@ -174,8 +172,6 @@ class Object(Thing):
         q = trf.Quat(np.cross(n1, n2), np.arccos(np.dot(n1, n2)))
         self.frame = q*self.frame # quaternion specified in world frame
         bpy.context.view_layer.update()
-        if self._frame_gp is not None:
-            self.show_frame()
 
     def show_frame(self, name=None, **kwargs):
         """

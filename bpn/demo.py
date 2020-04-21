@@ -233,9 +233,10 @@ def spiral2():
 
     sp_pts = sp.pts.in_world().co
     for frame_number in range(0, np.shape(sp.pts.co)[0]):
-        s._frame_gp.keyframe = frame_number+1
         s.loc = sp_pts[frame_number, :]
         s.frame = trf.Quat([0, 0, 1], 5*np.pi/180, origin=s.loc)*s.frame
+        s._frame_gp.keyframe = frame_number+1
+        s.show_frame()
         s.key(frame_number+1)
 
     env.Key().auto_lim()
