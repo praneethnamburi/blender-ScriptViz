@@ -49,7 +49,7 @@ from copy import deepcopy
 from timeit import default_timer as timer
 
 import numpy as np
-
+from blinker import signal
 
 ## Inheritance
 class AddMethods:
@@ -201,6 +201,206 @@ class PortProperties:
         self.trg_attr_name = trg_attr_name
     def __call__(self, trg_class):
         return port_properties(self.src_class, trg_class, self.trg_attr_name)
+
+
+## Event handlers and broadcasting using blinker's signal
+def handler_id(thing, htype='post'):
+    """
+    Return an event handler's ID (signal name) for a give function, property or method.
+    """
+    assert htype in ('pre', 'post')
+    def _handler_id_prefix(thing):
+        if type(thing).__name__ == 'function':
+            return thing.__module__ + '.' + thing.__qualname__
+        if type(thing).__name__ == 'method':
+            if hasattr(thing.__self__, 'name'):
+                instance_string = thing.__self__.name
+            else:
+                instance_string = hex(id(thing.__self__))
+            return thing.__module__ + '.' + thing.__qualname__ + '.' + instance_string
+
+        if isinstance(thing, property):
+            if thing.fset is None:
+                print('Event handlers are currently supported only for properties with setters')
+                return []
+            return thing.fset.__module__ + '.' + thing.fset.__qualname__ + '.fset'
+        return []
+
+    hid = _handler_id_prefix(thing)
+    if not hid:
+        return None
+    return hid + '.' + htype
+
+def add_handler(thing, handler_funcs, mode='post'):
+    """
+    Dispatcher for event handling.
+    """
+    if isinstance(thing, property):
+        hid = handler_id(thing, mode)
+        new_thing = add_handler_prop(thing, handler_funcs, mode, hid)
+    if type(thing).__name__ in ('function', 'method'):
+        hid = handler_id(thing, mode)
+        new_thing = add_handler_funcmethod(thing, handler_funcs, mode, hid)
+    return new_thing
+
+def add_handler_funcmethod(func, handler_funcs, mode='post', signal_name=None):
+    """
+    Add event handlers to a function
+    Handler function signature:
+        pre_handlers will receive the same inputs as func
+            f(*args, **kwargs)
+        post_handlers will receive function output, AND inputs (perhaps modified)
+            f(f_out, *args, **kwargs)
+    """
+    assert type(func).__name__ in ('function', 'method')
+    assert mode in ('pre', 'post')
+    if type(handler_funcs).__name__ in ('function', 'method'):
+        handler_funcs = [handler_funcs]
+    if signal_name is None:
+        signal_name = handler_id(func, mode)
+
+    def _broadcasting_func(this_func, sig_name, this_mode):
+        def _new_func_pre(*args, **kwargs):
+            if bool(signal(sig_name).receivers):
+                signal(sig_name).send(*args, **kwargs) # signal is sent BEFORE the object is modified
+            f_out = this_func(*args, **kwargs)
+            return f_out
+        def _new_func_post(*args, **kwargs):
+            f_out = this_func(*args, **kwargs)
+            if bool(signal(sig_name).receivers):
+                signal(sig_name).send((f_out, *args,), **kwargs) # signal is sent AFTER the object is modified
+            return f_out
+        _new_func = _new_func_pre if this_mode == 'pre' else _new_func_post
+        _new_func.__name__ = this_func.__name__
+        _new_func.__qualname__ = this_func.__qualname__
+        _new_func.__module__ = this_func.__module__
+        return _new_func
+   
+    func = _broadcasting_func(func, signal_name, mode)
+    for hfun in handler_funcs:
+        signal(signal_name).connect(hfun)
+    return func
+
+# add_handler is useful for modifying properties in applications
+def add_handler_prop(p, handler_funcs, mode='post', signal_name=None):
+    """
+    Add event handler functions to property p either before (mode='pre')
+    or after (mode='post') the property is set.
+    Example:
+        # update coordinate frame every time location is updated
+        s = new.sphere('sph') # create a sphere
+        s.loc = (1, 0, 0) # no coordinate frame shows up
+        # Note that the next statement attaches a handler to ALL instances of core.Object
+        core.Object.loc = pn.add_handler_prop(core.Object.loc, core.Object.show_frame, mode='post')
+        s.loc = (-1, 0, 0) # coordinate frame pops up when location is changed
+    """
+    assert isinstance(p, property) and p.fset is not None
+    assert mode in ('pre', 'post')
+    if type(handler_funcs).__name__ in ('function', 'method'):
+        handler_funcs = [handler_funcs]
+    if signal_name is None:
+        signal_name = handler_id(p, mode)
+
+    p = broadcast_property(p, signal_name, mode)
+    for hfun in handler_funcs:
+        signal(signal_name).connect(hfun)
+
+    return p
+
+# BroadcastProperties is useful for modifying classes when defining them
+class BroadcastProperties:
+    """
+    Enables properties in a class to have event handlers. This
+    manipulation 'replaces' a property in a class with a new property
+    object.
+
+    Takes a class, and makes chosen properties setter emit a signal on
+    every change. Use it as a decorator on classes to broadcast some/all
+    property changes. Receiver receives the object after it is changed.
+
+    Example: see tests.test_broadcasting2()
+
+    Usage: (Don't chain with the same property. Chaining below is OK)
+        @pn.BroadcastProperties('loc', mode='pre')
+        @pn.BroadcastProperties('frame', mode='post')
+        class Object(Thing):
+            frame = property(...)
+            loc = property(...)
+    """
+    def __init__(self, p_names='ALL', mode='post'):
+        assert isinstance(p_names, (str, list, tuple))
+        assert mode in ('pre', 'post')
+        self.p_names = p_names
+        self.mode = mode
+    def __call__(self, src_class):
+        if isinstance(self.p_names, str) and self.p_names == 'ALL':
+            src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property)}
+        else:
+            src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property) and p_name in self.p_names}
+        for p_name, p in src_properties.items():
+            if p.fset is not None:
+                setattr(src_class, p_name, broadcast_property(p, mode=self.mode))
+        return src_class
+
+def broadcast_property(p, signal_name=None, mode='post'):
+    if signal_name is None:
+        signal_name = handler_id(signal_name)
+
+    def _new_fset_post(x, s): # x is the object whose property is being modified (self)
+        f_out = p.fset(x, s)
+        if bool(signal(signal_name).receivers):
+            signal(signal_name).send(x) # signal is sent AFTER the object is modified
+        return f_out
+    def _new_fset_pre(x, s): # x is the object whose property is being modified (self)
+        if bool(signal(signal_name).receivers):
+            signal(signal_name).send(x) # signal is sent AFTER the object is modified
+        f_out = p.fset(x, s)
+        return f_out
+    _new_fset = _new_fset_pre if mode == 'pre' else _new_fset_post
+    _new_fset.__name__ = p.fset.__name__
+    _new_fset.__qualname__ = p.fset.__qualname__
+    _new_fset.__module__ = p.fset.__module__
+    return property(p.fget, _new_fset)
+
+def broadcast_property_post(p, signal_name=None):
+    """
+    Takes a property object and returns a new property object.
+    Modifies the setter to broadcast the object (whose property is being
+    changed) AFTER the setter executes.
+    """
+    if signal_name is None:
+        signal_name = handler_id(signal_name)
+
+    def _new_fset(x, s): # x is the object whose property is being modified (self)
+        f_out = p.fset(x, s)
+        if bool(signal(signal_name).receivers):
+            signal(signal_name).send(x) # signal is sent AFTER the object is modified
+        return f_out
+
+    _new_fset.__name__ = p.fset.__name__
+    _new_fset.__qualname__ = p.fset.__qualname__
+    _new_fset.__module__ = p.fset.__module__
+    return property(p.fget, _new_fset)
+
+def broadcast_property_pre(p, signal_name=None):
+    """
+    Takes a property object and returns a new property object.
+    Modifies the setter to broadcast the object (whose property is being
+    changed) BEFORE the setter executes.
+    """
+    if signal_name is None:
+        signal_name = handler_id(signal_name)
+
+    def _new_fset(x, s): # x is the object whose property is being modified (self)
+        if bool(signal(signal_name).receivers):
+            signal(signal_name).send(x) # signal is sent AFTER the object is modified
+        f_out = p.fset(x, s)
+        return f_out
+
+    _new_fset.__name__ = p.fset.__name__
+    _new_fset.__qualname__ = p.fset.__qualname__
+    _new_fset.__module__ = p.fset.__module__
+    return property(p.fget, _new_fset)
 
 
 ## File system
