@@ -449,6 +449,20 @@ def mobius():
     X[-1].origin = trf.PointCloud((2, 0, 0), np.eye(4))
     return t
 
+
+def handler1():
+    s1 = new.sphere('sph1', coll_name='handler')
+    s2 = new.sphere('sph2', coll_name='handler')
+    
+    def receiver(x):
+        s2.show_frame()
+
+    # when s1 changes location, show s2's frame
+    pn.add_handler(s1, 'loc', receiver, 'post')
+
+    s2.loc = (0, 2, 0)
+    s1.loc = (0, -2, 0)
+
 def main():
     """
     Runs all the demos. Avoid using this!
