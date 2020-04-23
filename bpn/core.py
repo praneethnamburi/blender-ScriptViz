@@ -71,11 +71,12 @@ class Thing:
     
     @name.setter
     def name(self, new_name):
-        new_name_checked = utils.new_name(new_name, [t.name for t in self.blend_coll]) # in case you rename it to something that is already present
-        self().name = new_name_checked
-        self.blend_name = new_name_checked
-        if new_name_checked != new_name:
-            print(new_name+' already present. Used '+new_name_checked)
+        if new_name != self().name:
+            new_name_checked = utils.new_name(new_name, [t.name for t in self.blend_coll]) # in case you rename it to something that is already present
+            self().name = new_name_checked
+            self.blend_name = new_name_checked
+            if new_name_checked != new_name:
+                print(new_name+' already present. Used '+new_name_checked)
 
 
 class Collection(Thing):
