@@ -6,11 +6,82 @@ import os
 import sys
 import numpy as np
 
+from blinker import signal
+
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 if DEV_ROOT not in sys.path:
     sys.path.append(DEV_ROOT)
 
-import pntools as my
+import pntools as pn
+
+def test_broadcasting():
+    """Expected output: I 2 received 6"""
+    def broadcast_properties(src_class):
+        src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property)}
+        for p_name, p in src_properties.items():
+            if p.fset is not None:
+                setattr(src_class, p_name, pn.broadcast_property(p, pn.handler_id(src_class, p_name, 'post'), 'post'))
+        return src_class
+
+    @broadcast_properties
+    class DummyClass:
+        def __init__(self, some_number):
+            self.number = some_number
+    
+        @property
+        def num(self):
+            return self.number
+
+        @num.setter
+        def num(self, new_number):
+            self.number = new_number
+
+    s = signal(pn.handler_id(DummyClass, 'num', 'post'))
+    @s.connect
+    def receiver2(some_thing):
+        print('I 2 received '+str(some_thing.number))
+
+    a = DummyClass(3)
+
+    a.num = 6
+
+    s.disconnect(receiver2)
+    a.num = 7
+
+
+def test_broadcasting2():
+    """
+    Basic test for the BroadcastProperties class
+    Expected output:
+    Number before change : 3
+    Number after change : 5
+    """
+    @pn.BroadcastProperties('ALL', 'post')
+    @pn.BroadcastProperties('ALL', 'pre')
+    class MClass:
+        def __init__(self, number):
+            self._number = number
+
+        @property
+        def num(self):
+            return self._number
+        
+        @num.setter
+        def num(self, new_number):
+            self._number = new_number
+
+    def fire_before_change(self):
+        print('Number before change : ' + str(self.num))
+
+    def fire_after_change(self):
+        print('Number after change : ' + str(self.num))
+    
+    signal(pn.handler_id(MClass, 'num', 'pre')).connect(fire_before_change)
+    signal(pn.handler_id(MClass, 'num', 'post')).connect(fire_after_change)
+
+    x = MClass(3)
+    x.num = 5
+
 
 def testTracker():
     """
@@ -37,9 +108,9 @@ def testTracker():
     """
     #pylint: disable=protected-access, no-member
     print('Testing pntools.Tracker:')
-    print(my.Tracker._tracked)
+    print(pn.Tracker._tracked)
 
-    @my.Tracker
+    @pn.Tracker
     class testClass:
         def __init__(self, myAttr):
             self.attr = myAttr
@@ -51,14 +122,14 @@ def testTracker():
     del testClass[tmp1] #pylint: disable=unsupported-delete-operation
     del tmp1
 
-    print(my.Tracker._tracked)
+    print(pn.Tracker._tracked)
 
-    @my.Tracker
+    @pn.Tracker
     class testClass2:
         def __init__(self, myAttr):
             self.attr2 = myAttr
 
-    print(my.Tracker._tracked)
+    print(pn.Tracker._tracked)
     
     print(testClass.all) 
     print(testClass2.all)
@@ -73,7 +144,7 @@ def testTracker():
     # extend the tracker to do operations on all objects created by that class!
     # for example, group statistics of all images
     # Just don't override the __new__, __init__ or __call__ methods
-    class extendedTracker(my.Tracker):
+    class extendedTracker(pn.Tracker):
         """"""
         def extMethod(self):
             print([k.attr for k in self.all])
@@ -88,7 +159,7 @@ def testTracker():
     ext3 = extClass(103)
     extClass.extMethod()
 
-    class behaviorMetrics(my.Tracker):
+    class behaviorMetrics(pn.Tracker):
         @property
         def accuracy(self):
             allAcc = [k.accuracy for k in self.all]
@@ -128,8 +199,8 @@ def testTrackerQuery():
     """
     print('Testing pntools.Tracker.query and pntools.AddMethods')
 
-    @my.Tracker
-    @my.AddMethods([my.properties])
+    @pn.Tracker
+    @pn.AddMethods([pn.properties])
     class behavior:
         def __init__(self, agent, accuracy, weight):
             self.agent = agent
@@ -148,10 +219,10 @@ def testTrackerQuery():
 
     # for complicated queries with methods (e.g. len), either use keys, or prefix k. to all the keys
     res = behavior.query("len(agent) > 4  and accuracy >= 0.3", keys=['agent', 'accuracy'])
-    res[0].properties() # testing my.AddMethods
+    res[0].properties() # testing pn.AddMethods
     res = behavior.query("len(k.agent) > 4 and k.accuracy >= 0.3", keys=[])
     print('testTrackerQuery finished.')
 
 if __name__ == '__main__':
-    my.Time(testTracker)()
-    my.Time(testTrackerQuery)()
+    pn.Time(testTracker)()
+    pn.Time(testTrackerQuery)()

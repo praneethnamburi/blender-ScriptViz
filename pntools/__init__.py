@@ -225,12 +225,12 @@ def handler_id(thing, attr, mode='post'):
     thing_is_class, thing_class, attr_cat = _handler_helper(thing, attr)
     mod_name = thing.__module__ if thing_is_class else type(thing).__module__
     attr_name = getattr(thing_class, attr).__qualname__ if attr_cat == 'function' else getattr(thing_class, attr).fset.__qualname__
-    # if attr_cat == 'property':
-    #     attr_name += '.fset' # emphasizing that we are only adding handlers to setters
+    if attr_cat == 'property':
+        attr_name += '.fset' # emphasizing that we are only adding handlers to setters
     instance_name = ''
     if not thing_is_class and attr_cat == 'function':
         instance_name = '(' + _instance_name(thing) + ')'
-    return mod_name + '.' + attr_name + instance_name + '-' + mode
+    return mode + '-' + mod_name + '.' + attr_name + instance_name
 
 
 def add_handler(thing, attr, receiver_funcs, mode='post'):
@@ -262,7 +262,7 @@ def add_handler(thing, attr, receiver_funcs, mode='post'):
         receiver_funcs = [receiver_funcs]
 
     thing_is_class, thing_class, attr_cat = _handler_helper(thing, attr)
-    signal_name = handler_id(thing, attr)
+    signal_name = handler_id(thing, attr, mode)
 
     # set up broadcaster
     if attr_cat == 'function':
@@ -271,27 +271,17 @@ def add_handler(thing, attr, receiver_funcs, mode='post'):
         # only the class property can broadcast!
         setattr(thing_class, attr, broadcast_property(getattr(thing_class, attr), signal_name, mode))
 
-    # # add listeners
-    # def _receiver_helper(receiver_fun, inst_name):
-    #     """
-    #     Make a new receiver that executes receiver_fun only for the correct instance.
-    #     """
-    #     def _new_receiver(self, *args, **kwargs):
-    #         if _instance_name(self) == inst_name:
-    #             return receiver_fun(self, *args, **kwargs)
-    #         return None
-    #     return _new_receiver
+    # set up receiver
+    if attr_cat == 'property' and not thing_is_class:
+        # class property has been tweaked to emit the correct signal based on the object
+        for hfun in receiver_funcs:
+            instance_name = thing.name if hasattr(thing, 'name') else hex(id(thing))
+            instance_signal_name = signal_name+'('+instance_name+')'
+            signal(instance_signal_name).connect(hfun)
+    else: # add receivers normally
+        for hfun in receiver_funcs:
+            signal(signal_name).connect(hfun)
 
-    # if attr_cat == 'property' and not thing_is_class: # tweak receivers to fire only when appropriate
-    #     for hfun in receiver_funcs:
-    #         new_hfun = _receiver_helper(hfun, _instance_name(thing))
-    #         signal(signal_name).connect(hfun)
-    # else: # add receivers normally
-    #     for hfun in receiver_funcs:
-    #         signal(signal_name).connect(hfun)
-
-    for hfun in receiver_funcs:
-        signal(signal_name).connect(hfun)
 
 def broadcast_function(func, signal_name, mode='post'):
     """
@@ -344,30 +334,45 @@ def broadcast_property(p, signal_name, mode='post'):
     assert mode in ('pre', 'post')
 
     if hasattr(p.fset, '__broadcast__'):
-        assert p.fset.__broadcast__ == signal_name
-        print('Property is already broadcasting')
-        return p
+        if signal_name in p.fset.__broadcast__:
+            print('Property is already broadcasting on ' + signal_name)
+            return p
+        print('Adding broadcast channel ' + signal_name)
 
     def _new_fset_pre(x, s): # x is the object whose property is being modified (self)
+        # broadcast signal for all members
         if bool(signal(signal_name).receivers):
-            signal(signal_name).send(x) # signal is sent AFTER the object is modified
+            signal(signal_name).send(x)
+        # member-specific broadcast
+        instance_name = x.name if hasattr(x, 'name') else hex(id(x))
+        new_signal_name = signal_name+'('+instance_name+')'
+        if bool(signal(new_signal_name).receivers):
+            signal(new_signal_name).send(x) # signal is sent AFTER the object is modified
         f_out = p.fset(x, s)
         return f_out
     def _new_fset_post(x, s): # x is the object whose property is being modified (self)
         f_out = p.fset(x, s)
+        # broadcast signal for all members
+        if bool(signal(signal_name).receivers):
+            signal(signal_name).send(x)
+        # member-specific broadcast
         instance_name = x.name if hasattr(x, 'name') else hex(id(x))
         new_signal_name = signal_name+'('+instance_name+')'
-        print(new_signal_name)
         if bool(signal(new_signal_name).receivers):
-            signal(signal_name).send(x) # signal is sent AFTER the object is modified
+            signal(new_signal_name).send(x) # signal is sent AFTER the object is modified
         return f_out
 
     _new_fset = _new_fset_pre if mode == 'pre' else _new_fset_post
     _new_fset.__name__ = p.fset.__name__
     _new_fset.__qualname__ = p.fset.__qualname__
     _new_fset.__module__ = p.fset.__module__
-    _new_fset.__broadcast__ = signal_name # this is the signal name for the class
+    if hasattr(p.fset, '__broadcast__'):
+        _new_fset.__broadcast__ = p.fset.__broadcast__
+    else:
+        _new_fset.__broadcast__ = []
+    _new_fset.__broadcast__ += [signal_name] # this is the signal name for the class
     return property(p.fget, _new_fset)
+
 
 # BroadcastProperties is useful for modifying classes when defining them
 class BroadcastProperties:
@@ -401,7 +406,7 @@ class BroadcastProperties:
             src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property) and p_name in self.p_names}
         for p_name, p in src_properties.items():
             if p.fset is not None:
-                setattr(src_class, p_name, broadcast_property(p, handler_id(src_class, p_name), self.mode))
+                setattr(src_class, p_name, broadcast_property(p, handler_id(src_class, p_name, self.mode), self.mode))
         return src_class
 
 
