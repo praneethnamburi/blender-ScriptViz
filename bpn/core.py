@@ -17,6 +17,17 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 from . import new, utils, trf
 
+from weakref import WeakSet
+
+class base(object):
+    def __new__(cls, *args, **kwargs):
+        instance = cls.__init__(*args, **kwargs)
+        if "instances" not in cls.__dict__:
+            cls.instances = WeakSet()
+        cls.instances.add(instance)
+        return instance
+
+
 class Thing:
     """
     Wrapper around blender's bpy.data.*
@@ -25,6 +36,18 @@ class Thing:
     Example:
         key_light = core.Thing('Key', 'Light', 'SUN', energy=2.5, angle=0.2, color=(0., 0., 0.))
     """
+    instances = {} # central database of all class instances
+    def __new__(cls, thing_name, thing_type, *args, **kwargs):
+        if cls.__name__ not in cls.instances:
+            cls.instances[cls.__name__] = {}
+        if thing_name not in cls.instances[cls.__name__]:
+            instance = super(Thing, cls).__new__(cls)
+            if hasattr(thing_name, 'name'):
+                thing_name = thing_name.name
+            cls.instances[cls.__name__][thing_name] = instance
+            return instance
+        return cls.instances[cls.__name__][thing_name]
+        
     def __init__(self, thing_name, thing_type, *args, **kwargs):
         if isinstance(thing_type, str):
             thing_type = utils.bpy_type(thing_type)
@@ -81,6 +104,9 @@ class Thing:
 
 class Collection(Thing):
     """Wrapper around a bpy.types.Collection thing"""
+    def __new__(cls, name, **kwargs):
+        return super().__new__(cls, name, 'Collection', **kwargs)
+
     def __init__(self, name, **kwargs):
         super().__init__(name, 'Collection', **kwargs)
         if self.name not in [c.name for c in bpy.context.scene.collection.children[:]]:
@@ -122,6 +148,9 @@ class Object(Thing):
 
     DOES NOT put it in a collection. That is the job of functions in the new module.
     """
+    def __new__(cls, name, *args, **kwargs):
+        return super().__new__(cls, name, 'Object', *args, **kwargs)
+
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'Object', *args, **kwargs)
         self._frame_gp = None # grease pencil object that displays the frame
@@ -523,6 +552,9 @@ class Object(Thing):
 
 class Mesh(Thing):
     """Wrapper around a bpy.types.Mesh object."""
+    def __new__(cls, name, **kwargs):
+        return super().__new__(cls, name, 'Mesh', **kwargs)
+
     def __init__(self, name, **kwargs):
         super().__init__(name, 'Mesh', **kwargs)
         self.v_init = copy.deepcopy(self.v)
@@ -742,6 +774,9 @@ class CompoundObject(Object):
     For example, a mesh object's data will be wrapped with the Mesh class
     https://docs.blender.org/manual/en/latest/scene_layout/object/types.html
     """
+    def __new__(cls, name, obj_type, data_class, *args, **kwargs):
+        return super().__new__(cls, name, *args, **kwargs)
+
     def __init__(self, name, obj_type, data_class, *args, **kwargs):
         if name in [o.name for o in bpy.data.objects]:
             # an object with that name exists, but is not the correct type of object
@@ -784,6 +819,9 @@ class MeshObject(CompoundObject):
         s = MeshObject('sph')
         s.v -> automatically returns vertices from them mesh
     """
+    def __new__(cls, name, *args, **kwargs):
+        return super().__new__(cls, name, 'MESH', Mesh, *args, **kwargs)
+
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'MESH', Mesh, *args, **kwargs)
 
@@ -851,6 +889,9 @@ class MeshObject(CompoundObject):
 
 class GreasePencil(Thing):
     """Wrapper around blender's grease pencil."""
+    def __new__(cls, name, **kwargs):
+        return super().__new__(cls, name, 'Greasepencil', **kwargs)
+
     def __init__(self, name, **kwargs):
         super().__init__(name, 'GreasePencil', **kwargs)
         self._layer = None
@@ -920,6 +961,9 @@ class GreasePencilObject(CompoundObject):
     This is a core.Object. Automatically calls the appropriate methods
     and properties from Object and Greasepencil classes.
     """
+    def __new__(cls, name, *args, **kwargs):
+        return super().__new__(cls, name, 'GPENCIL', GreasePencil, *args, **kwargs)
+
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
         self._color = None
@@ -1044,6 +1088,9 @@ class Curve(Thing):
     Wrapper around a bpy.types.Curve object.
     Blender appears to have three types of curves - CURVE, SURFACE, FONT
     """
+    def __new__(cls, name, **kwargs):
+        return super().__new__(cls, name, 'Curve', 'CURVE', **kwargs)
+
     def __init__(self, name, **kwargs):
         """args[0] is in (CURVE, SURFACE, FONT)"""
         super().__init__(name, 'Curve', 'CURVE', **kwargs)
@@ -1052,6 +1099,9 @@ class Curve(Thing):
 @pn.PortProperties(Curve, 'data') # CurveObject (or CompoundObject) MUST define data as an attribute or property
 class CurveObject(CompoundObject):
     """Wrapper for curve object"""
+    def __new__(cls, name, *args, **kwargs):
+        return super().__new__(cls, name, 'CURVE', Curve, *args, **kwargs)
+
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'CURVE', Curve, *args, **kwargs)
  
