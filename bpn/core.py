@@ -17,16 +17,28 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 from . import new, utils, trf
 
-from weakref import WeakSet
 
-class base(object):
-    def __new__(cls, *args, **kwargs):
-        instance = cls.__init__(*args, **kwargs)
-        if "instances" not in cls.__dict__:
-            cls.instances = WeakSet()
-        cls.instances.add(instance)
-        return instance
+class ThingDB:
+    """
+    Database of things.
+    With this database, the dispatcher now returns the same object.
+    a = new.empty('emp')
+    a is utils.get('emp') # True if this is working.
 
+    This will be useful to keep track of handlers and relationships between objects.
+    (and relationships in the future)
+    """
+    instances = {}
+
+    @staticmethod
+    def clean():
+        """Remove objects not in blender's environment."""
+        for coll in ThingDB.instances.values():
+            for o in coll:
+                try:
+                    o()
+                except KeyError:
+                    o.__neg__()
 
 class Thing:
     """
@@ -36,17 +48,19 @@ class Thing:
     Example:
         key_light = core.Thing('Key', 'Light', 'SUN', energy=2.5, angle=0.2, color=(0., 0., 0.))
     """
-    instances = {} # central database of all class instances
     def __new__(cls, thing_name, thing_type, *args, **kwargs):
-        if cls.__name__ not in cls.instances:
-            cls.instances[cls.__name__] = {}
-        if thing_name not in cls.instances[cls.__name__]:
-            instance = super(Thing, cls).__new__(cls)
-            if hasattr(thing_name, 'name'):
-                thing_name = thing_name.name
-            cls.instances[cls.__name__][thing_name] = instance
-            return instance
-        return cls.instances[cls.__name__][thing_name]
+        if hasattr(thing_name, 'name'):
+            thing_name = thing_name.name
+
+        # There are separate dictionaries for each classes
+        this_class_objs = ThingDB.instances.setdefault(cls.__name__, [])
+        # make a new instance if it doesn't exist, OR, return an existing object
+        this_class_dict = {o.name: o for o in this_class_objs}
+        if thing_name in this_class_dict:
+            return this_class_dict[thing_name]
+        instance = super(Thing, cls).__new__(cls)
+        this_class_objs.append(instance)
+        return instance
         
     def __init__(self, thing_name, thing_type, *args, **kwargs):
         if isinstance(thing_type, str):
@@ -79,7 +93,12 @@ class Thing:
     
     def __neg__(self):
         """Remove that object."""
-        self.blend_coll.remove(self())
+        try:
+            self.blend_coll.remove(self())
+        except KeyError:
+            pass
+        # update local database
+        ThingDB.instances[self.__class__.__name__] = [o for o in ThingDB.instances[self.__class__.__name__] if o.name != self.name]
 
     def __str__(self):
         return object.__repr__(self)
