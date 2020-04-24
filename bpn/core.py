@@ -17,8 +17,7 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 from . import new, utils, trf
 
-
-class ThingDB:
+class _ThingDB(dict):
     """
     Database of things.
     With this database, the dispatcher now returns the same object.
@@ -28,17 +27,17 @@ class ThingDB:
     This will be useful to keep track of handlers and relationships between objects.
     (and relationships in the future)
     """
-    instances = {}
-
-    @staticmethod
-    def clean():
+    def clean(self):
         """Remove objects not in blender's environment."""
-        for coll in ThingDB.instances.values():
+        for coll in self.values():
             for o in coll:
                 try:
                     o()
                 except KeyError:
                     o.__neg__()
+
+ThingDB = _ThingDB()
+
 
 class Thing:
     """
@@ -48,17 +47,17 @@ class Thing:
     Example:
         key_light = core.Thing('Key', 'Light', 'SUN', energy=2.5, angle=0.2, color=(0., 0., 0.))
     """
-    def __new__(cls, thing_name, thing_type, *args, **kwargs):
+    def __new__(cls, thing_name, *args, **kwargs): #pylint: disable=unused-argument
         if hasattr(thing_name, 'name'):
             thing_name = thing_name.name
-
-        # There are separate dictionaries for each classes
-        this_class_objs = ThingDB.instances.setdefault(cls.__name__, [])
-        # make a new instance if it doesn't exist, OR, return an existing object
+        # There are separate object lists for each class in this module
+        this_class_objs = ThingDB.setdefault(cls.__name__, [])
+        # Check if instance exists, and return that if it does
         this_class_dict = {o.name: o for o in this_class_objs}
         if thing_name in this_class_dict:
             return this_class_dict[thing_name]
-        instance = super(Thing, cls).__new__(cls)
+        # If an instance does not exist, create a new one
+        instance = super().__new__(cls)
         this_class_objs.append(instance)
         return instance
         
@@ -93,12 +92,13 @@ class Thing:
     
     def __neg__(self):
         """Remove that object."""
+        # remove from blender (if it is there)
         try:
             self.blend_coll.remove(self())
         except KeyError:
             pass
         # update local database
-        ThingDB.instances[self.__class__.__name__] = [o for o in ThingDB.instances[self.__class__.__name__] if o.name != self.name]
+        ThingDB[self.__class__.__name__] = [o for o in ThingDB[self.__class__.__name__] if o.name != self.name]
 
     def __str__(self):
         return object.__repr__(self)
@@ -120,11 +120,17 @@ class Thing:
             if new_name_checked != new_name:
                 print(new_name+' already present. Used '+new_name_checked)
 
+    def add_handler(self, attr, receiver_func, mode='post'):
+        """
+        Add an event handler
+        """
+        pn.add_handler(self, attr, receiver_func, mode)
+
 
 class Collection(Thing):
     """Wrapper around a bpy.types.Collection thing"""
-    def __new__(cls, name, **kwargs):
-        return super().__new__(cls, name, 'Collection', **kwargs)
+    def __new__(cls, name, **kwargs): #pylint: disable=arguments-differ
+        return super().__new__(cls, name, **kwargs)
 
     def __init__(self, name, **kwargs):
         super().__init__(name, 'Collection', **kwargs)
@@ -168,7 +174,7 @@ class Object(Thing):
     DOES NOT put it in a collection. That is the job of functions in the new module.
     """
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, 'Object', *args, **kwargs)
+        return super().__new__(cls, name, *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'Object', *args, **kwargs)
@@ -571,8 +577,8 @@ class Object(Thing):
 
 class Mesh(Thing):
     """Wrapper around a bpy.types.Mesh object."""
-    def __new__(cls, name, **kwargs):
-        return super().__new__(cls, name, 'Mesh', **kwargs)
+    def __new__(cls, name, **kwargs): #pylint: disable=arguments-differ
+        return super().__new__(cls, name, **kwargs)
 
     def __init__(self, name, **kwargs):
         super().__init__(name, 'Mesh', **kwargs)
@@ -793,7 +799,7 @@ class CompoundObject(Object):
     For example, a mesh object's data will be wrapped with the Mesh class
     https://docs.blender.org/manual/en/latest/scene_layout/object/types.html
     """
-    def __new__(cls, name, obj_type, data_class, *args, **kwargs):
+    def __new__(cls, name, *args, **kwargs): #pylint: disable=unused-argument
         return super().__new__(cls, name, *args, **kwargs)
 
     def __init__(self, name, obj_type, data_class, *args, **kwargs):
@@ -839,7 +845,7 @@ class MeshObject(CompoundObject):
         s.v -> automatically returns vertices from them mesh
     """
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, 'MESH', Mesh, *args, **kwargs)
+        return super().__new__(cls, name, *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'MESH', Mesh, *args, **kwargs)
@@ -908,8 +914,8 @@ class MeshObject(CompoundObject):
 
 class GreasePencil(Thing):
     """Wrapper around blender's grease pencil."""
-    def __new__(cls, name, **kwargs):
-        return super().__new__(cls, name, 'Greasepencil', **kwargs)
+    def __new__(cls, name, **kwargs): #pylint: disable=arguments-differ
+        return super().__new__(cls, name, **kwargs)
 
     def __init__(self, name, **kwargs):
         super().__init__(name, 'GreasePencil', **kwargs)
@@ -981,7 +987,7 @@ class GreasePencilObject(CompoundObject):
     and properties from Object and Greasepencil classes.
     """
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, 'GPENCIL', GreasePencil, *args, **kwargs)
+        return super().__new__(cls, name, *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
@@ -1107,8 +1113,8 @@ class Curve(Thing):
     Wrapper around a bpy.types.Curve object.
     Blender appears to have three types of curves - CURVE, SURFACE, FONT
     """
-    def __new__(cls, name, **kwargs):
-        return super().__new__(cls, name, 'Curve', 'CURVE', **kwargs)
+    def __new__(cls, name, **kwargs): #pylint: disable=arguments-differ
+        return super().__new__(cls, name, **kwargs)
 
     def __init__(self, name, **kwargs):
         """args[0] is in (CURVE, SURFACE, FONT)"""
@@ -1119,7 +1125,7 @@ class Curve(Thing):
 class CurveObject(CompoundObject):
     """Wrapper for curve object"""
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, 'CURVE', Curve, *args, **kwargs)
+        return super().__new__(cls, name, *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'CURVE', Curve, *args, **kwargs)

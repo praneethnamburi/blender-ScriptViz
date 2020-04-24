@@ -233,7 +233,7 @@ def handler_id(thing, attr, mode='post'):
     return mode + '-' + mod_name + '.' + attr_name + instance_name
 
 
-def add_handler(thing, attr, receiver_funcs, mode='post'):
+def add_handler(thing, attr, receiver_func, mode='post'):
     """
     Add handlers to a:
     1) property of a class instance (object)
@@ -258,8 +258,7 @@ def add_handler(thing, attr, receiver_funcs, mode='post'):
     """
     # input handling
     assert mode in ('pre', 'post')
-    if type(receiver_funcs).__name__ in ('function', 'method'):
-        receiver_funcs = [receiver_funcs]
+    assert type(receiver_func).__name__ in ('function', 'method')
 
     thing_is_class, thing_class, attr_cat = _handler_helper(thing, attr)
     signal_name = handler_id(thing, attr, mode)
@@ -274,13 +273,12 @@ def add_handler(thing, attr, receiver_funcs, mode='post'):
     # set up receiver
     if attr_cat == 'property' and not thing_is_class:
         # class property has been tweaked to emit the correct signal based on the object
-        for hfun in receiver_funcs:
-            instance_name = thing.name if hasattr(thing, 'name') else hex(id(thing))
-            instance_signal_name = signal_name+'('+instance_name+')'
-            signal(instance_signal_name).connect(hfun)
+        instance_name = thing.name if hasattr(thing, 'name') else hex(id(thing))
+        instance_signal_name = signal_name+'('+instance_name+')'
+        signal(instance_signal_name).connect(receiver_func)
     else: # add receivers normally
-        for hfun in receiver_funcs:
-            signal(signal_name).connect(hfun)
+        signal(signal_name).connect(receiver_func)
+    return signal_name
 
 
 def broadcast_function(func, signal_name, mode='post'):

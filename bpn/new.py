@@ -378,6 +378,9 @@ class Tube(core.MeshObject):
     Creates a 'Tube' object with a specified number of cross sections
     and vertical sections.
     """
+    def __new__(cls, name, **kwargs): # pylint: disable=arguments-differ
+        return super().__new__(cls, name, **kwargs)
+
     def __init__(self, name=None, x=0, y=0, z=0, **kwargs):
         names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'tube_msh', 'obj_name':'tube_obj', 'priority_obj':'new', 'priority_msh':'new'})
         kwargs_ngon, _ = pn.clean_kwargs(kwargs, {'n':6, 'r':0.3, 'theta_offset_deg':-1}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg']})
@@ -514,6 +517,9 @@ class ObjectOnCircle(core.Object):
     :param size: (float) overall 'size' of your rig
     :param targ: (core.Object, bpy.types.Object)
     """
+    def __new__(cls, this_thing, *args, **kwargs):
+        return super().__new__(cls, this_thing.name.lower())
+
     def __init__(self, this_thing, coll_name, path, size, targ=None):
         super().__init__(this_thing.name.lower(), this_thing)
         self.to_coll(coll_name)
@@ -571,6 +577,9 @@ class CircularRig(core.Collection):
         c = CircularRig()
         c.theta = -np.pi/2
     """
+    def __new__(cls, rig_name='CircularRig', size=0.20): # pylint: disable=arguments-differ, unused-argument
+        return super().__new__(cls, rig_name)
+
     def __init__(self, rig_name='CircularRig', size=0.20):
         assert not env.Props().get(rig_name)
         super().__init__(rig_name)  
@@ -602,8 +611,11 @@ class CircularRig(core.Collection):
         self.back_light.center = (0, 0, 1)
 
     def __neg__(self): # convenient destructor for the rig
-        for o in self[:]:
-            o.__neg__()
+        try:
+            for o in self[:]:
+                o.__neg__()
+        except KeyError:
+            pass # collection was already removed
         super().__neg__()
 
     @property
