@@ -1,5 +1,11 @@
 """
 Core of the blender python module.
+
+'Thing' is a wrapper around a blender prop (e.g., meshes, objects, materials, etc bpy.data.*)
+Wrappers add functionality to a blender prop. They also:
+1) provide easy access to blender props through calling thing() will retrieve a blender prop
+2) maintain their internal states by using a database (ThingDB)
+    - a new 'Thing' is created only if it doesn't already exist in the database
 """
 import functools
 import math
@@ -20,7 +26,7 @@ from . import new, utils, trf
 class _ThingDB(dict):
     """
     Database of things.
-    With this database, the dispatcher now returns the same object.
+    With this database, the dispatcher returns the same python object.
     a = new.empty('emp')
     a is utils.get('emp') # True if this is working.
 
@@ -50,7 +56,11 @@ class _ThingDB(dict):
         this_class_objs = self.setdefault(cls_name, [])
         this_class_dict = {t.name: t for t in this_class_objs}
         if thing_name in this_class_dict:
-            return this_class_dict[thing_name]
+            thing = this_class_dict[thing_name]
+            if self.thing_in_blend(thing):
+                # a retrieved object must exist in blender's environment (if not, create a new one)
+                return thing
+            self.remove(thing)
         return None
 
 ThingDB = _ThingDB()
@@ -1015,8 +1025,6 @@ class GreasePencilObject(CompoundObject):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
         if not hasattr(self, '_color'):
             self._color = None
-
-            # initialize hidden variables
             if not self().material_slots[:] and 'white' not in [m.name for m in bpy.data.materials]:
                 self.color = {'white': (1.0, 1.0, 1.0, 1.0)}
             else:
