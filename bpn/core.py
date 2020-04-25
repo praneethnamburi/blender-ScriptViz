@@ -29,11 +29,29 @@ class _ThingDB(dict):
     def clean(self):
         """Remove objects not in blender's environment."""
         for coll in self.values():
-            for o in coll:
-                try:
-                    o()
-                except KeyError:
-                    o.__neg__()
+            for thing in coll:
+                if not self.thing_in_blend(thing):
+                    self.remove(thing) # remove from database
+    def thing_in_blend(self, thing):
+        """Return True if thing is in blender's environment."""
+        try:
+            thing()
+            return True
+        except KeyError:
+            return False
+    def remove(self, thing):
+        """Remove an object from database"""
+        self[thing.__class__.__name__] = [t for t in self[thing.__class__.__name__] if t.name != thing.name]
+    def add(self, thing):
+        """Add a thing to the database. DOES NOT CHECK IF IT ALREADY EXISTS."""
+        self[thing.__class__.__name__].append(thing)
+    def retrieve(self, thing_name, cls_name):
+        """If thing_name of class cls_name is in the database, return it. Else return None"""
+        this_class_objs = self.setdefault(cls_name, [])
+        this_class_dict = {t.name: t for t in this_class_objs}
+        if thing_name in this_class_dict:
+            return this_class_dict[thing_name]
+        return None
 
 ThingDB = _ThingDB()
 
@@ -49,16 +67,14 @@ class Thing:
     def __new__(cls, thing_name, *args, **kwargs): #pylint: disable=unused-argument
         if hasattr(thing_name, 'name'):
             thing_name = thing_name.name
-        # There are separate object lists for each class in this module
-        this_class_objs = ThingDB.setdefault(cls.__name__, [])
-        # Check if instance exists, and return that if it does
-        this_class_dict = {o.name: o for o in this_class_objs}
-        if thing_name in this_class_dict:
-            return this_class_dict[thing_name]
-        # If an instance does not exist, create a new one
-        instance = super().__new__(cls)
-        this_class_objs.append(instance)
-        return instance
+        # retrieve instance if it exists
+        this_instance = ThingDB.retrieve(thing_name, cls.__name__)
+        if not this_instance:
+            this_instance = super().__new__(cls) # make a new instance
+            ThingDB.add(this_instance) # add it to the database
+            return this_instance # send it for initialization
+        # Create a new instance if it doesn't exist
+        return this_instance
         
     def __init__(self, thing_name, thing_type, *args, **kwargs):
         if isinstance(thing_type, str):
@@ -96,8 +112,8 @@ class Thing:
             self.blend_coll.remove(self())
         except KeyError:
             pass
-        # update local database
-        ThingDB[self.__class__.__name__] = [o for o in ThingDB[self.__class__.__name__] if o.name != self.name]
+        # remove from local database
+        ThingDB.remove(self)
 
     def __str__(self):
         return object.__repr__(self)
@@ -177,9 +193,13 @@ class Object(Thing):
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'Object', *args, **kwargs)
-        self._frame_gp = None # grease pencil object that displays the frame
-        self.frame_orig = self.frame
+        # don't over-write internal states if object was retrieved from database
+        if not hasattr(self, '_frame_gp'):
+            self._frame_gp = None # grease pencil object that displays the frame
+        if not hasattr(self, 'frame_orig'):
+            self.frame_orig = self.frame
 
+        # internal states determined by blender: re-initialize even if object is retrieved from the database
         self.container = self().parent.name if self().parent else None
 
         all_constraints = ('CAMERA_SOLVER', 'FOLLOW_TRACK', 'OBJECT_SOLVER', 'COPY_LOCATION', 'COPY_ROTATION', 'COPY_SCALE', 'COPY_TRANSFORMS', 'LIMIT_DISTANCE', 'LIMIT_LOCATION', 'LIMIT_ROTATION', 'LIMIT_SCALE', 'MAINTAIN_VOLUME', 'TRANSFORM', 'TRANSFORM_CACHE', 'CLAMP_TO', 'DAMPED_TRACK', 'IK', 'LOCKED_TRACK', 'SPLINE_IK', 'STRETCH_TO', 'TRACK_TO', 'ACTION', 'ARMATURE', 'CHILD_OF', 'FLOOR', 'FOLLOW_PATH', 'PIVOT', 'SHRINKWRAP')
@@ -580,8 +600,11 @@ class Mesh(Thing):
 
     def __init__(self, name, **kwargs):
         super().__init__(name, 'Mesh', **kwargs)
-        self.v_init = copy.deepcopy(self.v)
-        self.v_bkp = copy.deepcopy(self.v)
+        # Don't overwrite internal states if object was retrieved from database
+        if not hasattr(self, 'v_init'):
+            self.v_init = copy.deepcopy(self.v)
+        if not hasattr(self, 'v_bkp'):
+            self.v_bkp = copy.deepcopy(self.v)
     
     @property
     def v(self):
@@ -797,14 +820,14 @@ class CompoundObject(Object):
     For example, a mesh object's data will be wrapped with the Mesh class
     https://docs.blender.org/manual/en/latest/scene_layout/object/types.html
     """
-    def __new__(cls, name, *args, **kwargs): #pylint: disable=unused-argument
+    def __new__(cls, name, obj_type, *args, **kwargs): #pylint: disable=unused-argument
+        if name in [o.name for o in bpy.data.objects]:
+            # If an object with that name exists in the blender env, assert that it is the correct type
+            # the 'new' module should ensure this doesn't happen, so this is here as an additional check
+            assert bpy.data.objects[name].type == obj_type
         return super().__new__(cls, name, *args, **kwargs)
 
     def __init__(self, name, obj_type, data_class, *args, **kwargs):
-        if name in [o.name for o in bpy.data.objects]:
-            # an object with that name exists, but is not the correct type of object
-            if bpy.data.objects[name].type != obj_type:
-                name = utils.new_name(name, [o.name for o in bpy.data.objects])
         super().__init__(name, *args, **kwargs)
         assert self().type == obj_type
         self._data_class = data_class
@@ -843,7 +866,7 @@ class MeshObject(CompoundObject):
         s.v -> automatically returns vertices from them mesh
     """
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, *args, **kwargs)
+        return super().__new__(cls, name, 'MESH', *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'MESH', Mesh, *args, **kwargs)
@@ -917,18 +940,19 @@ class GreasePencil(Thing):
 
     def __init__(self, name, **kwargs):
         super().__init__(name, 'GreasePencil', **kwargs)
-        self._layer = None
-        self._keyframe = None
+        if not hasattr(self, '_layer'):
+            self._layer = None
+            self._keyframe = None
 
-        # initialize hidden variables
-        if not self().layers[:]:
-            self.layer = 'main' # this will also take care of the keyframe
-        else:
-            self.layer = self().layers[0].info
-            if self.layer.frames[:]:
-                self.keyframe = self.layer.frames[0].frame_number
+            # initialize hidden variables
+            if not self().layers[:]:
+                self.layer = 'main' # this will also take care of the keyframe
             else:
-                self.keyframe = 0 # if there was a layer without keyframes in it
+                self.layer = self().layers[0].info
+                if self.layer.frames[:]:
+                    self.keyframe = self.layer.frames[0].frame_number
+                else:
+                    self.keyframe = 0 # if there was a layer without keyframes in it
     
     @property
     def layer(self):
@@ -985,17 +1009,18 @@ class GreasePencilObject(CompoundObject):
     and properties from Object and Greasepencil classes.
     """
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, *args, **kwargs)
+        return super().__new__(cls, name, 'GPENCIL', *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
-        self._color = None
+        if not hasattr(self, '_color'):
+            self._color = None
 
-        # initialize hidden variables
-        if not self().material_slots[:]:
-            self.color = {'white': (1.0, 1.0, 1.0, 1.0)}
-        else:
-            self.color = 0
+            # initialize hidden variables
+            if not self().material_slots[:] and 'white' not in [m.name for m in bpy.data.materials]:
+                self.color = {'white': (1.0, 1.0, 1.0, 1.0)}
+            else:
+                self.color = 0
 
     @property
     def color_index(self):
@@ -1123,7 +1148,7 @@ class Curve(Thing):
 class CurveObject(CompoundObject):
     """Wrapper for curve object"""
     def __new__(cls, name, *args, **kwargs):
-        return super().__new__(cls, name, *args, **kwargs)
+        return super().__new__(cls, name, 'CURVE', *args, **kwargs)
 
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'CURVE', Curve, *args, **kwargs)
