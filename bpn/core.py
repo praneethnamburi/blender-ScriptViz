@@ -24,8 +24,7 @@ class _ThingDB(dict):
     a = new.empty('emp')
     a is utils.get('emp') # True if this is working.
 
-    This will be useful to keep track of handlers and relationships between objects.
-    (and relationships in the future)
+    Something similar will be useful to keep track of handlers and relationships between objects.
     """
     def clean(self):
         """Remove objects not in blender's environment."""
@@ -269,7 +268,7 @@ class Object(Thing):
         return np.array(self().location) # so you can do += 1
     @loc.setter
     def loc(self, new_loc):
-        assert len(new_loc) == 3
+        assert np.size(new_loc) == 3
         self().location = mathutils.Vector(new_loc)
         bpy.context.view_layer.update()
 
@@ -403,18 +402,17 @@ class Object(Thing):
         if target in ['rs', 'rotscl', 'rotscale']:
             attrs = ['rotation_euler', 'scale']
 
-        if values is None:
-            values = [tuple(getattr(self(), attr)) for attr in attrs]
-            # for some reason, s.key() doesn't take current values if I don't use tuple
-        
-        frame_current = bpy.context.scene.frame_current
         if not frame:
-            frame = frame_current
-        bpy.context.scene.frame_set(frame)
+            frame = bpy.context.scene.frame_current
+
+        if values is None:
+            for attr in attrs:
+                self().keyframe_insert(data_path=attr, frame=frame)
+            return self
+        
         for attr, value in zip(attrs, values):
             setattr(self(), attr, value)
             self().keyframe_insert(data_path=attr, frame=frame)
-        # bpy.context.scene.frame_set(frame_current)
 
         return self # so you can chain keyings into one command
     
