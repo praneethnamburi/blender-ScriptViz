@@ -451,6 +451,7 @@ def mobius():
 
 
 def handler1():
+    """Event handler example for manipulating one object based on the status of another."""
     s1 = new.sphere('sph1', coll_name='handler')
     s2 = new.sphere('sph2', coll_name='handler')
     
@@ -462,6 +463,26 @@ def handler1():
 
     s2.loc = (0, 2, 0)
     s1.loc = (0, -2, 0)
+
+def handler2():
+    """Event handler demonstration to create a simple projection"""
+    def receiver_func(self): # self is s1 if a handler is imposed on s1
+        s2.loc = (self.loc[0], self.loc[1], 0) # projection on the XY plane
+
+    s1 = new.sphere('sph1', r=0.4)
+    s2 = new.sphere('sph2', r=0.7)
+    s1.add_handler('loc', receiver_func)
+
+    s1.loc = (0, 0, 0)
+
+    n_frames = 25
+    for kc in range(1, n_frames):
+        s1.loc = (np.sin(kc*2*np.pi/n_frames), kc*2*np.pi/n_frames, 2*np.cos(kc*2*np.pi/n_frames))
+        s1.key(kc, 'l')
+        s2.key(kc, 'l')
+
+    env.Key().auto_lim()
+
 
 def main():
     """

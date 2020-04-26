@@ -50,7 +50,7 @@ from copy import deepcopy
 from timeit import default_timer as timer
 
 import numpy as np
-from blinker import signal
+import blinker
 
 ## Inheritance
 class AddMethods:
@@ -205,6 +205,21 @@ class PortProperties:
 
 
 ## Event handlers and broadcasting using blinker's signal
+def handler_id2dict(k):
+    """
+    Turn a handler ID into meaningful parts
+    A handler id is a string that has the following construction:
+    mode-module-class-attribute(instance)
+    """
+    k_dict = {}
+    stg1 = k.split('(')
+    k_dict['instance'] = stg1[-1].rstrip(')') if len(stg1) == 2 else ''
+    stg2 = stg1[0].split('-')
+    assert len(stg2) == 4
+    k_dict['mode'], k_dict['module'], k_dict['class'], stg3 = stg2
+    k_dict['attr'] = stg3.rstrip('.fset')
+    return k_dict
+
 class Handler:
     """
     Event handlers based on blinker's signal.
@@ -219,13 +234,18 @@ class Handler:
     attr = (function, property)
     mode = (pre, post)
     """
-    def __init__(self, thing, attr, mode='post'):
+    def __init__(self, thing, attr, mode='post', sig=None):
         assert isinstance(attr, str)
         assert hasattr(thing, attr)
         assert mode in ('pre', 'post')
         self._thing = weakref.ref(thing)
         self.attr = attr
         self.mode = mode
+        if sig is None:
+            self.signal = blinker.base.signal
+        else: # providing signal from a specific namespace will leave blinker's default namespace free for other apps
+            assert isinstance(sig.__self__, blinker.base.Namespace)
+            self.signal = sig
         assert self.attr_cat in ('property', 'function')
         if self.attr_cat == 'property':
             assert getattr(self.thing_class, self.attr).fset is not None
@@ -235,13 +255,13 @@ class Handler:
     thing_class = property(lambda s: s.thing if s.thing_is_class else type(s.thing))
     attr_cat = property(lambda s: type(getattr(s.thing_class, s.attr)).__name__)
     mod_name = property(lambda s: s.thing.__module__ if s.thing_is_class else type(s.thing).__module__)
-    cls_id = property(lambda s: s.mode + '-' + s.mod_name + '.' + s.attr_name)
+    cls_id = property(lambda s: s.mode + '-' + s.mod_name + '-' + s.thing_class.__name__ + '-' + s.attr_name)
     @property
     def attr_name(self):
         """Name of the attribute. If it is a property, it must have a setter to support a handler."""
         if self.attr_cat == 'function':
-            return getattr(self.thing_class, self.attr).__qualname__
-        return getattr(self.thing_class, self.attr).fset.__qualname__ + '.fset'
+            return self.attr
+        return self.attr + '.fset'
     @property
     def instance_name(self):
         """Name of the instance"""
@@ -254,10 +274,10 @@ class Handler:
         if self.thing_is_class:
             return self.cls_id
         return self.cls_id + '(' + self.instance_name + ')'
-    @property
-    def parts(self):
-        """Parts of the handler ID (for broadcasting)"""
-        return self.mod_name, self.attr_name, self.instance_name, self.mode
+
+    def id2dict(self):
+        """Handler ID as a dictionary"""
+        return handler_id2dict(self.id)
 
     def broadcast(self):
         """Tweak thing's attr to broadcast a signal either before or after execution."""
@@ -276,9 +296,21 @@ class Handler:
             pass
         """
         assert type(receiver_func).__name__ in ('function', 'method')
-        signal(self.id).connect(receiver_func)
+        r_desc = self.receiver_descriptor(receiver_func)
+        if r_desc not in [r for r in self.receivers if r[1] != '<lambda>']:
+            self.signal(self.id).connect(receiver_func)
+        else:
+            print('Receiver with description '+str(r_desc)+' already connected. No action taken.')
     
-    @property
+    def get_receivers(self):
+        """Return the receivers (weakref list)"""
+        return self.signal(self.id).receivers
+
+    def delete_receivers(self):
+        """Delete all receivers for a signal."""
+        self.signal(self.id).receivers = {}
+
+    @property #**
     def channels(self):
         """Broadcasting channels (if any)"""
         if self.attr_cat == 'function':
@@ -291,7 +323,33 @@ class Handler:
             if hasattr(p.fset, '__broadcast__'):
                 return p.fset.__broadcast__
             return None
-    receivers = property(lambda s: signal(s.id).receivers)
+
+    @property #**
+    def receivers(self):
+        """
+        Descriptions for current receiver functions.
+        ('function'/'method(obj_id)', __qualname__, __module__)
+        """
+        return [self.receiver_descriptor(r()) for r in list(self.get_receivers().values())]
+    
+    def __eq__(self, other):
+        return self.channels == other.channels and self.receivers == other.receivers
+    
+    def __str__(self):
+        return object.__repr__(self)
+
+    def __repr__(self):
+        return self.__module__ + "." + self.__class__.__name__ + ': ' + self.id + '\nChannels: ' + str(self.channels) + '\nReceivers: ' + str(self.receivers)
+
+    @staticmethod
+    def receiver_descriptor(r):
+        """Tuple description of a signal's receiver function"""
+        f_type = type(r).__name__
+        if f_type == 'method':
+            bound_obj = r.__self__
+            bound_obj_id = bound_obj.name if hasattr(bound_obj, 'name') else hex(id(bound_obj))
+            return (f_type+'('+ bound_obj_id +')', r.__qualname__, r.__module__)
+        return (f_type, r.__qualname__, r.__module__)
 
     def _broadcast_function(self):
         """
@@ -310,14 +368,14 @@ class Handler:
             func = getattr(meth.__self__.__class__, meth.__name__)
 
         def _new_func_pre(s, *args, **kwargs):
-            if bool(signal(signal_name).receivers):
-                signal(signal_name).send(s) # signal is sent BEFORE the object is modified
+            if bool(self.signal(signal_name).receivers):
+                self.signal(signal_name).send(s) # signal is sent BEFORE the object is modified
             f_out = func(s, *args, **kwargs)
             return f_out
         def _new_func_post(s, *args, **kwargs):
             f_out = func(s, *args, **kwargs)
-            if bool(signal(signal_name).receivers):
-                signal(signal_name).send(s) # signal is sent AFTER the object is modified
+            if bool(self.signal(signal_name).receivers):
+                self.signal(signal_name).send(s) # signal is sent AFTER the object is modified
             return f_out
 
         _new_func = _new_func_pre if self.mode == 'pre' else _new_func_post
@@ -346,25 +404,25 @@ class Handler:
 
         def _new_fset_pre(x, s): # x is the object whose property is being modified (self)
             # broadcast signal for all members
-            if bool(signal(signal_name).receivers):
-                signal(signal_name).send(x)
+            if bool(self.signal(signal_name).receivers):
+                self.signal(signal_name).send(x)
             # member-specific broadcast
             instance_name = x.name if hasattr(x, 'name') else hex(id(x))
             new_signal_name = signal_name+'('+instance_name+')'
-            if bool(signal(new_signal_name).receivers):
-                signal(new_signal_name).send(x) # signal is sent AFTER the object is modified
+            if bool(self.signal(new_signal_name).receivers):
+                self.signal(new_signal_name).send(x) # signal is sent AFTER the object is modified
             f_out = p.fset(x, s)
             return f_out
         def _new_fset_post(x, s): # x is the object whose property is being modified (self)
             f_out = p.fset(x, s)
             # broadcast signal for all members
-            if bool(signal(signal_name).receivers):
-                signal(signal_name).send(x)
+            if bool(self.signal(signal_name).receivers):
+                self.signal(signal_name).send(x)
             # member-specific broadcast
             instance_name = x.name if hasattr(x, 'name') else hex(id(x))
             new_signal_name = signal_name+'('+instance_name+')'
-            if bool(signal(new_signal_name).receivers):
-                signal(new_signal_name).send(x) # signal is sent AFTER the object is modified
+            if bool(self.signal(new_signal_name).receivers):
+                self.signal(new_signal_name).send(x) # signal is sent AFTER the object is modified
             return f_out
 
         _new_fset = _new_fset_pre if self.mode == 'pre' else _new_fset_post

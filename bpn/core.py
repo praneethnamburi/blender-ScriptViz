@@ -13,6 +13,7 @@ import os
 import copy
 
 import numpy as np
+import blinker
 
 import pntools as pn
 
@@ -64,6 +65,28 @@ class _ThingDB(dict):
         return None
 
 ThingDB = _ThingDB()
+
+
+class _HandlerDB(blinker.base.Namespace):
+    """
+    Create a separate namespace for handlers in the bpn core class
+    handler id blueprint: mode-module-class-attribute(instance)
+    """
+    def delete_receivers(self):
+        """Remove all receivers"""
+        for s in self:
+            self.signal(s).receivers = {}
+    def split_keys(self, ret_vals=None):
+        """Split each key into meaningful parts, and return as a list of tuples"""
+        ret = {}
+        if ret_vals is None:
+            ret_vals = ['mode', 'module', 'class', 'attr', 'instance']
+        for k in self:
+            idd = pn.handler_id2dict(k)
+            ret[tuple([idd[r] for r in ret_vals])] = k
+        return ret
+
+HandlerDB = _HandlerDB()
 
 
 class Thing:
@@ -146,10 +169,19 @@ class Thing:
                 print(new_name+' already present. Used '+new_name_checked)
 
     def add_handler(self, attr, receiver_func, mode='post'):
-        """
-        Add an event handler
-        """
-        pn.add_handler(self, attr, receiver_func, mode)
+        """Add an event handler"""
+        h = pn.Handler(self, attr, mode, HandlerDB.signal)
+        h.broadcast()
+        h.add_receiver(receiver_func)
+        return h
+
+    @property
+    def handlers(self):
+        """Return a list of pn.Handler objects associated with this thing"""
+        h_ref = pn.Handler(self, 'name') # dummy handler
+        h_ref_desc = (h_ref.mod_name, h_ref.instance_name)
+        signal_id_list = [pn.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'instance']).items() if k == h_ref_desc]
+        return [pn.Handler(self, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
 
 
 class Collection(Thing):
@@ -1025,8 +1057,10 @@ class GreasePencilObject(CompoundObject):
         super().__init__(name, 'GPENCIL', GreasePencil, *args, **kwargs)
         if not hasattr(self, '_color'):
             self._color = None
-            if not self().material_slots[:] and 'white' not in [m.name for m in bpy.data.materials]:
-                self.color = {'white': (1.0, 1.0, 1.0, 1.0)}
+            if not self().material_slots[:]:
+                if 'white' not in [m.name for m in bpy.data.materials]:
+                    self.color = {'white': (1.0, 1.0, 1.0, 1.0)}
+                self().data.materials.append(bpy.data.materials['white'])
             else:
                 self.color = 0
 
