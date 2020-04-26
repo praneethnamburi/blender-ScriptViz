@@ -235,7 +235,7 @@ def spiral2():
     for frame_number in range(0, np.shape(sp.pts.co)[0]):
         s.loc = sp_pts[frame_number, :]
         s.frame = trf.Quat([0, 0, 1], 5*np.pi/180, origin=s.loc)*s.frame
-        s._frame_gp.keyframe = frame_number+1
+        s.frame_gp.keyframe = frame_number+1
         s.show_frame()
         s.key(frame_number+1)
 
@@ -455,7 +455,7 @@ def handler1():
     s1 = new.sphere('sph1', coll_name='handler')
     s2 = new.sphere('sph2', coll_name='handler')
     
-    def receiver(x):
+    def receiver(x): # pylint: disable=unused-argument # event receiver functions need one input argument
         s2.show_frame()
 
     # when s1 changes location, show s2's frame

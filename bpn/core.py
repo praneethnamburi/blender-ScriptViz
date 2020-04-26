@@ -24,6 +24,7 @@ from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
 from . import new, utils, trf
 
+
 class _ThingDB(dict):
     """
     Database of things.
@@ -50,7 +51,11 @@ class _ThingDB(dict):
         """Remove an object from database"""
         self[thing.__class__.__name__] = [t for t in self[thing.__class__.__name__] if t.name != thing.name]
     def add(self, thing):
-        """Add a thing to the database. DOES NOT CHECK IF IT ALREADY EXISTS."""
+        """
+        Add a thing to the database. DOES NOT CHECK IF IT ALREADY EXISTS.
+        The parent class of this module 'Thing' tries to retrieve an object, 
+        and summons this add functionality if the retrieval fails.
+        """
         self[thing.__class__.__name__].append(thing)
     def retrieve(self, thing_name, cls_name):
         """If thing_name of class cls_name is in the database, return it. Else return None"""
@@ -236,8 +241,8 @@ class Object(Thing):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'Object', *args, **kwargs)
         # don't over-write internal states if object was retrieved from database
-        if not hasattr(self, '_frame_gp'):
-            self._frame_gp = None # grease pencil object that displays the frame
+        if not hasattr(self, 'frame_gp'):
+            self.frame_gp = None # grease pencil object that displays the frame
         if not hasattr(self, 'frame_orig'):
             self.frame_orig = self.frame
 
@@ -311,17 +316,17 @@ class Object(Thing):
             'scale': 1,
             })
         pcf = trf.CoordFrame(self.frame.m, unit_vectors=True).as_points().transform(trf.scaletf(kwargs['scale']), self.frame.m)
-        if self._frame_gp is None:
-            self._frame_gp = new.pencil(name, **{**names, **kwargs})
+        if self.frame_gp is None:
+            self.frame_gp = new.pencil(name, **{**names, **kwargs})
         for cnt in (0, 1, 2):
-            this_stroke_name = self._frame_gp.data.layer.info+'_key{:04d}'.format(self._frame_gp.data.keyframe.frame_number)+'_stroke{:03d}'.format(cnt)
-            this_stroke = [stroke for key_name, stroke in self._frame_gp.strokes.items() if key_name == this_stroke_name]
+            this_stroke_name = self.frame_gp.data.layer.info+'_key{:04d}'.format(self.frame_gp.data.keyframe.frame_number)+'_stroke{:03d}'.format(cnt)
+            this_stroke = [stroke for key_name, stroke in self.frame_gp.strokes.items() if key_name == this_stroke_name]
             if this_stroke:
                 this_stroke[0].points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
             else:
-                self._frame_gp.stroke(trf.PointCloud(pcf.co[[0, cnt+1]], np.eye(4)), color='crd_'+('i', 'j', 'k')[cnt], line_width=kwargs['line_width']*kwargs['scale'])
-        self._frame_gp().update_tag()
-        return self._frame_gp
+                self.frame_gp.stroke(trf.PointCloud(pcf.co[[0, cnt+1]], np.eye(4)), color='crd_'+('i', 'j', 'k')[cnt], line_width=kwargs['line_width']*kwargs['scale'])
+        self.frame_gp().update_tag()
+        return self.frame_gp
 
     # transformations
     @property
