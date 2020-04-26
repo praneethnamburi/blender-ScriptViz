@@ -498,7 +498,7 @@ class Text(core.Object):
             self.base_obj_name = self.obj_names[0]
         else: # make an empty and parent everything
             emp = bpy.data.objects.new(kwargs_names['obj_name'], None)
-            col = core.Collection('coll_name')()
+            col = core.Collection(kwargs_names['coll_name'])()
             col.objects.link(emp)
             for o in [bpy.data.objects[obj_name] for obj_name in self.obj_names]:
                 o.parent = emp
