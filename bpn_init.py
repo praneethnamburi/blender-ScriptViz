@@ -25,13 +25,9 @@ import mathutils #pylint: disable=import-error
 
 # Peronal library
 import pntools as pn
-
 import bpn
-
 # modules
 from bpn import new, env, demo, utils, turtle, vef, trf, io, core
-# classes
-from bpn.new import CircularRig
 # functions
 from bpn.utils import get
 

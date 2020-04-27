@@ -290,8 +290,8 @@ class Object(Thing):
         # Using Quaternions
         n1 = trf.norm_vec(self.normal)
         n2 = trf.norm_vec(new_normal)
-        q = trf.Quat(np.cross(n1, n2), np.arccos(np.dot(n1, n2)))
-        self.frame = q*self.frame # quaternion specified in world frame
+        q = trf.Quat(np.cross(n1, n2), np.arccos(np.dot(n1, n2)), trf.CoordFrame(origin=self.frame.origin))
+        self.frame = q*self.frame # quaternion direction specified in world frame, origin at origin of the object
         bpy.context.view_layer.update()
 
     def show_frame(self, name=None, **kwargs):
@@ -482,17 +482,6 @@ class Object(Thing):
             self().keyframe_insert(data_path=attr, frame=frame)
 
         return self # so you can chain keyings into one command
-    
-    # parenting
-    def add_container(self, container_name=None, typ='CUBE', size=0.25):
-        """
-        Add a container (parent object).
-        By default, set container_name to <obj_name>+'_container'
-        """
-        if container_name is None:
-            container_name = self.name+'_container'
-        self.container = new.empty(container_name, typ, size=size, coll_name=self().users_collection[0].name)
-        self().parent = self.container() # container is a core.Object
     
     @property
     def coll(self):
@@ -1200,3 +1189,30 @@ class CurveObject(CompoundObject):
     def __init__(self, name, *args, **kwargs):
         super().__init__(name, 'CURVE', Curve, *args, **kwargs)
  
+
+class ContainerObject(Object):
+    """
+    Create an empty container object (to be used by Text, Screen, etc)
+    It is easier to move a collection of objects around with this, compared to using a collection.
+    """
+    def __new__(cls, name, **kwargs): # pylint: disable=arguments-differ
+        return super().__new__(cls, name, **kwargs)
+
+    def __init__(self, name, **kwargs):
+        super().__init__(name, None, **kwargs)
+    
+    def add(self, obj, keep_in_world=True):
+        """
+        Add an object to the container.
+        Don't change its matrix_world (if keep_in_world is True).
+        """
+        assert isinstance(obj, Object)
+        if keep_in_world:
+            obj_frame = obj.frame
+        obj().parent = self()
+        if keep_in_world:
+            obj.frame = obj_frame
+        
+    def children(self):
+        """Get the children of the object."""
+        return [utils.enhance(c) for c in self().children]

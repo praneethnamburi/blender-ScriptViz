@@ -28,6 +28,7 @@ Tube class:
 """
 import sys
 import types
+import copy
 import numpy as np
 
 import pntools as pn
@@ -351,8 +352,10 @@ def grease_pencil():
     x1 = θ/2
 
     # equivalent of plot
-    pc1 = trf.PointCloud(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((1, 1, 1)))
-    pc2 = trf.PointCloud(np.vstack((x1, y1, z1)).T, trf.normal2tfmat((0, 0, 1)))
+    pc1 = trf.PointCloud(np.vstack((x1, y1, z1)).T, np.eye(4))
+    pc2 = copy.deepcopy(pc1)
+    pc1.frame = trf.Quat([-1, 1, 0], np.pi/4)*pc1.frame
+    
     gp.stroke(pc1, color=2, layer='sl1', keyframe=0)
     # pressure controls thickness of individual points
     gp.stroke(pc2, color=1, layer='sl3', keyframe=10, pressure=np.linspace(0, 3, len(θ)))
@@ -361,11 +364,6 @@ def grease_pencil():
     gp.keyframe = 30
 
     # show the frame for point cloud 1
-    # pcf = pc1.frame.as_points()
-    # gp.layer = 'crd'
-    # gp.stroke(trf.PointCloud(pcf.co[[0, 1]]), color='crd_i', line_width=80)
-    # gp.stroke(trf.PointCloud(pcf.co[[0, 2]]), color='crd_j', line_width=80)
-    # gp.stroke(trf.PointCloud(pcf.co[[0, 3]]), color='crd_k', line_width=80)
     emp = new.empty('pc1_frame', coll_name='Pencil')
     emp.frame = pc1.frame
     emp.show_frame()

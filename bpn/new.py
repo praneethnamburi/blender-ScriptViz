@@ -24,7 +24,7 @@ def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     if name is None:
         name = 'empty'
     name = utils.new_name(name, [o.name for o in bpy.data.objects])
-    s = core.Object(name, None, empty_display_type=typ, empty_display_size=size)
+    s = core.ContainerObject(name, empty_display_type=typ, empty_display_size=size)
     s.to_coll(coll_name)
     return s
 
@@ -523,7 +523,10 @@ class ObjectOnCircle(core.Object):
     def __init__(self, this_thing, coll_name, path, size, targ=None):
         super().__init__(this_thing.name.lower(), this_thing)
         self.to_coll(coll_name)
-        self.add_container(size=size)
+        container_name = utils.new_name(self.name+'_container', [o.name for o in bpy.data.objects])
+        self.container = core.ContainerObject(container_name, empty_display_type='CUBE', empty_display_size=size)
+        self.container.to_coll(coll_name)
+        self.container.add(self)
         if isinstance(path, (int, float)):
             self.path = bezier_circle(r=path, curve_name=this_thing.name+'Path', obj_name=this_thing.name.lower()+'_path', coll_name=coll_name)
         if isinstance(path, core.Object):
@@ -698,3 +701,11 @@ class CircularRig(core.Collection):
         if targ == 'camera_angle':
             self.camera.theta = value
             self.camera.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
+
+
+class Screen(core.ContainerObject):
+    def __init__(self, name, **kwargs):
+        super().__init__(name, **kwargs)
+        kwargs, _ = pn.clean_kwargs(kwargs, {'width': 4, 'height': 3})
+        self.width = kwargs['width']
+        self.height = kwargs['height']
