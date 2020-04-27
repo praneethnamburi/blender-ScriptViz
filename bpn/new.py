@@ -13,7 +13,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import vef, utils, core, turtle, trf, io, env
+from bpn import vef, utils, core, turtle, trf, io, env
 
 def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     """

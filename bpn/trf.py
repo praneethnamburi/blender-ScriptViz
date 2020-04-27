@@ -326,11 +326,11 @@ def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_fram
     # if the frame of reference for transformation is not specified, perform transform in the vertex frame of reference.
     if tf_frame_mat is None:
         tf_frame_mat = vert_frame_mat
-    if type(vert_frame_mat).__name__ == 'CoordFrame':
+    if isinstance(vert_frame_mat, CoordFrame):
         vert_frame_mat = vert_frame_mat.m
-    if type(tf_frame_mat).__name__ == 'CoordFrame':
+    if isinstance(tf_frame_mat, CoordFrame):
         tf_frame_mat = tf_frame_mat.m
-    if type(out_frame_mat).__name__ == 'CoordFrame':
+    if isinstance(out_frame_mat, CoordFrame):
         out_frame_mat = out_frame_mat.m
     # ensure 4x4
     vert_frame_mat = m4(vert_frame_mat)

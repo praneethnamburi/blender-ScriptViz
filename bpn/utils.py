@@ -26,7 +26,7 @@ import mathutils # pylint: disable=import-error
 
 import pntools as pn
 
-from . import core, env
+from bpn import core, env
 
 PATH = {}
 DEV_ROOT = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))

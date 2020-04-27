@@ -37,7 +37,7 @@ import bpy #pylint: disable=import-error
 import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from . import new, env, turtle, trf, utils
+from bpn import new, env, turtle, trf, utils
 
 def spheres():
     """

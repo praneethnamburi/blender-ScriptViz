@@ -11,7 +11,7 @@ import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
-from . import new, trf, utils, vef
+from bpn import new, trf, utils, vef
 
 class Draw:
     """
@@ -345,7 +345,7 @@ class SubMsh:
     
     @frame.setter
     def frame(self, new_frame):
-        assert type(new_frame).__name__ == 'CoordFrame'
+        assert isinstance(new_frame, trf.CoordFrame)
         self._frame = new_frame
 
     @property
@@ -361,7 +361,7 @@ class SubMsh:
     @pts.setter
     def pts(self, ptcloud):
         """Write points back into the parent mesh."""
-        assert type(ptcloud).__name__ == 'PointCloud'
+        assert isinstance(ptcloud, trf.PointCloud)
         assert ptcloud.n == self.nV
         v = self.parent.v
         v[self.vi, :] = ptcloud.in_frame(self.parent.frame).co
@@ -395,14 +395,14 @@ class CenteredSubMsh(SubMsh):
     @origin.setter
     def origin(self, new_origin):
         # moving the origin for this type of mesh will move the points!
-        assert type(new_origin).__name__ == 'PointCloud'
+        assert isinstance(new_origin, trf.PointCloud)
         self.pts = self.pts.in_world().transform(np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin)))
         self._frame = self.frame
     
     @frame.setter
     def frame(self, new_frame):
         # user can manually change the reference frame. If the origin is different, then the points are going to move!
-        assert type(new_frame).__name__ == 'CoordFrame'
+        assert isinstance(new_frame, trf.CoordFrame)
         # this line moves the points, and explicitly specifies that the new frame was specified in world coordinates.
         self.origin = trf.PointCloud(np.array([new_frame.origin]), trf.CoordFrame())
         # the orientation of the frame is simply taken from new_frame (vectors will be normalized!)
@@ -455,7 +455,7 @@ class DirectedSubMsh(SubMsh):
     @origin.setter
     def origin(self, new_origin):
         # moving the origin for this type of mesh will move the points!
-        assert type(new_origin).__name__ == 'PointCloud'
+        assert isinstance(new_origin, trf.PointCloud)
         tfmat = np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin))
         new_frame = trf.CoordFrame(tfmat@self.frame.m)
         self.frame = new_frame
@@ -463,7 +463,7 @@ class DirectedSubMsh(SubMsh):
     @frame.setter
     def frame(self, new_frame):
         # User can manually change the reference frame. Points follow frame.
-        assert type(new_frame).__name__ == 'CoordFrame'
+        assert isinstance(new_frame, trf.CoordFrame)
         new_frame = trf.CoordFrame(new_frame.m) # to ensure new_frame matrix has unit vectors vectors
         # The relative positions of the points don't change because the points are following the frame
         self.pts = trf.PointCloud(self.pts.in_frame(self.frame).co, new_frame)
@@ -472,7 +472,7 @@ class DirectedSubMsh(SubMsh):
     @normal.setter
     def normal(self, new_normal):
         """new_normal is a 'direction' in world coordinates."""
-        assert type(new_normal).__name__ == 'PointCloud'
+        assert isinstance(new_normal, trf.PointCloud)
         # trf.normal2tfmat takes a unit vector (or normalizes it) and computes a transformation matrix required to transform the point (0, 0, 1) to nhat
         n2tf = trf.m4(trf.normal2tfmat(new_normal.in_frame(self.frame).co[0, :]))
         # the new frame of reference is the transformed coordinate system pushed into the world.
@@ -481,7 +481,7 @@ class DirectedSubMsh(SubMsh):
 
     def change_normal(self, new_normal):
         """Change the normal WITHOUT moving the points."""
-        assert type(new_normal).__name__ == 'PointCloud'
+        assert isinstance(new_normal, trf.PointCloud)
         n = new_normal.in_world().co[0, :]
         self._frame.k = trf.norm_vec(n)
         self._frame = self.frame

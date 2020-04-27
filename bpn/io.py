@@ -13,7 +13,7 @@ import bpy #pylint: disable=import-error
 
 import pntools as pn
 
-from . import new, env, utils, core
+from bpn import new, env, utils, core
 
 # File IO
 @env.ReportDelta

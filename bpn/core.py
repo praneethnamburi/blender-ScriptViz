@@ -22,8 +22,7 @@ import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
-from . import new, utils, trf
-
+from bpn import new, utils, trf
 
 class _ThingDB(dict):
     """
@@ -266,7 +265,7 @@ class Object(Thing):
     
     @frame.setter
     def frame(self, new_frame):
-        m = new_frame.m if type(new_frame).__name__ == 'CoordFrame' else new_frame
+        m = new_frame.m if isinstance(new_frame, trf.CoordFrame) else new_frame
         self().matrix_world = mathutils.Matrix(m)
         bpy.context.view_layer.update()
 
@@ -919,7 +918,7 @@ class MeshObject(CompoundObject):
         point cloud into the desired frame of reference before putting
         it here.
         """
-        assert type(new_pts).__name__ == 'PointCloud'
+        assert isinstance(new_pts, trf.PointCloud)
         self.data.v = new_pts.co
         self.frame = new_pts.frame
     
@@ -1132,7 +1131,7 @@ class GreasePencilObject(CompoundObject):
         if kwargs['color'] is not None:
             self.color = kwargs['color']
 
-        assert type(ptcloud).__name__ == 'PointCloud'
+        assert isinstance(ptcloud, trf.PointCloud)
         gp_stroke = self.data.keyframe.strokes.new()
         gp_stroke.display_mode = kwargs['display_mode']
 
