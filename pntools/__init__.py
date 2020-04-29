@@ -217,7 +217,7 @@ def handler_id2dict(k):
     stg2 = stg1[0].split('-')
     assert len(stg2) == 4
     k_dict['mode'], k_dict['module'], k_dict['class'], stg3 = stg2
-    k_dict['attr'] = stg3.rstrip('.fset')
+    k_dict['attr'] = stg3.replace('.fset', '')
     return k_dict
 
 class Handler:
@@ -437,7 +437,7 @@ class Handler:
         return property(p.fget, _new_fset)
 
 
-def add_handler(thing, attr, receiver_func, mode='post'):
+def add_handler(thing, attr, receiver_func, mode='post', sig=None):
     """
     One-liner access to setting up a broadcaster and receiver.
 
@@ -450,7 +450,7 @@ def add_handler(thing, attr, receiver_func, mode='post'):
         # s1.translate is a method, and fire fun whenever s1.translate is invoked!
         add_handler(s1, 'translate', core.Object.show_frame, mode='post')
     """
-    h = Handler(thing, attr, mode)
+    h = Handler(thing, attr, mode, sig)
     h.broadcast()
     h.add_receiver(receiver_func)
     return h
