@@ -183,9 +183,23 @@ class Thing:
     def handlers(self):
         """Return a list of pn.Handler objects associated with this thing"""
         h_ref = pn.Handler(self, 'name') # dummy handler
+        class Ret(list):
+            """Change the list representation for handlers to summarize handlers nicely. Debug/summary tool."""
+            def __repr__(self):
+                ret_str = ''
+                for h in self:
+                    ret_str += h.__repr__() + '\n\n'
+                return ret_str
+        ret = Ret()
+        # add object-level handlers
         h_ref_desc = (h_ref.mod_name, h_ref.instance_name)
         signal_id_list = [pn.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'instance']).items() if k == h_ref_desc]
-        return [pn.Handler(self, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
+        ret += [pn.Handler(self, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
+        # add class-level handlers
+        h_class_desc = (h_ref.mod_name, h_ref.thing_class.__name__, '')
+        signal_id_list = [pn.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'class', 'attr', 'instance']).items() if (k[0], k[1], k[3]) == h_class_desc]
+        ret += [pn.Handler(self.__class__, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
+        return ret
 
 
 class Collection(Thing):
@@ -1006,6 +1020,10 @@ class GreasePencil(Thing):
             self._layer = self().layers.new(layer_name)
             self.keyframe = 0 # make a default keyframe at 0 with every new layer
 
+    def layer_clear(self):
+        """Remove all strokes from all frames in the current layer"""
+        self.layer.clear() # removes all keyframes and strokes
+
     @property
     def keyframe(self):
         """Returns the current keyframe."""
@@ -1023,6 +1041,10 @@ class GreasePencil(Thing):
             self._layer.frames.new(keynum)
         self._keyframe = [kf for kf in self.layer.frames if kf.frame_number == keynum][0]
     
+    def keyframe_clear(self):
+        """Clear the current keyframe in the current layer."""
+        self.keyframe.clear()
+
     @property
     def layers(self):
         """Return names of all layers."""
@@ -1136,7 +1158,7 @@ class GreasePencilObject(CompoundObject):
         gp_stroke.display_mode = kwargs['display_mode']
 
         gp_stroke.points.add(count=ptcloud.n)
-        gp_stroke.points.foreach_set('co', tuple(ptcloud.in_world().co.flatten())) # more efficient
+        gp_stroke.points.foreach_set('co', tuple(ptcloud.in_frame(self.frame).co.flatten())) # more efficient
         gp_stroke.material_index = self.color_index
         gp_stroke.line_width = kwargs['line_width']
         n_pts = len(gp_stroke.points[:])
@@ -1148,9 +1170,6 @@ class GreasePencilObject(CompoundObject):
                 assert len(kwargs[attr]) == n_pts
             gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
         return gp_stroke
-
-        # bpy.data.grease_pencils[0].layers['sl1'].frames[1].clear() # removes the stroke, but there is still a keyframe
-        # bpy.data.grease_pencils[0].layers['sl1'].clear() # removes all keyframes and strokes
 
     @property
     def strokes(self):
