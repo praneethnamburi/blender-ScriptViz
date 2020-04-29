@@ -26,13 +26,14 @@ knee_articulation_angle = 77*np.pi/180
 ankle_articulation_angle = 33*np.pi/180
 n_keyframes = 22
 
+hip_articulation_center_rel_ilium = trf.PointCloud(hip_articulation_center_world, np.eye(4)).in_frame(get('Ilium_R').frame).co[0, :]
 knee_articulation_center_rel_femur = trf.PointCloud(knee_articulation_center_world, np.eye(4)).in_frame(get('Femur_R').frame).co[0, :]
 ankle_articulation_center_rel_tibia = trf.PointCloud(ankle_articulation_center_world, np.eye(4)).in_frame(get('Tibia_R').frame).co[0, :]
 
-def _transform_bones(bones, n_kf, articulation_center_rel, articulation_center_frames, articulation_angle):
-    for tkf in range(1, n_kf):
+def _transform_bones(bones, articulation_center_rel, articulation_center_frames, articulation_angle):
+    for tkf in range(1, n_keyframes):
         articulation_center = trf.PointCloud(articulation_center_rel, articulation_center_frames[tkf]).in_world().co[0, :]
-        q = trf.Quat([1, 0, 0], articulation_angle*tkf/n_kf, trf.CoordFrame(origin=articulation_center))
+        q = trf.Quat([1, 0, 0], articulation_angle*tkf/n_keyframes, trf.CoordFrame(origin=articulation_center))
         for b in bones:
             all_frames[b.name][tkf] = q*all_frames[b.name][tkf]
 
@@ -45,8 +46,9 @@ for bone in leg_bones:
 # apply transformation around the hip joint
 exc_list = ['Ilium_R']
 bone_list = [b for b in leg_bones if b.name not in exc_list]
+# _transform_bones(bone_list, hip_articulation_center_rel_ilium, all_frames['Ilium_R'], hip_articulation_angle)
 for kf in range(1, n_keyframes):
-    hip_articulation_center = hip_articulation_center_world
+    hip_articulation_center = trf.PointCloud(hip_articulation_center_rel_ilium, all_frames['Ilium_R'][kf]).in_world().co[0, :]
     q_hip = trf.Quat([1, 0, 0], hip_articulation_angle*kf/n_keyframes, trf.CoordFrame(origin=hip_articulation_center))
     for bone in bone_list:
         all_frames[bone.name][kf] = q_hip*all_frames[bone.name][kf]
@@ -68,7 +70,6 @@ for kf in range(1, n_keyframes):
     q_ankle = trf.Quat([1, 0, 0], ankle_articulation_angle*kf/n_keyframes, trf.CoordFrame(origin=ankle_articulation_center))
     for bone in bone_list:
         all_frames[bone.name][kf] = q_ankle*all_frames[bone.name][kf]
-
 
 # Display in blender
 for kf in range(n_keyframes):
