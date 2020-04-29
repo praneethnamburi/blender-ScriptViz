@@ -247,7 +247,7 @@ class Key:
     def goto(self, frame):
         """Go to a frame given by frame."""
         assert isinstance(frame, int)
-        bpy.context.scene.frame_current = frame
+        bpy.context.scene.frame_set(frame)
 
 
 def reset():
