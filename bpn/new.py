@@ -701,11 +701,3 @@ class CircularRig(core.Collection):
         if targ == 'camera_angle':
             self.camera.theta = value
             self.camera.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
-
-
-class Screen(core.ContainerObject):
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-        kwargs, _ = pn.clean_kwargs(kwargs, {'width': 4, 'height': 3})
-        self.width = kwargs['width']
-        self.height = kwargs['height']

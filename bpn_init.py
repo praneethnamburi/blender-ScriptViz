@@ -27,7 +27,9 @@ import mathutils #pylint: disable=import-error
 import pntools as pn
 import bpn
 # modules
-from bpn import new, env, demo, utils, turtle, vef, trf, io, core
+from bpn import new, env, demo, utils, turtle, vef, trf, io, mantle, core
+# classes
+from bpn.mantle import Pencil, Screen
 # functions
 from bpn.utils import get
 
