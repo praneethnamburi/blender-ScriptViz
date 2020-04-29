@@ -66,5 +66,5 @@ def reframe_bones_pca():
 # p2 = bpn.io.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
 
 # (load skeletalSystem_originAtCenter_bkp02.blend)
-# fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
-# bpn.io.animate_simple(fname)
+fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+bpn.io.animate_simple(fname)

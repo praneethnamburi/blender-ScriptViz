@@ -31,3 +31,18 @@ def load(obj_list=None, coll_name='Bones'):
             obj.to_coll(coll_name)
     
     return ret
+
+def load_coll(coll_name='Skeletal_Sys', fname=None):
+    """
+    Load anatomical meshes from the SKELETON file.
+    :param obj_list: (list) list of strings specifying the names of bones.
+    :param coll_name: (string) target collection to put the bones into.
+    """
+    if fname is None:
+        fname = SKELETON
+    assert os.path.exists(fname)
+    with bpy.data.libraries.load(fname) as (data_from, data_to):
+        data_to.collections = [name for name in data_from.collections if name in coll_name]
+    
+    for coll in data_to.collections:
+        bpy.context.scene.collection.children.link(coll)
