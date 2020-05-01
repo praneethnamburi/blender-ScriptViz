@@ -66,5 +66,45 @@ def reframe_bones_pca():
 # p2 = bpn.io.readattr('Skeletal_Sys', [1, 100], ['location', 'rotation_euler'], fname)
 
 # (load skeletalSystem_originAtCenter_bkp02.blend)
-fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
-bpn.io.animate_simple(fname)
+# fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+# bpn.io.animate_simple(fname)
+
+def save_nutation_coordframes():
+    """Pickle Nutation trf.CoordFrame objects"""
+    from apps import anatomy
+    import pickle
+
+    SKELETON = "D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem_originAtCenter_bkp02.blend"
+    anatomy.load_coll('Skeletal_Sys', SKELETON)
+
+    fname = r'D:\Workspace\blenderPython\apps\anatomy\nutations.xlsx'
+    bpn.io.animate_simple(fname)
+
+    leg_bones = env.Props().get_children('Leg_Bones_R')
+    leg_bones = [utils.enhance(b) for b in leg_bones]
+
+    env.Key().goto(100)
+    nutation_in = {}
+    for bone in leg_bones:
+        nutation_in[bone.name] = bone.frame
+
+    env.Key().goto(1)
+    nutation_out = {}
+    for bone in leg_bones:
+        nutation_out[bone.name] = bone.frame
+
+    sav_file = os.path.join(os.path.dirname(anatomy.__file__), 'nutations.pkl')
+    with open(sav_file, 'wb') as f:
+        pickle.dump([nutation_in, nutation_out], f)
+
+    print('Saved nutations to : ' + sav_file)
+
+def load_nutation_coordframes():
+    """Load picked nutations"""
+    from apps import anatomy
+    import pickle
+
+    sav_file = os.path.join(os.path.dirname(anatomy.__file__), 'nutations.pkl')
+    with open(sav_file, 'rb') as f:
+        nutation_in, nutation_out = pickle.load(f)
+    return nutation_in, nutation_out

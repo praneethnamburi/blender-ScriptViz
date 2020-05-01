@@ -1224,7 +1224,8 @@ class ContainerObject(Object):
         Add an object to the container.
         Don't change its matrix_world (if keep_in_world is True).
         """
-        assert isinstance(obj, Object)
+        # This assertion fails if modules are reloaded, and the object passed was in a different module
+        # assert isinstance(obj, Object)
         if keep_in_world:
             obj_frame = obj.frame
         obj().parent = self()

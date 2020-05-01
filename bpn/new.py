@@ -685,7 +685,8 @@ class CircularRig(core.Collection):
         if value is None:
             value = self.camera().data.lens if targ in ('lens', 'fov') else value 
             value = self.target if targ == 'target' else value
-            value = self.theta if targ == 'camera_angle' else value
+            value = self.theta if targ in ('camera_angle', 'theta') else value
+            value = self.center if targ == 'center' else value
 
         if targ in ('lens', 'fov'):
             if targ == 'lens':
@@ -701,3 +702,17 @@ class CircularRig(core.Collection):
         if targ == 'camera_angle':
             self.camera.theta = value
             self.camera.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
+
+        if targ == 'theta':
+            self.theta = value
+            self.camera.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
+            self.key_light.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
+            self.fill_light.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
+            self.back_light.container().constraints[0].keyframe_insert('offset_factor', frame=frame)
+
+        if targ == 'center':
+            self.center = value
+            self.camera.path().keyframe_insert('location', frame=frame)
+            self.key_light.path().keyframe_insert('location', frame=frame)
+            self.fill_light.path().keyframe_insert('location', frame=frame)
+            self.back_light.path().keyframe_insert('location', frame=frame)
