@@ -565,7 +565,7 @@ class Object(Thing):
     def get_constraint(self, constraint_type):
         """Returns the bpy.types.Constraint, or makes a new one if a constraint doesn't exist."""
         if self.constraint_list[constraint_type.lower()] is not None:
-            return self().constratints[self.constraint_list[constraint_type.lower()]]
+            return self().constraints[self.constraint_list[constraint_type.lower()]]
         return self().constraints.new(constraint_type.upper())
 
     def follow_path(self, path_obj=None, **kwargs):
