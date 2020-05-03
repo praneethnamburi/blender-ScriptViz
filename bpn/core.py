@@ -507,7 +507,7 @@ class Object(Thing):
             return this_coll
         return Collection(this_coll[-1].name)
 
-    def to_coll(self, coll_name, typ='move'):
+    def to_coll(self, coll_name, typ='move', link=True):
         """
         Move this object to a collection.
 
@@ -524,13 +524,18 @@ class Object(Thing):
             coll_name = coll_name.name
         newC = Collection(coll_name)
         if coll_name not in [c.name for c in self().users_collection]: # link only if the object isn't in collection already
-            newC().objects.link(self())
+            if link:
+                newC().objects.link(self())
             if typ == 'move' and oldC: # if it was part of a collection
                 oldC().objects.unlink(self())
     
     def in_coll(self, coll_name):
-        """Put the same object in another collection."""
-        self.to_coll(coll_name, 'copy') # does NOT make a copy of the object. See copy and deepcopy for that
+        """
+        Put the same object in another collection.
+        Does NOT make a copy of the object. See copy and deepcopy for that.
+        Useful for putting the object in RigidBodyWorld collection.
+        """
+        self.to_coll(coll_name, 'copy', False)
     
     # modifiers
     def get_modifier(self, modifier_type):
