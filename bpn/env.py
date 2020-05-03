@@ -248,6 +248,10 @@ class Key:
         """Go to a frame given by frame."""
         assert isinstance(frame, int)
         bpy.context.scene.frame_set(frame)
+    
+    def __pos__(self):
+        """Go to the next frame"""
+        bpy.context.scene.frame_set(bpy.context.scene.frame_current + 1)
 
 
 def reset():
