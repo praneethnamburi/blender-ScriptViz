@@ -209,8 +209,7 @@ class Collection(Thing):
 
     def __init__(self, name, **kwargs):
         super().__init__(name, 'Collection', **kwargs)
-        if self.name not in [c.name for c in bpy.context.scene.collection.children[:]]:
-            bpy.context.scene.collection.children.link(self())
+        self.link()
     
     def hide(self):
         """Hide collection from the viewport, and from rendering."""
@@ -235,7 +234,20 @@ class Collection(Thing):
             return utils.enhance(all_blobj)
         return [utils.enhance(o) for o in all_blobj]
 
+    def link(self):
+        """Link collection to the current scene"""
+        if not self.in_scene:
+            bpy.context.scene.collection.children.link(self())
     
+    def unlink(self):
+        """Unlink collection to the current scene"""
+        if self.in_scene:
+            bpy.context.scene.collection.children.unlink(self())
+    
+    @property
+    def in_scene(self):
+        """Is the collection in the current scene?"""
+        return self.name in [c.name for c in bpy.context.scene.collection.children[:]]
     # Group transformations for objects in a collection!
 
 
@@ -345,7 +357,7 @@ class Object(Thing):
     @property
     def loc(self):
         """Object location (not mesh!)"""
-        return np.array(self().location) # so you can do += 1
+        return np.array(self().matrix_world.translation) # so you can do += 1
     @loc.setter
     def loc(self, new_loc):
         assert np.size(new_loc) == 3
@@ -507,7 +519,7 @@ class Object(Thing):
             return this_coll
         return Collection(this_coll[-1].name)
 
-    def to_coll(self, coll_name, typ='move', link=True):
+    def to_coll(self, coll_name, typ='move'):
         """
         Move this object to a collection.
 
@@ -522,10 +534,14 @@ class Object(Thing):
         oldC = self.coll
         if not isinstance(coll_name, str):
             coll_name = coll_name.name
-        newC = Collection(coll_name)
+        if coll_name not in [c.name for c in bpy.data.collections]:
+            # creates a new collection and links it to the current scene if it doesn't exist
+            newC = Collection(coll_name)()
+        else:
+            # if the collection exists and is not linked to the scene, it will remain unlinked.
+            newC = bpy.data.collections[coll_name]        
         if coll_name not in [c.name for c in self().users_collection]: # link only if the object isn't in collection already
-            if link:
-                newC().objects.link(self())
+            newC.objects.link(self())
             if typ == 'move' and oldC: # if it was part of a collection
                 oldC().objects.unlink(self())
     
@@ -535,7 +551,7 @@ class Object(Thing):
         Does NOT make a copy of the object. See copy and deepcopy for that.
         Useful for putting the object in RigidBodyWorld collection.
         """
-        self.to_coll(coll_name, 'copy', False)
+        self.to_coll(coll_name, 'copy')
     
     # modifiers
     def get_modifier(self, modifier_type):

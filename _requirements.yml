@@ -138,9 +138,14 @@ dependencies:
   - zipp=2.2.0=py_0
   - zlib=1.2.11=h62dcd97_3
   - pip:
+    - astroid==2.4.0
     - blinker==1.4
+    - lazy-object-proxy==1.4.3
     - pygame==1.9.6
+    - pylint==2.5.0
     - pymunk==5.6.0
     - scipy==1.4.1
+    - toml==0.10.0
+    - typed-ast==1.4.1
 prefix: C:\Users\Praneeth\.conda\envs\blender2830
 

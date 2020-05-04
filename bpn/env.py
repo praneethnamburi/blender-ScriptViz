@@ -251,7 +251,11 @@ class Key:
     
     def __pos__(self):
         """Go to the next frame"""
-        bpy.context.scene.frame_set(bpy.context.scene.frame_current + 1)
+        bpy.context.scene.frame_set(self() + 1)
+    
+    def __call__(self):
+        """Return the current keyframe."""
+        return bpy.context.scene.frame_current
 
 
 def reset():
