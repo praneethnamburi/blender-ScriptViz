@@ -9,6 +9,13 @@
 			"PATH": "C:\\Julia\\Julia-1.4.1\\bin;C:\\blender\\2.83.1;C:\\Users\\Praneeth\\.conda\\envs\\blender2830;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\mingw-w64\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\usr\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Scripts;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\bin;C:\\ProgramData\\Anaconda3\\condabin;C:\\MiKTeX 2.9\\miktex\\bin\\x64;C:\\Perl64\\bin;C:\\nodejs;C:\\nodejs\\node_modules\\npm\\node_modules;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin;C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2.0\\libnvvp;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0;C:\\WINDOWS\\System32\\OpenSSH;C:\\Program Files\\Microsoft VS Code\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common;C:\\ffmpeg\\bin;C:\\nrn\\lib\\python;C:\\nrn\\bin;C:\\nrn\\mingw\\usr\\bin;C:\\msys64\\mingw64\\bin",
 		},
 		"python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
+		"python.linting.pylintArgs": [
+			"--disable=C0103,C0413,C0301,C0303,E1111,too-many-lines,pointless-statement,non-ascii-name", 
+        	"--extension-pkg-whitelist=numpy", 
+        	"--ignored-modules=numpy", 
+        	"--ignored-classes=numpy",
+			"--init-hook=import sys; sys.path.append('D:/Workspace/blenderPython')"
+		],
 		"julia.executablePath": "C:\\Julia\\Julia-1.4.1\\bin\\julia.exe",
 	},
 }
