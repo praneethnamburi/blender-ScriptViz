@@ -2,7 +2,7 @@
 Creates a leg pose with articulations, and then adds nutations
 
 To run the setup part of this code from a blender console, use:
-exec(''.join(open('apps/concepts/articulations_nutations.py').readlines()[0:111]))
+exec(''.join(open('apps/concepts/articulations_nutations.py').readlines()[0:117]))
 
 Used these videos in the slides:
 Luca lab documentation -> 20200430 NCSOFT awardees meeting.pptm

@@ -108,3 +108,21 @@ def load_nutation_coordframes():
     with open(sav_file, 'rb') as f:
         nutation_in, nutation_out = pickle.load(f)
     return nutation_in, nutation_out
+
+def apply(frac=0.5):
+    """Apply nutations to bones.
+    frac is in the interval (0, 1). Practically, it is a function of external force distribution.
+    """
+    nutations_in, nutations_out = load_nutation_coordframes()
+    nutation_trf_local = {} # out to in specified in the local frame of the bone (so you can apply it anywhere
+    if frac > 0:
+        for bone_name in nutations_in:
+            nutation_trf_local[bone_name] = nutations_in[bone_name].as_points().in_frame(nutations_out[bone_name]).as_frame().m
+    else:
+        for bone_name in nutations_in: # in to out
+            nutation_trf_local[bone_name] = nutations_out[bone_name].as_points().in_frame(nutations_in[bone_name]).as_frame().m
+    frac = np.abs(frac)
+    for bone_name in nutations_in:
+        tfmat = nutation_trf_local[bone_name]
+        tfmat = np.eye(4) + (tfmat - np.eye(4))*frac
+        utils.get(bone_name).frame = utils.get(bone_name).frame.transform(tfmat, utils.get(bone_name).frame)
