@@ -36,3 +36,10 @@ from bpn.utils import get
 # Convenience
 Matrix = mathutils.Matrix
 Vector = mathutils.Vector
+
+# bridge to julia
+# pylint: disable=no-name-in-module
+from julia import Pkg
+Pkg.activate(r"D:\Workspace\julia\pntools")
+from julia import pntools as pnj
+Pkg.activate() # switch back to the default environment in julia
