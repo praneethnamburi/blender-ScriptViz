@@ -1,0 +1,24 @@
+'''
+ This file is updated manually to keep track of the packages that I installed manually
+ Advantage: You don't see the dependencies this way
+ Disadvantage: This document requires manual updates
+'''
+
+# for remote debugging (vscode blender development add-on):
+ptvsd, flask, requests
+
+# these are required
+numpy, pandas, xlrd, xlwt, openpyxl
+
+# plotting
+matplotlib
+
+# interactive python within vscode
+ipython, jupyter
+
+# for documentation
+sphinx
+
+# simulators
+pymunk, pyspice
+neuron (installed separately)
