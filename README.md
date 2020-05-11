@@ -18,7 +18,7 @@ We aim to bring together blender's powerful visualization toolkit with Anaconda'
    - ptvsd, flask and requests are required for remote debugging with VSCode
 7. conda activate blender2830
 8. Install VSCode
-9. Add these settings in VSCode (to your workspace)
+9. Add these settings in VSCode (to your workspace) - Modify this example
    -  "settings": {
          "terminal.integrated.env.windows": {
             "PATH": "C:\\blender\\2.83.0;C:\\Users\\Praneeth\\.conda\\envs\\blender2830;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\mingw-w64\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\usr\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Scripts;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\bin;C:\\ProgramData\\Anaconda3\\condabin;*OTHER THINGS IN YOUR PATH*,
