@@ -1,0 +1,9 @@
+name = "SimPN"
+uuid = "f39d52cb-8c44-462f-aa6f-202cfec3b8cc"
+authors = ["praneethnamburi <praneeth.namburi@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+ParameterizedFunctions = "65888b18-ceab-5e60-b2b9-181511a3b968"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"

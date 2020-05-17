@@ -17,5 +17,6 @@
 			"--init-hook=import sys; sys.path.append('D:/Workspace/blenderPython')"
 		],
 		"julia.executablePath": "C:\\Julia\\Julia-1.4.1\\bin\\julia.exe",
+		"julia.environmentPath": "d:\\Workspace\\blenderPython\\SimPN",
 	},
 }
