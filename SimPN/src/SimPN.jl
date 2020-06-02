@@ -104,4 +104,42 @@ function use_integrator(;dt=0.001)
     return t, u
 end
 
+function elastic_mass_01()
+    g = 9.81 # m/s2 acceleration due to gravity
+    m = 0.6 # kg mass of the ball (talus)
+    k = 800 # kg/s2 spring constant (pantar fascia)
+    β1 = 0.1 # m length from talus to calcaneus contacting the ground
+    β = 0.03 # m length from talus to the pantar fascia insertion
+    θo = π/3 # radians angle between plantar fascia and talus to back of foot line
+    function mdl!(du, u, p, t)
+        ys, yv = u # y position, y velocity
+        du[1] = dys = yv # dys is the derivative of y position
+        du[2] = dyv = (2.0/m)*tantheta(ys)*F_muscle(ys) - g
+    end
+    function tantheta(ys)
+        if ys >= β1 || ys <= 0.0
+            return 0.0
+        else
+            return ((ys/β1)/sqrt(1-(ys/β1)^2))
+        end
+    end
+    function F_muscle(ys)
+        if ys >= β1*sin(θo)
+            return 0.0 # plantar fascia is slack
+        else
+            θ = asin(ys/β1)
+            return 2*β*k*(cos(θ) - cos(θo)) # Hooke's law
+        end
+    end
+    ys0 = β1*sin(θo)
+    yv0 = 0
+    tspan = (0.0, 0.5)
+    prob = ODEProblem(mdl!, [ys0, yv0], tspan)
+    sol = solve(prob, Tsit5(), reltol=1e-8, abstol=1e-8)
+    ys_vec = ys_vec = [x[1] for x in sol.u]
+    theta = atan.(tantheta.(ys_vec))*180.0/π
+    fm = F_muscle.(ys_vec)
+    return sol, theta, fm
+end
+
 end # module
