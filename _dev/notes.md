@@ -691,3 +691,4 @@ def dbxmeta(dbxAuth='./_auth/mkturk_dropbox.json', dbxPath='/mkturkfiles/imageba
 To use julia inside blender's integrated terminal, remove python37.dll (or just rename it) in blender's main folder! e.g. C:\blender\2.83.1\python37.dll -> C:\blender\2.83.1\_python37.dll
 
 git push --set-upstream https://github.com/praneethnamburi/blender-ScriptViz.git 
+git push --set-upstream "C:\Drives\Dropbox (Personal)\gitHosting\blenderPython.git"

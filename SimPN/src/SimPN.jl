@@ -142,4 +142,7 @@ function elastic_mass_01()
     return sol, theta, fm
 end
 
+Fmax = 3; b = 2; c = 2; d = 2;
+passive_force(t) = Fmax/(1+exp(b-c*(t-d)));
+plot(gc, 0:0.1:5.0)
 end # module
