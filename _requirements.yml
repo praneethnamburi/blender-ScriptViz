@@ -147,9 +147,22 @@ dependencies:
   - zlib=1.2.11=h62dcd97_3
   - pip:
     - blinker==1.4
+    - freetype-py==2.1.0.post1
+    - imageio==2.8.0
     - julia==0.5.3
+    - lxml==4.5.1
+    - networkx==2.2
+    - opensim==4.1
+    - pillow==7.1.2
+    - pybullet==2.8.1
+    - pycollada==0.6
     - pygame==1.9.6
+    - pyglet==1.5.7
     - pymunk==5.6.0
+    - pyopengl==3.1.0
+    - pyrender==0.1.43
     - scipy==1.4.1
+    - trimesh==3.7.4
+    - urdfpy==0.0.22
 prefix: C:\Users\Praneeth\.conda\envs\blender2830
 

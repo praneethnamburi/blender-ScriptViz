@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot name="myRobot">
+  <link name="body">
+    <contact>
+      <restitution value="1.0" />
+      <rolling_friction value="0.001" />
+      <spinning_friction value="0.001" />
+    </contact>
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <sphere radius="0.25"/>
+      </geometry>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <collision name="coll">
+      <geometry>
+        <sphere radius="0.25"/>
+      </geometry>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 -0.0 0.0"/>
+    </collision>
+  </link>
+</robot>

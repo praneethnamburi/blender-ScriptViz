@@ -39,8 +39,8 @@ Vector = mathutils.Vector
 
 # bridge to julia
 # pylint: disable=no-name-in-module, wrong-import-order
-from julia import Pkg
-Pkg.activate(os.path.join(os.path.dirname(__file__), "SimPN"))
-from julia import SimPN as spn
+# from julia import Pkg
+# Pkg.activate(os.path.join(os.path.dirname(__file__), "SimPN"))
+# from julia import SimPN as spn
 # Pkg.activate() # switch back to the default environment in julia
 # pylint: enable=no-name-in-module, wrong-import-order

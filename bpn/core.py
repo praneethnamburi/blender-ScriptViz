@@ -656,11 +656,10 @@ class Object(Thing):
         Make a copy of everything - object, mesh and animation
         """
         this_o = self.copy(obj_name=obj_name, coll_name=coll_name)
-        this_m = Mesh(this_o().data.copy()) # blender's copy function
-        this_o.data = this_m.name # pylint: disable=attribute-defined-outside-init
+        this_o().data = this_o().data.copy()
         if isinstance(msh_name, str):
             this_o.data.name = msh_name
-        return utils.enhance(this_o)
+        return utils.enhance(this_o())
 
 
 class Mesh(Thing):
@@ -835,12 +834,24 @@ class Mesh(Thing):
                 fPath = os.path.dirname(fName)
         fName = os.path.basename(fName)
 
-        v = [tuple(v.co) for v in self().vertices]
-        f = [tuple(polygon.vertices[:]) for polygon in self().polygons]
-
         # generate faces for blender's write_stl function
         # faces: iterable of tuple of 3 vertex, vertex is tuple of 3 coordinates as float
         # faces = [f1: (v1:(p11, p12, p13), v2:(p21, p22, p23), v3:(p31, p32, p33)), f2:...]
+        # poke faces that have more than 3 coordinates (only for saving)
+        tmp_self_flag = False;
+        if any([np.size(x) > 3 for x in self.f]): # if not every face is a 3-gon, then poke faces
+            tmp_self_flag = True
+            tmp_self = Mesh(self().copy())
+            bm = bmesh.new()
+            bm.from_mesh(tmp_self())
+            # only poke a face if it has more than 3 vertices
+            bmesh.ops.poke(bm, faces=[x for x in bm.faces if len(x.verts[:]) > 3])
+            bm.to_mesh(tmp_self())
+            bm.free()
+
+        v = [tuple(v.co) for v in tmp_self().vertices]
+        f = [tuple(polygon.vertices[:]) for polygon in tmp_self().polygons]
+
         faces = []
         for face in f:
             thisFace = []
@@ -848,6 +859,8 @@ class Mesh(Thing):
                 thisFace.append(v[vPos])
             faces.append(tuple(thisFace))
         write_stl(filepath=os.path.join(fPath, fName), faces=faces, ascii=False)
+        if tmp_self_flag:
+            -tmp_self
     
     def morph(self, n_frames=50, frame_start=1):
         """
@@ -964,6 +977,7 @@ class MeshObject(CompoundObject):
         It also resets matrix_world
         Note that this move will move the mesh center to origin.
         """
+        bpy.context.view_layer.update()
         self.data.v_bkp = self.data.v # for undoing
         self.data.v = trf.apply_matrix(self().matrix_world, self.data.v)
         self().matrix_world = mathutils.Matrix(np.eye(4))

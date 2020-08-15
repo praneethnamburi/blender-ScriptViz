@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='ASCII'?>
+<robot name="capsule01">
+  <link name="left">
+    <inertial>
+      <origin xyz="0.0 0.7954951524734497 -0.7954951524734497" rpy="0.7853981633974483 -0.0 0.0"/>
+      <mass value="3.402152210845047"/>
+      <inertia ixx="1.0120529975194035" ixy="7.613529668558981e-09" ixz="8.153662718657032e-09" iyy="1.01205299082973" iyz="-4.0650131049901535e-09" izz="0.09699375047974544"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="capsule01.stl" scale="1. 1. 1."/>
+      </geometry>
+      <origin xyz="0.0 0.7954951524734497 -0.7954951524734497" rpy="0.7853981633974483 -0.0 0.0"/>
+    </visual>
+    <collision name="left_coll">
+      <geometry>
+        <mesh filename="capsule01.stl" scale="1. 1. 1."/>
+      </geometry>
+      <origin xyz="0.0 0.7954951524734497 -0.7954951524734497" rpy="0.7853981633974483 -0.0 0.0"/>
+    </collision>
+    <contact>
+      <restitution value="1.0"/>
+      <rolling_friction value="0.001"/>
+      <spinning_friction value="0.001"/>
+    </contact>
+  </link>
+  <link name="right">
+    <inertial>
+      <origin xyz="0.0 0.0 -1.125" rpy="0.0 -0.0 0.0"/>
+      <mass value="0.3402152210845047"/>
+      <inertia ixx="0.10120529975194034" ixy="7.613529668558981e-10" ixz="8.153662718657033e-10" iyy="0.101205299082973" iyz="-4.0650131049901535e-10" izz="0.009699375047974544"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="capsule01.stl" scale="1. 1. 1."/>
+      </geometry>
+      <origin xyz="0.0 0.0 -1.125" rpy="0.0 -0.0 0.0"/>
+    </visual>
+    <collision name="right_coll">
+      <geometry>
+        <mesh filename="capsule01.stl" scale="1. 1. 1."/>
+      </geometry>
+      <origin xyz="0.0 0.0 -1.125" rpy="0.0 -0.0 0.0"/>
+    </collision>
+    <contact>
+      <restitution value="1.0"/>
+      <rolling_friction value="0.001"/>
+      <spinning_friction value="0.001"/>
+    </contact>
+  </link>
+  <joint name="left_right" type="continuous">
+    <parent link="left"/>
+    <child link="right"/>
+    <axis xyz="1. 0. 0."/>
+    <origin xyz="0.0 0.0 0.0" rpy="-0.7853981633974483 -0.0 0.0"/>
+  </joint>
+</robot>

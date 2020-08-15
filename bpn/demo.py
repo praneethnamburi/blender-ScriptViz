@@ -29,6 +29,7 @@ Tube class:
 import sys
 import types
 import copy
+from pathlib import Path
 import numpy as np
 
 import pntools as pn
@@ -481,6 +482,78 @@ def handler2():
 
     env.Key().auto_lim()
 
+
+def capsule():
+    """Capsule for saving to URDF"""
+    import os
+    name = "capsule01"
+    rel_dir_name = "robots"
+    sav_dir = str(Path(utils.PATH["cache"]).parent.joinpath(rel_dir_name))
+    sav_file = ''.join([sav_dir, os.sep, name])
+
+    # create the capsule using the bpn.new module
+    r = 0.25
+    h = 2
+    s1 = new.sphere(name, r=r, v=9)
+    tmp1 = s1.v
+    # elongate the lower half
+    tmp1[tmp1[:, -1] < -0.001, -1] = tmp1[tmp1[:, -1] < -0.001, -1] - (h-2*r)
+    s1.v = tmp1
+    s1.vertex_center = np.array([0, 0, 0])
+    
+    # save STL file
+    # Note that the STL file does not 'bake' the pose information in
+    # Specify that info in the URDF file (3 times - for inertia, visuals and collisions)
+    s1.export(sav_file + ".stl")
+
+    # pose, mass, inertia tensor, mesh file name -> URDF file
+    import urdfpy as u
+    def make_link(link_name, mesh_name, mesh, density, pose, scale=None):
+        if scale is None:
+            scale = [1, 1, 1]
+        mesh.density = density
+        geometry = u.Geometry(mesh=u.Mesh(mesh_name, meshes=[mesh], scale=scale))
+        inertia = u.Inertial(mesh.mass, mesh.moment_inertia, pose)
+        visuals = [u.Visual(geometry, origin=pose)]
+        collisions = [u.Collision(link_name+"_coll", pose, geometry)]
+        return u.Link(link_name, inertia, visuals, collisions)
+
+    import trimesh
+    st = trimesh.load_mesh(sav_file + ".stl")
+    links = []
+
+    # For the first link, create a transformation matrix as you would in blender
+    s1.frame = trf.CoordFrame(origin=[0, 0, -0.5*(h+r)])
+    s1.frame = trf.Quat([1, 0, 0], np.pi/4, trf.CoordFrame())*s1.frame
+    links.append( make_link("left", name+".stl", st, 10, s1.frame.m) )
+
+    # create the joint before creating the second link!
+    j2 = new.empty("left_right")
+    j2.frame = trf.Quat([1, 0, 0], -np.pi/4, j2.frame)*j2.frame
+
+    # the second link (child in joint 2) will have its coordinate frame defined in j2
+    s2 = s1.deepcopy()
+    s2.frame = trf.CoordFrame(origin=[0, 0, -0.5*(h+r)])
+    links.append( make_link("right", name+".stl", st, 1, s2.frame.m,  [1, 1, 1]) )
+
+    joints = [u.Joint("left_right", "continuous", "left", "right", axis=[1, 0, 0], origin=j2.frame.m)]
+    r = u.URDF(name, links, joints)
+    r.save(sav_file + ".urdf")
+
+    # add friction and restitution information to the URDF file
+    from lxml import etree
+    tree = etree.parse(sav_file + ".urdf", etree.XMLParser(remove_blank_text=True))
+    root = tree.getroot()
+    for link in root:
+        if link.tag == 'link':
+            contact = etree.SubElement(link, "contact")
+            etree.SubElement(contact, "restitution").set("value", "1.0")
+            etree.SubElement(contact, "rolling_friction").set("value", "0.001")
+            etree.SubElement(contact, "spinning_friction").set("value", "0.001")
+
+    f = open(sav_file + ".urdf", "w")
+    f.write(etree.tostring(root, pretty_print=True, xml_declaration=True).decode("utf-8"))
+    f.close()
 
 def main():
     """
