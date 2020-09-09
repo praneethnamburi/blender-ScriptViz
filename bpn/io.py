@@ -237,10 +237,16 @@ def animate_simple(anim_data, columns=None, propfunc=None):
         setattr(obj, attr, val)
         obj.keyframe_insert(data_path=attr, frame=frame)
 
-def render(fname='', out_type='vid'):
-    """Render settings."""
+def render(fname='', out_type='vid', fpath=None):
+    """
+    Render settings.
+    Default path is "C:\\Drives\\Dropbox (Personal)\\Animation\\"
+    """
     rend = bpy.context.scene.render
-    rend.filepath = "D:\\Dropbox (Personal)\\Animation\\"+fname
+    if fpath is None:
+        fpath = "C:\\Drives\\Dropbox (Personal)\\Animation\\"+fname
+    assert isinstance(fpath, str)
+    rend.filepath = fpath
     if out_type == 'vid':
         rend.image_settings.file_format = 'FFMPEG'
         rend.ffmpeg.constant_rate_factor = 'PERC_LOSSLESS'

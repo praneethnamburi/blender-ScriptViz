@@ -256,6 +256,26 @@ class Key:
     def __call__(self):
         """Return the current keyframe."""
         return bpy.context.scene.frame_current
+    
+    @property
+    def fps(self):
+        """Frames per second of the animation"""
+        return bpy.context.scene.render.fps
+    @fps.setter
+    def fps(self, new_fps):
+        bpy.context.scene.render.fps = new_fps
+    
+    @property
+    def time(self):
+        """Length of the current scene"""
+        return (self.end - self.begin + 1)/self.fps
+    @time.setter
+    def time(self, animation_time):
+        """Only changes the end frame"""
+        fps = self.fps
+        start_frame = self.begin
+        n_frames = np.round(fps*animation_time)
+        self.end = start_frame + n_frames - 1
 
 
 def reset():
