@@ -303,6 +303,7 @@ def reset():
     # clear frame change handlers (perhaps clear all handlers?)
     bpy.app.handlers.frame_change_pre.clear()
     bpy.app.handlers.frame_change_post.clear()
+    bpy.context.view_layer.update()
 
 def clear(clist=None):
     """
