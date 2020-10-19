@@ -41,7 +41,7 @@ These are detailed instructions that worked for me on a windows 10 laptop.
 3. Open the python console within blender, and check the python version 
    - e.g. 3.7.4
 4. Delete the python folder and all its contents (C:\blender\2.83.0\2.83\python)
-5. Install Anaconda, and open anaconda prompt with admin privileges
+5. Install Anaconda (miniconda will suffice for this purpose), and open anaconda prompt with admin privileges
 6. conda create -n blender2830 python=3.7.4 ptvsd flask requests
    - install the same version as blender's python
    - env name is dictated by the main folder name (C:\blender\2.83.0)
@@ -56,12 +56,13 @@ These are detailed instructions that worked for me on a windows 10 laptop.
          "python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
       },
 10. Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
-    - blender.exe --env-system-python 'C:\Users\Praneeth\.conda\envs\blender2830'
+    - blender.exe --env-system-python "C:\Users\Praneeth\\.conda\envs\blender2830"
+    - Remember to use double quotes if there is a space in the path!
 11. If this works, you're good to go! Install packages using conda, and you should be able to import them in the blender console. Keep going to set up debugging.
 12. Install Blender Development add-on for VSCode.
 13. *Modify* the add-on's source code. The add-on launches blender with a custom-written script to enable debugging. We need the add-on to pass an additional --env-system-python argument. 
     - Locate the blender_executable.js file in the add-on install folder.
-    - C:\Users\Praneeth\.vscode\extensions\jacqueslucke.blender-development-0.0.12\out\blender_executable.js
+    - C:\Users\Praneeth\\.vscode\extensions\jacqueslucke.blender-development-0.0.12\out\blender_executable.js
     - Modify the getBlenderLaunchArgs function
     - return ['--env-system-python', 'C:\\Users\\Praneeth\\.conda\\envs\\blender2830', '--python', paths_1.launchPath];
     - Within the function testIfPathIsBlender, in the if-else clause contained within the Promise, change the if condition to if (false)
@@ -73,7 +74,7 @@ These are detailed instructions that worked for me on a windows 10 laptop.
     - Use 'where blender' in the windows command prompt inside VSCode
     - Result: C:\blender\2.83.0\blender.exe
     - where python
-    - C:\Users\Praneeth\.conda\envs\blender2830\python.exe
+    - C:\Users\Praneeth\\.conda\envs\blender2830\python.exe
     - where conda
     - C:\ProgramData\Anaconda3\condabin\conda.bat
 
