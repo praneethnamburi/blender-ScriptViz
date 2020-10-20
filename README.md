@@ -40,58 +40,58 @@ These are detailed instructions that worked for me on a windows 10 laptop.
 2. Unzip to C:\blender\2.83.0 (which has a folder called 2.83)
 3. Open the python console within blender, and check the python version 
    - e.g. 3.7.4
-4. Delete the python folder and all its contents (C:\blender\2.83.0\2.83\python)
-5. Install Anaconda (miniconda will suffice for this purpose), and open anaconda prompt with admin privileges
-6. conda create -n blender2830 python=3.7.4 ptvsd flask requests
-   - install the same version as blender's python
-   - env name is dictated by the main folder name (C:\blender\2.83.0)
-   - ptvsd, flask and requests are required for remote debugging with VSCode
-7. conda activate blender2830
-8. Install VSCode
-9. Add these settings in VSCode (to your workspace) - Modify this example
-   -  "settings": {
-         "terminal.integrated.env.windows": {
-            "PATH": "C:\\blender\\2.83.0;C:\\Users\\Praneeth\\.conda\\envs\\blender2830;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\mingw-w64\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\usr\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Scripts;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\bin;C:\\ProgramData\\Anaconda3\\condabin;*OTHER THINGS IN YOUR PATH*,
-         },
-         "python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
-      },
+4. Delete the python folder and all its contents (C:\\blender\\2.83.0\\2.83\\python)
+5. Add the blender executable folder (C:\\blender\\2.83.0) to the system path
+   - This is used by the _requirementsCheck.py file
+6. Install Anaconda (NOT miniconda), and open anaconda prompt with admin privileges
+   - Make sure you have "C:\\Users\\Praneeth\\anaconda3\\Library\\bin" in the system path
+   - On windows, check the Path variable in the 'System Variables' box when editing environment variables
+7. Clone this repository in your workspace (make sure git is installed and added to your system path)
+   - Navigate to your workspace in the command prompt (e.g. C:\\dev)
+   - git clone https://github.com/praneethnamburi/blender-ScriptViz.git
+   - cd blender-ScriptViz
+8. Create an anaconda environment using the _requirements.yml file
+   - conda env update -f requirements.yml
+   - Make sure to wait until it finishes running. It might appear stuck when installing pip packages. You might see a temporary text file created by conda in your current directory, for example "condaenv.p5qt3m3s.requirements.txt". Conda has finished doing its job when this file is deleted.
+   - conda activate blender2830
+9.  Install VSCode and activate the environment from within VSCode's command line
 10. Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
-    - blender.exe --env-system-python "C:\Users\Praneeth\\.conda\envs\blender2830"
+    - blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender2830"
     - Remember to use double quotes if there is a space in the path!
-11. If this works, you're good to go! Install packages using conda, and you should be able to import them in the blender console. Keep going to set up debugging.
-12. Install Blender Development add-on for VSCode.
+    - If this works, you're good to go! Rest of the steps make are meant to make your life easier in the long run.
+    - You should be able to install additional packages using conda and import them in the blender console.
+11. Use the _requirementsCheck.py file through the command python _requirementsCheck.py. It will:
+    -  Check if blender, and the correct python executables are visible to the terminal.
+    -  Make a startup file in blender's startup directory, which just adds your workspace folder to python's sys.path. Alternatively you can type these command within blender's python console once you invoke blender from the command line, or using the extension (see below). import sys; sys.path.append("C:\\dev\\blender-ScriptViz"). Typing those two commands into the prompt every time you start blender can be annoying, and the startup script removes that specific annoyance.
+    -  Blender startup directory is at C:\\blender\\2.83.0\\2.83\\scripts\\startup
+    -  Update _requirements.yml file with your current conda environment.
+12. Set up debugging. Install Blender Development add-on for VSCode.
 13. *Modify* the add-on's source code. The add-on launches blender with a custom-written script to enable debugging. We need the add-on to pass an additional --env-system-python argument. 
     - Locate the blender_executable.js file in the add-on install folder.
-    - C:\Users\Praneeth\\.vscode\extensions\jacqueslucke.blender-development-0.0.12\out\blender_executable.js
+    - C:\\Users\\Praneeth\\.vscode\\extensions\\jacqueslucke.blender-development-0.0.12\\out\\blender_executable.js
     - Modify the getBlenderLaunchArgs function
     - return ['--env-system-python', 'C:\\Users\\Praneeth\\.conda\\envs\\blender2830', '--python', paths_1.launchPath];
     - Within the function testIfPathIsBlender, in the if-else clause contained within the Promise, change the if condition to if (false)
     - This is so it does not throw 'A simple check to test...'
     - (There is probably a much more elegant way to do this)
     - Restart VSCode (for some reason it took 2 re-starts for me)
-14. Troubleshooting:
-    - A useful tip is to check if you're able to find the correct python, pip, conda and blender commands from your command prompt.
+14. From VSCode's command palette, use the command Blender: start
+15. Troubleshooting:
+    - A useful tip is to check if you're able to find the correct python, pip, conda and blender commands from your command prompt. Most of the issues I encountered had something to do with the correct paths.
     - Use 'where blender' in the windows command prompt inside VSCode
-    - Result: C:\blender\2.83.0\blender.exe
+    - Result: C:\\blender\\2.83.0\\blender.exe
     - where python
-    - C:\Users\Praneeth\\.conda\envs\blender2830\python.exe
+    - C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe
     - where conda
-    - C:\ProgramData\Anaconda3\condabin\conda.bat
-
-
-### Using this software
-
-1. Clone the repository to your workspace (e.g. D:\Workspace\blenderPython)
-2. Install additional requirements using the _requirements.yml file
-   - In the terminal, navigate to the workspace folder, activate your blender anaconda environment and update it from _requirements.yml
-   - conda activate blender2830
-   - conda env update --file _requirements.yml
-3. Run python _requirementsCheck.py in the terminal. It will:
-   1. Check if blender, and the correct python executables are visible to the terminal
-   2. Make a startup file in blender's startup directory
-   3. Update _requirements.yml file (e.g. with your installs)
-4. From VSCode's command palette, use the command Blender: start
-   - Some of this can be automated using the multicommand add-on for VSCode
+    - C:\\ProgramData\\Anaconda3\\condabin\\conda.bat
+    - Check VSCode settings - 
+      Add these settings in VSCode (to your workspace) - Modify this example
+         -  "settings": {
+               "terminal.integrated.env.windows": {
+                  "PATH": "C:\\blender\\2.83.0;C:\\Users\\Praneeth\\.conda\\envs\\blender2830;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\mingw-w64\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\usr\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Scripts;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\bin;C:\\ProgramData\\Anaconda3\\condabin;*OTHER THINGS IN YOUR PATH*,
+               },
+               "python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
+            },
 
 
 ### Development workflow

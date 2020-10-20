@@ -75,7 +75,6 @@ dependencies:
   - numpy=1.18.1=py37h93ca92e_0
   - numpy-base=1.18.1=py37hc3f5095_1
   - openpyxl=3.0.3=py_0
-  - openssl=1.1.1=he774522_0
   - packaging=20.3=py_0
   - pandas=1.0.3=py37h47e9c7a_0
   - pandoc=2.2.3.2=0
@@ -152,7 +151,6 @@ dependencies:
     - julia==0.5.3
     - lxml==4.5.1
     - networkx==2.2
-    - opensim==4.1
     - pillow==7.1.2
     - pybullet==2.8.1
     - pycollada==0.6
