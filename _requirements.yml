@@ -3,7 +3,6 @@ channels:
   - projectchrono
   - anaconda
   - conda-forge
-  - brian-team
   - defaults
 dependencies:
   - alabaster=0.7.12=py37_0
@@ -162,5 +161,4 @@ dependencies:
     - scipy==1.4.1
     - trimesh==3.7.4
     - urdfpy==0.0.22
-prefix: C:\Users\Praneeth\.conda\envs\blender2830
 
