@@ -52,11 +52,12 @@ These are detailed instructions that worked for me on a windows 10 laptop.
    - cd blender-ScriptViz
 8. Create an anaconda environment using the _requirements.yml file
    - conda env update -f requirements.yml
-   - Make sure to wait until it finishes running. It might appear stuck when installing pip packages. You might see a temporary text file created by conda in your current directory, for example "condaenv.p5qt3m3s.requirements.txt". Conda has finished doing its job when this file is deleted.
+   - Make sure to wait until it finishes running. It might appear stuck when installing pip packages. You might see a temporary text file created by conda in your current directory, for example "condaenv.p5qt3m3s.requirements.txt". Conda has finished doing its job when this file is deleted. 
    - conda activate blender2830
 9.  Install VSCode and activate the environment from within VSCode's command line
 10. Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
     - blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender2830"
+    - blender.exe --env-system-python "C:\\Users\\Praneeth\\anaconda3\\envs\\blender2830"
     - Remember to use double quotes if there is a space in the path!
     - If this works, you're good to go! Rest of the steps make are meant to make your life easier in the long run.
     - You should be able to install additional packages using conda and import them in the blender console.
@@ -76,6 +77,7 @@ These are detailed instructions that worked for me on a windows 10 laptop.
     - (There is probably a much more elegant way to do this)
     - Restart VSCode (for some reason it took 2 re-starts for me)
 14. From VSCode's command palette, use the command Blender: start
+    - If this fails, make sure that the python from your blender environment is in the system path! C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe
 15. Troubleshooting:
     - A useful tip is to check if you're able to find the correct python, pip, conda and blender commands from your command prompt. Most of the issues I encountered had something to do with the correct paths.
     - Use 'where blender' in the windows command prompt inside VSCode
@@ -92,6 +94,7 @@ These are detailed instructions that worked for me on a windows 10 laptop.
                },
                "python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
             },
+    - If conda env create -f _requirements.yml fails, activate the environment, and use conda env export > temp.yml, and check which packages failed to install. If it is pybullet, then it is probably because it needs Visual C++ 14. You can install Visual Studio Community edition (if you have the space, or perhaps the redistributable VC++ also works, I haven't tested it.)
 
 
 ### Development workflow
