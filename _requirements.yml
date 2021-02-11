@@ -1,8 +1,8 @@
-name: blender2830
+name: blenderSV
 channels:
   - projectchrono
-  - anaconda
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
   - alabaster=0.7.12=py37_0
@@ -15,7 +15,6 @@ dependencies:
   - bleach=3.1.0=py37_0
   - ca-certificates=2020.1.1=0
   - certifi=2020.4.5.1=py37_0
-  - cffi=1.14.0=py37h7a1dbc1_0
   - chardet=3.0.4=py37_1003
   - click=7.1.1=py_0
   - colorama=0.4.3=py_0
@@ -74,6 +73,7 @@ dependencies:
   - numpy=1.18.1=py37h93ca92e_0
   - numpy-base=1.18.1=py37hc3f5095_1
   - openpyxl=3.0.3=py_0
+  - openssl=1.1.1h=he774522_0
   - packaging=20.3=py_0
   - pandas=1.0.3=py37h47e9c7a_0
   - pandoc=2.2.3.2=0
@@ -94,7 +94,7 @@ dependencies:
   - pyqt=5.9.2=py37h6538335_2
   - pyrsistent=0.16.0=py37he774522_0
   - pysocks=1.7.1=py37_0
-  - python=3.7.4=h5263a28_0
+  - python=3.7.7=h81c818b_4
   - python-dateutil=2.8.1=py_0
   - python_abi=3.7=1_cp37m
   - pytz=2019.3=py_0
@@ -107,6 +107,7 @@ dependencies:
   - requests=2.23.0=py37_0
   - rope=0.16.0=py_0
   - scikit-learn=0.20.1=py37hb854c30_0
+  - scipy=1.1.0=py37h4f6bf74_1
   - send2trash=1.5.0=py37_0
   - setuptools=46.1.3=py37_0
   - sip=4.19.8=py37h6538335_0
@@ -145,20 +146,20 @@ dependencies:
   - zlib=1.2.11=h62dcd97_3
   - pip:
     - blinker==1.4
+    - cffi==1.14.4
     - freetype-py==2.1.0.post1
     - imageio==2.8.0
     - julia==0.5.3
     - lxml==4.5.1
     - networkx==2.2
     - pillow==7.1.2
-    - pybullet==2.8.1
+    - pybullet==3.0.8
     - pycollada==0.6
-    - pygame==1.9.6
-    - pyglet==1.5.7
-    - pymunk==5.6.0
+    - pygame==2.0.1
+    - pyglet==1.5.15
+    - pymunk==6.0.0
     - pyopengl==3.1.0
     - pyrender==0.1.43
-    - scipy==1.4.1
-    - trimesh==3.7.4
+    - trimesh==3.9.3
     - urdfpy==0.0.22
-
+prefix: C:\Users\Praneeth\anaconda3\envs\blenderSV
