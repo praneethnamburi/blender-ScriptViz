@@ -862,18 +862,42 @@ class Mesh(Thing):
         if tmp_self_flag:
             -tmp_self
     
-    def morph(self, n_frames=50, frame_start=1):
+    def morph(self, n_frames=50, frame_start=1, v_orig=None, v_targ=None):
         """
         Morphs the mesh from initial vertex positions to current vertex positions.
         CAUTION: Using this multiple times on the same object can cause unpredictable behavior.
         """
-        v_orig = self.v_init
-        v_targ = self.v
+        if v_orig is None:
+            v_orig = self.v_init
+        if v_targ is None:
+            v_targ = self.v
         frame_end = frame_start + n_frames
         def my_handler(scene):
             p = (scene.frame_current-frame_start)/(frame_end-frame_start)
             self.v = (1-p)*v_orig + p*v_targ
+        my_handler.__doc__ = self.name # so we know which object the handler belongs to
         bpy.app.handlers.frame_change_pre.append(my_handler)
+        return my_handler
+
+    def morph_clear(self, morph_handler=None):
+        """
+        Remove all morphs for this object.
+        Remove only the morph specified by morph_handler (only if belongs to this MeshObject) 
+        """
+        if morph_handler is None:
+            # clear all handlers related to this object
+            mark_for_removal = []
+            for hdl in bpy.app.handlers.frame_change_pre:
+                if hdl.__doc__ == self.name:
+                    mark_for_removal.append(hdl)
+            for hdl in mark_for_removal:
+                bpy.app.handlers.frame_change_pre.remove(hdl)
+        elif morph_handler.__doc__ != self.name:
+            # only clear the handler if it was related to this object
+            print("The handler belongs to " + morph_handler.__doc__ + ". Not clearing")
+            return
+        else:
+            print("Unaccounted scenario!")
     
     def update_normals(self):
         """Update face normals (for example, when updating the point locations!)"""
