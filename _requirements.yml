@@ -73,7 +73,6 @@ dependencies:
   - numpy=1.18.1=py37h93ca92e_0
   - numpy-base=1.18.1=py37hc3f5095_1
   - openpyxl=3.0.3=py_0
-  - openssl=1.1.1h=he774522_0
   - packaging=20.3=py_0
   - pandas=1.0.3=py37h47e9c7a_0
   - pandoc=2.2.3.2=0
@@ -151,6 +150,7 @@ dependencies:
     - imageio==2.8.0
     - julia==0.5.3
     - lxml==4.5.1
+    - matlabengineforpython==R2020b
     - networkx==2.2
     - pillow==7.1.2
     - pybullet==3.0.8
