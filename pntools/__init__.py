@@ -32,6 +32,9 @@ Code development: (functions that help during code development)
     Time    - (Decorator) Execution time
     tracker - (decorator) Track objects created by a class (preserves class as class - preferred)
     Tracker - (Decorator) Track objects created by a class (turns classes into Tracker objects)
+
+Communication:
+    ExComm - Communicate with external programs via a socket
 """
 
 import datetime
@@ -46,6 +49,7 @@ import pickle
 import sys
 import subprocess
 import weakref
+import socket
 from copy import deepcopy
 from timeit import default_timer as timer
 
@@ -923,3 +927,28 @@ class Tracker:
         """End tracking session."""
         self.all = self.cache
         self.clear_cache()
+
+
+class ExComm:
+    def __init__(self, host='localhost', port=50000):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind((host, port))
+        s.listen(1)
+        print("waiting for response from client at port ", port)
+        self.host = host
+        self.port = port
+        self.conn, self.addr = s.accept()
+        print('Connected by', self.addr)
+
+    def __pos__(self):
+        # listen
+        data = self.conn.recv(1024)
+        print(data)
+
+    def __call__(self, message=b"hello"):
+        # send data
+        self.conn.sendall(message)
+    
+    def __neg__(self):
+        # close connection
+        self.conn.close()
