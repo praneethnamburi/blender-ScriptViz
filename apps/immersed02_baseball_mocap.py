@@ -1,5 +1,13 @@
+pt_names = mw["pos"].keys()
+posm = mw["pos"]
+pos = {}
+for pt_name in pt_names:
+    print(pt_name)
+    tmp_pos = np.array(posm[pt_name])
+    pos[pt_name] = np.c_[-tmp_pos[:,0], tmp_pos[:,2], tmp_pos[:,1]]/100 # decimeters
+
 # get pw - position of the wrist from MATLAB workspace
-data = np.c_[pw[:, 0], pw[:, 2], pw[:, 1]]/100 # converting from mm to cm, even though in blender, everything is in m
+data = pos["Ref_RWristLat"] # converting from mm to cm, even though in blender, everything is in m
 data_rate = 180 # Hz
 anim_rate = env.Key().fps # Hz
 
@@ -18,16 +26,21 @@ anim_frame = env.Key().start
 data_time = anim_start
 
 p = Pencil(name="Trajectory_pred")
-p.layer = "Ref_RWrist"
-ts = new.sphere(name="Trajectory_center", r=0.3) 
+p.layer = "Ref_RWristLat"
+
+ts = {}
+for sph_name in pos.keys():
+    ts[sph_name] = new.sphere(name=sph_name, r=0.3)
+    ts[sph_name].shade("smooth")
 
 stroke_list = list()
 while data_time <= anim_end:
     data_center_frame = int(np.round(data_time*data_rate))
     p.keyframe = anim_frame
     stroke_list.append(p.stroke(trf.PointCloud(data[int(data_center_frame-traj_frame_pre):int(data_center_frame+traj_frame_post), :])))
-    ts.loc = data[data_center_frame, :]
-    ts.key(anim_frame, 'l')
+    for sph_name in ts:
+        ts[sph_name].loc = pos[sph_name][data_center_frame, :]
+        ts[sph_name].key(anim_frame, 'l')
     anim_frame = anim_frame + 1
     data_time = data_time + 1/anim_rate
 
