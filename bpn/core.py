@@ -1117,6 +1117,19 @@ class GreasePencil(Thing):
             ret[layer.info] = [kf.frame_number for kf in layer.frames]
         return ret
 
+    @property
+    def strokes(self):
+        """Return a list of all the strokes."""
+        ret = {}
+        for layer in self().layers:
+            for kf in layer.frames:
+                if kf.strokes[:]:
+                    for i, stroke in enumerate(kf.strokes[:]):
+                        ret[layer.info+'_key{:04d}'.format(kf.frame_number)+'_stroke{:03d}'.format(i)] = stroke
+                else:
+                    ret[layer.info+'_key{:04d}'.format(kf.frame_number)] = None
+        return ret
+
 
 @pn.PortProperties(GreasePencil, 'data') # instance of CompundObject OR GreasePencilObject MUST have 'data' attribute/property that is an instance of Mesh class
 class GreasePencilObject(CompoundObject):
@@ -1230,19 +1243,6 @@ class GreasePencilObject(CompoundObject):
             gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
         return gp_stroke
 
-    @property
-    def strokes(self):
-        """Return a list of all the strokes."""
-        ret = {}
-        for layer in self().data.layers:
-            for kf in layer.frames:
-                if kf.strokes[:]:
-                    for i, stroke in enumerate(kf.strokes[:]):
-                        ret[layer.info+'_key{:04d}'.format(kf.frame_number)+'_stroke{:03d}'.format(i)] = stroke
-                else:
-                    ret[layer.info+'_key{:04d}'.format(kf.frame_number)] = None
-        return ret
-
 
 class Curve(Thing):
     """
@@ -1294,3 +1294,42 @@ class ContainerObject(Object):
     def children(self):
         """Get the children of the object."""
         return [utils.enhance(c) for c in self().children]
+
+
+class Stroke:
+    """Enhance Grease pencil stroke, for setting and getting points."""
+    def __init__(self, GPStroke):
+        self.GPStroke = GPStroke
+
+    def __call__(self):
+        return self.GPStroke
+    
+    @property
+    def n(self):
+        return len(self().points)
+
+    @property
+    def v(self):
+        co = [0]*3*self.n
+        self().points.foreach_get('co', co)
+        return np.reshape(co, (self.n, 3))
+
+    @v.setter
+    def v(self, co):
+        assert np.shape(co) == (self.n, 3)
+        self().points.foreach_set('co', np.reshape(co, self.n*3))
+        self().id_data.update_tag()
+        bpy.context.view_layer.update()
+
+    @property
+    def name(self):
+        all_strokes = GreasePencil(self().id_data).strokes
+        return list(all_strokes.keys())[list(all_strokes.values()).index(self())]
+
+    @property
+    def properties(self):
+        name = self.name
+        keyframe = int(name.split('_')[-2].strip('key'))
+        strokenumber = int(name.split('_')[-1].strip('stroke'))
+        layer = "_".join(name.split('_')[:-2])
+        return {"pencil": self().id_data.name, "layer": layer, "key": keyframe, "stroke": strokenumber}
