@@ -1332,4 +1332,25 @@ class Stroke:
         keyframe = int(name.split('_')[-2].strip('key'))
         strokenumber = int(name.split('_')[-1].strip('stroke'))
         layer = "_".join(name.split('_')[:-2])
-        return {"pencil": self().id_data.name, "layer": layer, "key": keyframe, "stroke": strokenumber}
+        return {"object": self.parent_object.name, "pencil": self().id_data.name, "layer": layer, "keyframe": keyframe, "stroke": strokenumber}
+
+    @property
+    def parent_object(self):
+        x = [utils.enhance(o) for o in bpy.data.objects if o.data == self().id_data]
+        if len(x) == 1:
+            return x[0]
+        return x
+
+    @property
+    def parent_pencil(self):
+        return GreasePencil(self().id_data)
+
+    @property
+    def parent_layer(self):
+        p = self.properties
+        return self().id_data.layers[p["layer"]]
+
+    @property
+    def parent_keyframe(self):
+        p = self.properties
+        return [f for f in self().id_data.layers[p["layer"]].frames if f.frame_number == p["keyframe"]][0]
