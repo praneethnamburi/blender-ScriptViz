@@ -55,12 +55,11 @@ except ImportError:
 
 if ml_eng_installed:
     all_ml = matlab.engine.find_matlab()
-
-if len(all_ml) == 0:
-    print("No shared MATLAB engine sessions found. Type matlab.engine.shareEngine at the MATLAB command prompt")
-elif len(all_ml) == 1:
-    future = matlab.engine.connect_matlab(all_ml[0], background=True)
-    eng = future.result()
-    mw = eng.workspace
-elif len(all_ml) > 1:
-    print("Multiple MATLAB sessions found. Please connect manually.")
+    if len(all_ml) == 0:
+        print("No shared MATLAB engine sessions found. Type matlab.engine.shareEngine at the MATLAB command prompt")
+    elif len(all_ml) == 1:
+        future = matlab.engine.connect_matlab(all_ml[0], background=True)
+        eng = future.result()
+        mw = eng.workspace
+    elif len(all_ml) > 1:
+        print("Multiple MATLAB sessions found. Please connect manually.")
