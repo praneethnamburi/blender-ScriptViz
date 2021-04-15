@@ -1,13 +1,12 @@
-pt_names = mw["pos"].keys()
-posm = mw["pos"]
-pos = {}
-for pt_name in pt_names:
-    print(pt_name)
-    tmp_pos = np.array(posm[pt_name])
-    pos[pt_name] = np.c_[-tmp_pos[:,0], tmp_pos[:,2], tmp_pos[:,1]]/100 # decimeters
+fname = r"P:\data\20210311 - Coach Todd Baseball pitch\Pitching_01_02_Fill500Frm.csv"
+bp = Log(fname)
 
-# get pw - position of the wrist from MATLAB workspace
-data = pos["Ref_RWristLat"] # converting from mm to cm, even though in blender, everything is in m
+# convert position to world coordinates
+pos = {}
+for mname in bp.pos:
+    pos[mname] = bp.pos[mname]()
+
+data = pos["Ref_RWristLat"]
 data_rate = 180 # Hz
 anim_rate = env.Key().fps # Hz
 
@@ -39,7 +38,7 @@ while data_time <= anim_end:
     p.keyframe = anim_frame
     stroke_list.append(p.stroke(trf.PointCloud(data[int(data_center_frame-traj_frame_pre):int(data_center_frame+traj_frame_post), :])))
     for sph_name in ts:
-        ts[sph_name].loc = pos[sph_name][data_center_frame, :]
+        ts[sph_name].loc = pos[sph_name]()[data_center_frame, :]
         ts[sph_name].key(anim_frame, 'l')
     anim_frame = anim_frame + 1
     data_time = data_time + 1/anim_rate
