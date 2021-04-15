@@ -300,6 +300,18 @@ class PointCloud:
         exponent = np.min((np.round(-np.log10(np.max(np.abs(self.co)))) + 3, 6))
         return self.__class__.__name__+'\n'+str(np.round(self.co*(10**exponent))/(10**exponent))
 
+    @property
+    def x(self):
+        return self.co[:, 0]
+
+    @property
+    def y(self):
+        return self.co[:, 1]
+
+    @property
+    def z(self):
+        return self.co[:, 2]
+
 
 def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_frame_mat=None):
     """
