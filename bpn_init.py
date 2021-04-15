@@ -12,7 +12,8 @@ Usage:
 import os
 import sys
 import inspect
-import importlib
+from importlib import reload
+from timeit import default_timer as timer
 
 # Installed using _requirements
 import numpy as np
@@ -26,12 +27,14 @@ import mathutils #pylint: disable=import-error
 # Peronal library
 import pntools as pn
 import bpn
+import ot
 # modules
 from bpn import new, env, demo, utils, turtle, vef, trf, io, mantle, core
 # classes
 from bpn.mantle import Pencil, Screen
 # functions
 from bpn.utils import get
+from pntools import run
 
 # Convenience
 Matrix = mathutils.Matrix

@@ -14,6 +14,8 @@ File system:
     locate_command - locate an executable in the system path
     OnDisk         - (Decorator) Raise error if function output file is not on disk
     ospath         - Find file or directory
+    find           - Find a file (accepts patterns)
+    run            - Run the contents of a file in the console
 
 Package management: (mostly useful during deployment)
     pkg_list - return list of installed packages
@@ -50,6 +52,7 @@ import sys
 import subprocess
 import weakref
 import socket
+import fnmatch
 from copy import deepcopy
 from timeit import default_timer as timer
 
@@ -571,6 +574,34 @@ def ospath(thingToFind, errContent=None):
     print('Did not find ', errContent)
     return ''
 
+def find(pattern, path=None):
+    "Example: find('*.txt', '/path/to/dir')"
+    if path is None:
+        path = os.getcwd()
+    result = []
+    for root, dirs, files in os.walk(path):
+        for name in files:
+            if fnmatch.fnmatch(name, pattern):
+                result.append(os.path.join(root, name))
+    if len(result) == 1:
+        return result[0]
+    return result
+
+def run(filename, start_line=1, end_line=None):
+    """
+    Most commonly used to run code that I'm working on inside the console.
+    NOTE MATLAB-like indexing run(x.py, 1, 2) runs lines 1 and 2
+    That the line numbers are 1-indexed to match the line numbers in the code editor (VSCode)
+    Runs the last line number indicated as well!
+    """
+    if not os.path.isfile(filename):
+        filename = find(filename)
+    assert os.path.isfile(filename)
+    code = open(filename).readlines()
+    if end_line is None:
+        end_line = len(code)
+    exec(''.join(code[(start_line-1):end_line]))
+
 
 ## Package management
 def pkg_list():
@@ -952,3 +983,7 @@ class ExComm:
     def __neg__(self):
         # close connection
         self.conn.close()
+
+
+## decorate
+run = Time(run)
