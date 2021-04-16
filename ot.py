@@ -1,3 +1,6 @@
+"""
+Work with optitrack files in python. This module can be used without blender.
+"""
 import os
 import csv
 import numpy as np
@@ -60,22 +63,17 @@ class Log:
         n_data_rows = len(data)-data_start_row
         n_data_cols = len(data[data_start_row])
 
-        self.pos = {mname : np.empty((n_data_rows, 3)) for mname in marker_names_valid}
-        assert len(marker_names_valid)*3 + 2 == n_data_cols
-        for row_count in range(data_start_row, len(data)):
-            for col_count in range(pos_col_start, n_data_cols):
-                x = data[row_count][col_count]
-                if x:
-                    self.pos[marker_name_row_valid[col_count]][row_count-data_start_row, (col_count+1)%3] = float(x)
+        data3d = np.array(data[data_start_row:])
+        data3d[data3d==''] = 'nan'
+        data3d = data3d.astype(float)
 
-        for marker_name in self.pos:
-            self.pos[marker_name] = trf.PointCloud(self.pos[marker_name]/self.disp_scale, coord_frame)
+        self.pos = {}
+        for marker_name in marker_names_valid:
+            this_cols, = np.where(np.array(marker_name_row_valid) == marker_name) # assuming X, Y, Z sequence during export
+            self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols], coord_frame, self).in_world()
 
-        self.vid_frame = np.empty(n_data_rows, dtype=int)
-        self.t = np.empty(n_data_rows)
-        for row_count in range(data_start_row, len(data)):
-            self.vid_frame[row_count-data_start_row] = int(data[row_count][frame_num_col])
-            self.t[row_count-data_start_row] = float(data[row_count][frame_num_col])
+        self.vid_frame = data3d[:, frame_num_col].astype(int)
+        self.t = data3d[:, time_col]
 
     @property
     def n(self):
@@ -102,6 +100,20 @@ class Log:
     # elements for animation:
     # markers, connections, clips, chains (to measure length)
 
+@pn.PortProperties(Log, 'parent')
+class Marker(trf.PointCloud):
+    def __init__(self, name, vert, frame, parent):
+        """
+        name   (str) - name of the marker
+        vert   (n x 3 numpy array)
+        frame  (4x4 frame, OR, trf.CoordFrame)
+        parent (ot.Log) - Log file object
+        """
+        assert type(parent).__name__ == "Log"
+        self.name = name
+        super().__init__(vert, frame)
+        self.parent = parent
+
 class Vid(VideoReader):
     def __init__(self, fname):
         self.name = fname
@@ -124,3 +136,7 @@ class Clip(Vid):
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop
+
+if __name__ == '__main__':
+    fname = r"C:\Temp\Pitching_01_02_Fill500Frm.csv"
+    bp = Log(fname)
