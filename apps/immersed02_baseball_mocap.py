@@ -48,3 +48,40 @@ data_msh = data[int(np.round(anim_start*data_rate)-traj_frame_pre):int(np.round(
 traj_msh = new.mesh(name="Trajectory_path", x=data_msh[:,0], y=data_msh[:,1], z=data_msh[:,2])
 
 env.Key().auto_lim()
+
+#%%
+data = []
+data_len = []
+with open(fname, newline='') as f:
+    reader = csv.reader(f)
+    for row in reader:
+        data.append(row)
+        data_len.append(len(row))
+
+#%%
+from decord import VideoReader
+vid_name = r"C:\Temp\Pitching_01-Camera 1 (#83729).mp4"
+vr = VideoReader(vid_name)
+#%%
+len(vr)
+# %%
+x = vr[0:10].asnumpy()
+np.shape(x)
+
+#%%
+import matplotlib.pyplot as plt
+fig = plt.figure(figsize=(4,3), dpi=300)
+ax1 = fig.add_axes([0, 0, 0.5, 1], label="image")
+ax2 = fig.add_axes([0, 0, 0.5, 1], label="plot")
+ax1.axis('off')
+ax2.axis('off')
+
+h_im = ax1.imshow(x[0][:, :, 1].astype(float), cmap=plt.get_cmap("gray"))
+h, = ax2.plot(x[0][:, 1, 0], antialiased=True)
+h_im.set_clim(0., 50.)
+
+for i in range(0, 10):
+    h_im.set_data(x[i][:, :, 1].astype(float)-x[0][:, :, 1].astype(float))
+    h_im.set_clim(0., 50.)
+    h.set_ydata(x[0][:, i, 0])
+    plt.savefig("C:\\Temp\\test{:04d}.png".format(i), transparent=True)

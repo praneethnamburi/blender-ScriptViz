@@ -1,6 +1,10 @@
+import os
 import csv
 import numpy as np
+from decord import VideoReader
+
 from bpn import trf
+import pntools as pn
 
 class Log:
     """
@@ -11,6 +15,7 @@ class Log:
     """
     def __init__(self, fname, coord_frame=trf.CoordFrame(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))):
         self.fname = fname
+        self.disp_scale = 100.
 
         data = []
         data_len = []
@@ -19,6 +24,14 @@ class Log:
             for row in reader:
                 data.append(row)
                 data_len.append(len(row))
+
+        hdr = dict(zip(data[0][0::2], data[0][1::2]))
+        for key in hdr:
+            if 'Frame Rate' in key:
+                hdr[key] = float(hdr[key])
+            if 'Total' in key:
+                hdr[key] = int(hdr[key])
+        self.hdr = hdr
 
         frame_num_col = 0
         time_col = 1
@@ -55,7 +68,6 @@ class Log:
                 if x:
                     self.pos[marker_name_row_valid[col_count]][row_count-data_start_row, (col_count+1)%3] = float(x)
 
-        self.disp_scale = 100.
         for marker_name in self.pos:
             self.pos[marker_name] = trf.PointCloud(self.pos[marker_name]/self.disp_scale, coord_frame)
 
@@ -72,4 +84,43 @@ class Log:
     @property
     def marker_names(self):
         return list(self.pos.keys())
-        
+    
+    @property
+    def sr(self):
+        """sampling rate"""
+        return self.hdr['Export Frame Rate']
+
+    @property
+    def units(self):
+        return str(self.disp_scale) + " " + self.hdr['Length Units']
+    
+    def load_videos(self):
+        vids = pn.find("*Camera*.mp4", os.path.dirname(self.fname))
+        if not vids:
+            vids = pn.find("*Camera*.avi", os.path.dirname(self.fname))
+        return [Vid(vid_name) for vid_name in vids]
+    # elements for animation:
+    # markers, connections, clips, chains (to measure length)
+
+class Vid(VideoReader):
+    def __init__(self, fname):
+        self.name = fname
+        super().__init__(fname)
+
+    @property
+    def cam_id(self):
+        return int(self.name.split("-Camera ")[-1].split(" (")[0])
+
+    @property
+    def cam_type(self):
+        if ("-Camera " in self.name) and (" (#" in self.name):
+            return "Optitrack " + self.name.split(" (#")[-1].split(").")[0]
+        return "Unknown"
+
+class Clip(Vid):
+    """
+    Clip is a Vid with start and stop
+    """
+    def __init__(self, start, stop):
+        self.start = start
+        self.stop = stop
