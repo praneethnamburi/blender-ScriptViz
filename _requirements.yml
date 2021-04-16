@@ -146,6 +146,7 @@ dependencies:
   - pip:
     - blinker==1.4
     - cffi==1.14.4
+    - decord==0.5.2
     - freetype-py==2.1.0.post1
     - imageio==2.8.0
     - julia==0.5.3
@@ -162,4 +163,3 @@ dependencies:
     - pyrender==0.1.43
     - trimesh==3.9.3
     - urdfpy==0.0.22
-prefix: C:\Users\Praneeth\anaconda3\envs\blenderSV
