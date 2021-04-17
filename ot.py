@@ -6,7 +6,7 @@ import csv
 import numpy as np
 from decord import VideoReader
 
-from bpn import trf
+from bpn import trf, new
 import pntools as pn
 
 class Log:
@@ -70,7 +70,7 @@ class Log:
         self.pos = {}
         for marker_name in marker_names_valid:
             this_cols, = np.where(np.array(marker_name_row_valid) == marker_name) # assuming X, Y, Z sequence during export
-            self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols], coord_frame, self).in_world()
+            self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols]/self.disp_scale, coord_frame, self).in_world()
 
         self.vid_frame = data3d[:, frame_num_col].astype(int)
         self.t = data3d[:, time_col]
@@ -113,6 +113,25 @@ class Marker(trf.PointCloud):
         self.name = name
         super().__init__(vert, frame)
         self.parent = parent
+
+        self.in_frame = self._pointcloud_to_marker(self.in_frame)
+        self.in_world = self._pointcloud_to_marker(self.in_world)
+        self.transform = self._pointcloud_to_marker(self.transform)
+        self.reframe = self._pointcloud_to_marker(self.reframe)
+
+        ## To automate this
+        # {attr for attr_name, attr in trf.PointCloud.__dict__.items() if attr_name[0] != '_' and (not isinstance(attr, property)) and inspect.signature(attr).return_annotation == 'PointCloud'}
+    @staticmethod
+    def _pointcloud_to_marker(meth):
+        def modifiedMethod(*args, **kwargs):
+            pc = meth(*args, **kwargs)
+            s = meth.__self__
+            return Marker(s.name, pc.co, pc.frame, s.parent)
+        return modifiedMethod
+
+    def show(self):
+        new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
+
 
 class Vid(VideoReader):
     def __init__(self, fname):
