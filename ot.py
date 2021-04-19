@@ -133,6 +133,14 @@ class Marker(trf.PointCloud):
         new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
 
 
+class Chain:
+    """
+    Collection of markers. Sequence matters.
+    """
+    def __init__(self, marker_list):
+        pass
+
+    
 class Vid(VideoReader):
     def __init__(self, fname):
         self.name = fname
