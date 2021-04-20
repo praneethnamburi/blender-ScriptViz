@@ -85,3 +85,23 @@ for i in range(0, 10):
     h_im.set_clim(0., 50.)
     h.set_ydata(x[0][:, i, 0])
     plt.savefig("C:\\Temp\\test{:04d}.png".format(i), transparent=True)
+
+#%%
+fname = "C:\\Temp\\Pitching_01_02_Fill500Frm.csv"
+bp = ot.Log(fname)
+c = []
+c.append(ot.Chain('Spine', [bp.pos['Spine_' + x] for x in 'L4 T11 T4 C3'.split(' ')]))
+c.append(ot.Chain('ShoulderGirdle_top', [bp.pos['Ref_LAcromion'], bp.pos['Spine_C3'], bp.pos['Ref_RAcromion']]))
+c.append(ot.Chain('ShoulderGirdle_bottom', [bp.pos['Ref_LAcromion'], bp.pos['Spine_T4'], bp.pos['Ref_RAcromion']]))
+c.append(ot.Chain('LHip', [bp.pos['Ref_LHip'], bp.pos['Spine_L4']]))
+c.append(ot.Chain('LFoot', [bp.pos['Ref_LBigToe'], bp.pos['Ref_LLitteToe']]))
+c.append(ot.Chain('RFoot', [bp.pos['Ref_RBigToe'], bp.pos['Ref_RLittleToe']]))
+c.append(ot.Chain('RightArmLat', [bp.pos['Ref_RAcromion'], bp.pos['Ref_RElbowLat'], bp.pos['Ref_RWristLat']]))
+c.append(ot.Chain('RightArmMed', [bp.pos['Ref_RAcromion'], bp.pos['Ref_RElbowMed'], bp.pos['Ref_RWristMed']]))
+c.append(ot.Chain('LeftArmLat', [bp.pos['Ref_LAcromion'], bp.pos['Ref_LElbowLat'], bp.pos['Ref_LWrist']]))
+sk = ot.Skeleton('Sk1', c)
+sk.show(start_time=9.*60+51.25, end_time=9*60.+54+11/30)
+# for markers, add ability to show trajectory
+# for chains, add ability to plot length
+# add time interval objects for events
+# add ability to show computed markers
