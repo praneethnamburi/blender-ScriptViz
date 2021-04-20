@@ -99,6 +99,7 @@ c.append(ot.Chain('RFoot', [bp.pos['Ref_RBigToe'], bp.pos['Ref_RLittleToe']]))
 c.append(ot.Chain('RightArmLat', [bp.pos['Ref_RAcromion'], bp.pos['Ref_RElbowLat'], bp.pos['Ref_RWristLat']]))
 c.append(ot.Chain('RightArmMed', [bp.pos['Ref_RAcromion'], bp.pos['Ref_RElbowMed'], bp.pos['Ref_RWristMed']]))
 c.append(ot.Chain('LeftArmLat', [bp.pos['Ref_LAcromion'], bp.pos['Ref_LElbowLat'], bp.pos['Ref_LWrist']]))
+c.append(ot.Chain('Legs', [bp.pos['Ref_LBigToe'], bp.pos['Spine_L4'], bp.pos['Ref_RBigToe']]))
 sk = ot.Skeleton('Sk1', c)
 # this says that the timestamp is from a video that was captured at 30 Hz, but the interval is to act on data sampled at bp.sr Hz
 intvl = ot.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=bp.sr)
