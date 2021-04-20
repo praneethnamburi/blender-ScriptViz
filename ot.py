@@ -10,7 +10,7 @@ from bpn import trf
 import pntools as pn
 
 # for drawing - requires blender modules
-from bpn import new, env
+from bpn import new, env, utils
 from bpn.mantle import Pencil
 from bpn.utils import get
 
@@ -142,6 +142,13 @@ class Marker(trf.PointCloud):
             return Marker(s.name, pc.co, pc.frame, s.parent)
         return modifiedMethod
 
+    def __getitem__(self, key):
+        """Use an interval object to slice the marker"""
+        assert type(key).__name__ == 'Interval'
+        if key.sr != self.sr:
+            key.sr = self.sr
+        return Marker(self.name, self.co[key.start.sample:key.end.sample], self.frame, self.parent)
+
     def show_path(self):
         new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
 
@@ -169,16 +176,37 @@ class Marker(trf.PointCloud):
             anim_frame = anim_frame + 1
             data_time = data_time + 1./anim_rate
 
+    def show_trajectory(self, intvl, keyframe=1, color=None, layer_name="main"):
+        """Plot trajectory for a given time interval"""
+        p = Pencil(self.name)
+        if color is None:
+            color = 'MATLAB_00'
+        if isinstance(color, int):
+            color = 'MATLAB_{:02d}'.format(color)
+        if isinstance(color, str):
+            pal = 'MATLAB'
+            if 'crd' in color:
+                pal = 'blender_ax'
+
+        p.color = {color: utils.color_palette(pal)[color]}
+        p.keyframe = keyframe
+
+        p.stroke(self[intvl].in_world())
+
 
 class Time:
     """
-    Time when working with sampled data (including video)
+    Time when working with sampled data (including video). INTEGER IMPLIES SAMPLE NUMBER, FLOAT IMPLIES TIME.
+    Use this to encapsulate sampling rate (sr), sample number (sample), and time (s).
+    When the sampling rate is changed, the sample number is updated, but the time is held constant.
+    When the time is changed, sample number is updated.
+    When the sample number is changed, the time is updated
     When working in Premiere Pro, use 29.97 fps drop-frame timecode to show the actual time in video.
     You should see semicolons instead of colons
         inp hh;mm;ss;frame
             (str)   '00;09;53;29'
             (list)  [00, 09, 53, 29]
-            (float) timestamp - will be rounded to the nearest sample
+            (float) assumes provided input is a timestamp
             (int)   assumes the provided input is the sample number
 
         t = Time(12531, 180)
@@ -187,29 +215,87 @@ class Time:
     """
     def __init__(self, inp, sr=30.):
         assert isinstance(inp, (str, list, float, int))
-        self.sr = float(sr)
+        self._sr = float(sr)
 
         if isinstance(inp, str):
             inp = [int(x) for x in inp.split(';')]
         if isinstance(inp, list):
             assert len(inp) == 4
-            self.sample = int((inp[0]*60*60 + inp[1]*60 + inp[2])*self.sr + inp[3])
+            self._sample = int((inp[0]*60*60 + inp[1]*60 + inp[2])*self.sr + inp[3])
         if isinstance(inp, float): # time to sample
-            self.sample = int(inp*self.sr)
+            self._sample = int(inp*self.sr)
         if isinstance(inp, int):
-            self.sample = inp
+            self._sample = inp
+        self._s = float(self._sample)/self._sr
+
+    @property
+    def sr(self):
+        return self._sr
+
+    @sr.setter
+    def sr(self, sr_val):
+        """When changing the sampling rate, time is kept the same, and the sample number is NOT"""
+        sr_val = float(sr_val)
+        self._sr = sr_val
+        self._sample = int(self._s*self._sr)
+
+    @property
+    def sample(self):
+        return self._sample
+    
+    @sample.setter
+    def sample(self, sample_val):
+        self._sample = int(sample_val)
+        self._s  = float(self._sample)/self._sr
     
     @property
     def s(self):
         """Return time in seconds"""
-        return float(self.sample)/self.sr
+        return self._s
+
+    @s.setter
+    def s(self, s_val):
+        """If time is changed, then the sample number should be reset as well"""
+        self._s = float(s_val)
+        self._sample = int(self._s*self._sr)
+
+    def __add__(self, other):
+        x = self._arithmetic(other)
+        return Time(x[2].__add__(x[0], x[1]), self.sr)
+
+    def __sub__(self, other):
+        x = self._arithmetic(other)
+        return Time(x[2].__sub__(x[0], x[1]), self.sr)
+
+    def _arithmetic(self, other):
+        if isinstance(other, self.__class__):
+            assert other.sr == self.sr
+            return (self.sample, other.sample, int)
+        elif isinstance(other, int):
+            # integer implies sample, float implies time
+            return (self.sample, other, int)
+        elif isinstance(other, float):
+            return (self.s, other, float)
+        else:
+            os.error("Unexpected input type! Input either a float for time, integer for sample, or time object")
 
 
 class Interval:
-    def __init__(self, start, end):
+    """
+    Interval object with start and stop times. Implements the iterator protocol.
+    intvl = ot.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=180)
+    for sample, time, index in intvl:
+        print((sample, time, index))
+    """
+    def __init__(self, start, end, tzero=None, sr=None):
         self.start = self._process_inp(start)
         self.end = self._process_inp(end)
-        assert self.start.sr == self.end.sr # interval is defined for the same data type
+        if sr is not None:
+            self.sr = sr
+        assert self.start.sr == self.end.sr # interval is defined for a specific sampled dataset
+        if tzero is None:
+            self.tzero = self.start
+        self._index = 0
 
     @staticmethod
     def _process_inp(inp):
@@ -223,6 +309,12 @@ class Interval:
     @property
     def sr(self):
         return self.start.sr
+    
+    @sr.setter
+    def sr(self, sr_val):
+        sr_val = float(sr_val)
+        self.start.sr = sr_val
+        self.end.sr = sr_val
         
     @property
     def dur_s(self):
@@ -236,6 +328,20 @@ class Interval:
     
     def __len__(self):
         return self.dur_sample
+
+    # iterator protocol - you can do: for sample, time, index in interval
+    def __iter__(self):
+        """Iterate from start sample to end sample"""
+        return self
+    
+    def __next__(self):
+        if self._index <= len(self):
+            result = (self.start.sample + self._index, self.start.s + self._index/self.sr, self._index)
+        else:
+            self._index = 0
+            raise StopIteration
+        self._index += 1
+        return result
         
 
 class Chain:

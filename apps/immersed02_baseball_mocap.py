@@ -100,7 +100,11 @@ c.append(ot.Chain('RightArmLat', [bp.pos['Ref_RAcromion'], bp.pos['Ref_RElbowLat
 c.append(ot.Chain('RightArmMed', [bp.pos['Ref_RAcromion'], bp.pos['Ref_RElbowMed'], bp.pos['Ref_RWristMed']]))
 c.append(ot.Chain('LeftArmLat', [bp.pos['Ref_LAcromion'], bp.pos['Ref_LElbowLat'], bp.pos['Ref_LWrist']]))
 sk = ot.Skeleton('Sk1', c)
+# this says that the timestamp is from a video that was captured at 30 Hz, but the interval is to act on data sampled at bp.sr Hz
+intvl = ot.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=bp.sr)
 sk.show(start_time=9.*60+51.25, end_time=9*60.+54+11/30)
+x = bp.pos['Ref_RWristLat']
+x.show_trajectory(intvl, color=1)
 # for markers, add ability to show trajectory
 # for chains, add ability to plot length
 # add time interval objects for events
