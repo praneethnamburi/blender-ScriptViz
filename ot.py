@@ -169,6 +169,75 @@ class Marker(trf.PointCloud):
             anim_frame = anim_frame + 1
             data_time = data_time + 1./anim_rate
 
+
+class Time:
+    """
+    Time when working with sampled data (including video)
+    When working in Premiere Pro, use 29.97 fps drop-frame timecode to show the actual time in video.
+    You should see semicolons instead of colons
+        inp hh;mm;ss;frame
+            (str)   '00;09;53;29'
+            (list)  [00, 09, 53, 29]
+            (float) timestamp - will be rounded to the nearest sample
+            (int)   assumes the provided input is the sample number
+
+        t = Time(12531, 180)
+        t.s
+        t.sample
+    """
+    def __init__(self, inp, sr=30.):
+        assert isinstance(inp, (str, list, float, int))
+        self.sr = float(sr)
+
+        if isinstance(inp, str):
+            inp = [int(x) for x in inp.split(';')]
+        if isinstance(inp, list):
+            assert len(inp) == 4
+            self.sample = int((inp[0]*60*60 + inp[1]*60 + inp[2])*self.sr + inp[3])
+        if isinstance(inp, float): # time to sample
+            self.sample = int(inp*self.sr)
+        if isinstance(inp, int):
+            self.sample = inp
+    
+    @property
+    def s(self):
+        """Return time in seconds"""
+        return float(self.sample)/self.sr
+
+
+class Interval:
+    def __init__(self, start, end):
+        self.start = self._process_inp(start)
+        self.end = self._process_inp(end)
+        assert self.start.sr == self.end.sr # interval is defined for the same data type
+
+    @staticmethod
+    def _process_inp(inp):
+        if type(inp).__name__ == 'Time':
+            return inp
+        elif isinstance(inp, (tuple, list)):
+            assert len(inp) == 2
+            return Time(inp[0], inp[1])
+        return Time(inp)
+
+    @property
+    def sr(self):
+        return self.start.sr
+        
+    @property
+    def dur_s(self):
+        """Duration in seconds"""
+        return self.end.s - self.start.s
+    
+    @property
+    def dur_sample(self):
+        """Duration in number of samples"""
+        return self.end.sample - self.start.sample
+    
+    def __len__(self):
+        return self.dur_sample
+        
+
 class Chain:
     """
     Collection of markers. Sequence matters.
