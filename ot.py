@@ -152,14 +152,13 @@ class Marker(trf.PointCloud):
     def show_path(self):
         new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
 
-    def show(self, start_time=None, end_time=None, start_frame=1, r=0.2):
-        if start_time is None:
-            start_time = self.t[0]
-        if end_time is None:
-            end_time = np.min((self.t[-1], 2.0)) # 2 s is the default animation time
-        anim_rate = env.Key().fps
-        data_rate = self.sr
+    def show(self, intvl=(0., 2.), start_frame=1, r=0.2):
+        if isinstance(intvl, (list, tuple)):
+            assert len(intvl) == 2
+            intvl  = Interval(intvl[0], intvl[1], sr=self[0].sr)
+        assert isinstance(intvl, Interval)
 
+        intvl.iter_rate = env.Key().fps
         ts_name = self.name + '_pos'
         if not get(ts_name):
             ts = new.sphere(name=ts_name, r=r)
@@ -167,14 +166,9 @@ class Marker(trf.PointCloud):
         else:
             ts = get(ts_name)
 
-        data_time = start_time
-        anim_frame = start_frame
-        while data_time <= end_time:
-            center_frame = int(np.round(data_time*data_rate))
+        for center_frame, _, index in intvl:
             ts.loc = self.co[center_frame]
-            ts.key(anim_frame, 'l')
-            anim_frame = anim_frame + 1
-            data_time = data_time + 1./anim_rate
+            ts.key(start_frame + index, 'l')
 
     def show_trajectory(self, intvl, keyframe=1, color=None, layer_name="main"):
         """Plot trajectory for a given time interval"""
@@ -283,19 +277,32 @@ class Time:
 class Interval:
     """
     Interval object with start and stop times. Implements the iterator protocol.
-    intvl = ot.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=180)
-    for sample, time, index in intvl:
-        print((sample, time, index))
+    Pictoral understanding:
+    start           -> |                                           | <-
+    frames          -> |   |   |   |   |   |   |   |   |   |   |   | <- [self.sr, len(self)=12, self.t_data, self.t]
+    animation times -> |        |        |        |        |         <- [self.iter_rate, self._index, self.t_iter]
+    Frame sampling is used to pick the nearest frame corresponding to the animation times
+    Example:
+        intvl = ot.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=180, iter_rate=env.Key().fps)
+        intvl.iter_rate = 24 # say 24 fps for animation
+        for nearest_sample, time, index in intvl:
+            print((nearest_sample, time, index))
     """
-    def __init__(self, start, end, tzero=None, sr=None):
+    def __init__(self, start, end, zero=None, sr=None, iter_rate=None):
         self.start = self._process_inp(start)
         self.end = self._process_inp(end)
         if sr is not None:
             self.sr = sr
         assert self.start.sr == self.end.sr # interval is defined for a specific sampled dataset
-        if tzero is None:
-            self.tzero = self.start
+        if zero is None:
+            self.zero = self.start
+        else:
+            self.zero = self._process_inp(zero)
         self._index = 0
+        if iter_rate is None:
+            self.iter_rate = self.sr # this will be the animation fps when animating data at a different rate
+        else:
+            self.iter_rate = float(iter_rate)
 
     @staticmethod
     def _process_inp(inp):
@@ -304,7 +311,7 @@ class Interval:
         elif isinstance(inp, (tuple, list)):
             assert len(inp) == 2
             return Time(inp[0], inp[1])
-        return Time(inp)
+        return Time(inp) # string, float and int get processed here
 
     @property
     def sr(self):
@@ -324,7 +331,7 @@ class Interval:
     @property
     def dur_sample(self):
         """Duration in number of samples"""
-        return self.end.sample - self.start.sample
+        return self.end.sample - self.start.sample + 1 # includes both start and end samples
     
     def __len__(self):
         return self.dur_sample
@@ -335,14 +342,40 @@ class Interval:
         return self
     
     def __next__(self):
-        if self._index <= len(self):
-            result = (self.start.sample + self._index, self.start.s + self._index/self.sr, self._index)
+        index_interval = 1./self.iter_rate
+        if self._index <= int(self.dur_s*self.iter_rate)+1:
+            time = self.start.s + self._index*index_interval
+            nearest_sample = self.start.sample + int(self._index*index_interval*self.sr)
+            result = (nearest_sample, time, self._index)
         else:
             self._index = 0
             raise StopIteration
         self._index += 1
         return result
+    
+    # time vectors
+    @property
+    def t_iter(self):
+        """Time Vector for the interval at iteration frame rate"""
+        return self._t(self.iter_rate)
+
+    @property
+    def t_data(self):
+        """Time vector at the data sampling rate"""
+        return self._t(self.sr)
+
+    @property
+    def t(self):
+        """Time Vector relative to t_zero"""
+        tzero = self.zero.s
+        return [t - tzero for t in self.t_data]
         
+    def _t(self, rate):
+        _t = [self.start.s]
+        while _t[-1] <= self.end.s:
+            _t.append(_t[-1] + 1./rate)
+        return _t
+
 
 class Chain:
     """
@@ -367,30 +400,26 @@ class Chain:
             return self._marker_list[key]
         return [m for m in self._marker_list if m.name == key][0]
     
-    def show(self, start_time=None, end_time=None, start_frame=1, layer_name="main"):
+    def get(self, sample_index):
+        return trf.PointCloud( np.array( [m.co[sample_index] for m in self._marker_list] ) )
+    
+    def show(self, intvl=(0., 2.), start_frame=1, layer_name="main"):
         """
+        intvl (Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
+            or a tuple of (int, int) implying start and end frame
         start_frame (int) - animation start frame
         """
-        if start_time is None:
-            start_time = self[0].t[0]
-        if end_time is None:
-            end_time = np.min((self[0].t[-1], 2.0)) # 2 s is the default animation time
-        anim_rate = env.Key().fps
-        data_rate = self[0].sr
-        
+        if isinstance(intvl, (list, tuple)):
+            assert len(intvl) == 2
+            intvl  = Interval(intvl[0], intvl[1], sr=self[0].sr)
+        assert isinstance(intvl, Interval)
+
+        intvl.iter_rate = env.Key().fps
         p = Pencil(self.name)
         p.layer = layer_name
-
-        data_time = start_time
-        anim_frame = start_frame
-        while data_time <= end_time:
-            center_frame = int(np.round(data_time*data_rate))
-            p.keyframe = anim_frame
-            p.stroke(trf.PointCloud( np.array( [m.co[center_frame] for m in self] ) ))
-            anim_frame = anim_frame + 1
-            data_time = data_time + 1./anim_rate
-
-        env.Key().auto_lim()
+        for center_frame, _, index in intvl:
+            p.keyframe = index + start_frame
+            p.stroke(self.get(center_frame))
         
 
 class Skeleton:
@@ -428,15 +457,17 @@ class Skeleton:
     def markers(self):
         return list(self._markers_all.keys())
     
-    def show(self, start_time=None, end_time=None, start_frame=1, layer_name="main", chains=True, markers=True):
+    def show(self, intvl=None, start_frame=1, layer_name="main", chains=True, markers=True):
         if chains:
             for c in self._chain_list:
-                c.show(start_time, end_time, start_frame, layer_name)
+                c.show(intvl, start_frame, layer_name)
         
         if markers:
             for m in self._markers_all.values():
-                m.show(start_time, end_time, start_frame)
+                m.show(intvl, start_frame)
         
+        env.Key().auto_lim()
+
 
 class Vid(VideoReader):
     def __init__(self, fname):
