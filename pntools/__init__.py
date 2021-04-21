@@ -31,7 +31,7 @@ Input management:
 
 Code development: (functions that help during code development)
     reload  - Reload modules in development folder
-    Time    - (Decorator) Execution time
+    TimeIt    - (Decorator) Execution time
     tracker - (decorator) Track objects created by a class (preserves class as class - preferred)
     Tracker - (Decorator) Track objects created by a class (turns classes into Tracker objects)
 
@@ -720,7 +720,7 @@ def reload(constraint='Workspace'):
                 print('Could not reload ' + mod.__name__)
     return reloaded_mod
 
-class Time:
+class TimeIt:
     """
     Prints execution time. Decorator.
     Note that this only works on functions.
@@ -728,7 +728,7 @@ class Time:
     out1 = m.inflate(0.15, 0.1, 0.02, 100)
     Using the following will give the output in addition to printing the
     execution time.
-    out1 = pn.Time(m.inflate)(0.15, 0.1, 0.02, 100)
+    out1 = pn.TimeIt(m.inflate)(0.15, 0.1, 0.02, 100)
     """
     def __init__(self, func):
         self.func = func
@@ -986,4 +986,4 @@ class ExComm:
 
 
 ## decorate
-run = Time(run)
+run = TimeIt(run)

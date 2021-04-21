@@ -224,5 +224,5 @@ def testTrackerQuery():
     print('testTrackerQuery finished.')
 
 if __name__ == '__main__':
-    pn.Time(testTracker)()
-    pn.Time(testTrackerQuery)()
+    pn.TimeIt(testTracker)()
+    pn.TimeIt(testTrackerQuery)()
