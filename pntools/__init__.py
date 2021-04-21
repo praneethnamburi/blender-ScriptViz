@@ -1040,6 +1040,10 @@ class Time:
         sr_val = float(sr_val)
         self._sr = sr_val
         self._sample = int(self._s*self._sr)
+    
+    def change_sr(self, new_sr):
+        self.sr = new_sr
+        return self
 
     @property
     def sample(self):
@@ -1099,13 +1103,15 @@ class Interval:
     def __init__(self, start, end, zero=None, sr=None, iter_rate=None):
         self.start = self._process_inp(start)
         self.end = self._process_inp(end)
-        if sr is not None:
-            self.sr = sr
-        assert self.start.sr == self.end.sr # interval is defined for a specific sampled dataset
         if zero is None:
             self.zero = self.start
         else:
             self.zero = self._process_inp(zero)
+
+        if sr is not None:
+            self.sr = sr
+        assert self.start.sr == self.end.sr == self.zero.sr # interval is defined for a specific sampled dataset
+        
         self._index = 0
         if iter_rate is None:
             self.iter_rate = self.sr # this will be the animation fps when animating data at a different rate
@@ -1114,7 +1120,7 @@ class Interval:
 
     @staticmethod
     def _process_inp(inp):
-        if type(inp).__name__ == 'Time':
+        if isinstance(inp, Time):
             return inp
         elif isinstance(inp, (tuple, list)):
             assert len(inp) == 2
@@ -1130,6 +1136,7 @@ class Interval:
         sr_val = float(sr_val)
         self.start.sr = sr_val
         self.end.sr = sr_val
+        self.zero.sr = sr_val
         
     @property
     def dur_s(self):
@@ -1183,3 +1190,20 @@ class Interval:
         while _t[-1] <= self.end.s:
             _t.append(_t[-1] + 1./rate)
         return _t
+
+    def __add__(self, other):
+        return Interval(self.start+other, self.end+other, zero=self.zero+other, sr=self.sr, iter_rate=self.iter_rate)
+
+    def __sub__(self, other):
+        return Interval(self.start-other, self.end-other, zero=self.zero-other, sr=self.sr, inter_rate=self.iter_rate)
+
+    def add(self, other):
+        """Add to object, rather than returning a new object"""
+        self.start = self.start + other
+        self.end = self.end + other
+        self.zero = self.zero + other
+
+    def sub(self, other):
+        self.start = self.start - other
+        self.end = self.end - other
+        self.zero = self.zero - other

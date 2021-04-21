@@ -107,8 +107,20 @@ sk.show(intvl)
 x = bp.pos['Ref_RWristLat']
 x.show_trajectory(intvl, color=1)
 # for chains, add ability to plot length
-# add time interval objects for events
+# Computed markers - ability to easily add and/or subtract marker coordinates
+# clean up Marker.show_trajectory - Pencil creation is too cumbersome.
+# Check - when using Pencil from Mantle, it will resist creating a new object, but new.Pencil always creates a new object?
 # add ability to show computed markers
+# add time interval objects for events
 # events - tag and show multiple events
 # show multiple events simultaneously to contrast them
 # event dilation - events have internal markers based on physiological metrics, and the time can be dilated to each phase
+# COM computation
+
+#%% Working with events
+
+intvl = pn.Interval(-2., 5., 0., sr=180., iter_rate=30.)
+event_times = ['00;09;49;15', '00;10;51;12']
+intervals = []
+for e in event_times:
+    intervals.append(intvl+pn.Time(e, 30.).change_sr(intvl.sr)) # 30 Hz is the sampling rate of the video where the timestamp was recorded, and the accompanying data has a rate of 180 Hz
