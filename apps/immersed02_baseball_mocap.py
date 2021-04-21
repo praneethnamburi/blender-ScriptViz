@@ -106,7 +106,9 @@ intvl = ot.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=bp.sr, iter_rat
 sk.show(intvl)
 x = bp.pos['Ref_RWristLat']
 x.show_trajectory(intvl, color=1)
-# for markers, add ability to show trajectory
 # for chains, add ability to plot length
 # add time interval objects for events
 # add ability to show computed markers
+# events - tag and show multiple events
+# show multiple events simultaneously to contrast them
+# event dilation - events have internal markers based on physiological metrics, and the time can be dilated to each phase
