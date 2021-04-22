@@ -1,11 +1,15 @@
 import matplotlib.pyplot as plt
 import multiprocessing as mp
-mp.set_executable("C:\\Users\\Praneeth\\anaconda3\\envs\\blenderSV\\python.exe")
 
-def plotter(arr):
+import pntools as pn
+
+mp.set_executable(pn.locate_command('python', 'conda').split('\r\n')[0])
+
+def plotter(arr, queue):
     plt.figure()
     plt.plot(arr)
     plt.show()
+    queue.put(plt)
 
 class Plot:
     """ 
@@ -14,11 +18,16 @@ class Plot:
     """
     def __init__(self, arr, targ=plotter):
         self.ydata = arr
-        self.p = mp.Process(target=targ, args=(arr,))
+        self._q = mp.Queue()
+        self.p = mp.Process(target=plotter, args=(arr, self._q))
         self.p.start()
-    
+
     def __neg__(self):
         self.p.terminate()
+
+    def wait(self):
+        self.p.join()
+        return self._q.get()
     
 
 if __name__ == '__main__':
