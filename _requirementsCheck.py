@@ -150,7 +150,7 @@ def main():
     # defaultEnvName = 'blender'+str(Path(blenderPath).parents[0]).split(os.sep)[-1].replace('.', '')
     # os.system('conda activate ' + defaultEnvName)
     # os.system('conda env update --file _requirements.yml')
-    os.system('conda env export | findstr -v "prefix" | findstr -v "openssl=1.1.1h" | findstr -v "matlab" > _requirements.yml')
+    os.system('conda env export | findstr -v "prefix" | findstr -v "openssl=1.1.1" | findstr -v "matlab" > _requirements.yml')
     # openssl was causing problems when creating an environment on a new computer. For linux, use grep instead of findstr.
 
 if __name__ == '__main__' or __name__ == '<run_path>':
