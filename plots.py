@@ -5,32 +5,32 @@ import pntools as pn
 
 mp.set_executable(pn.locate_command('python', 'conda').split('\r\n')[0])
 
-def plotter(arr, queue):
-    plt.figure()
-    plt.plot(arr)
-    plt.show()
-    queue.put(plt)
+class Spawn:
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        p = mp.Process(target=self.func, args=args, kwargs=kwargs)
+        p.start()
+        return p
 
 class Plot:
-    """ 
-    p1 = Plot([0, 1, 2, 3, -10])
-    -p1
     """
-    def __init__(self, arr, targ=plotter):
-        self.ydata = arr
-        self._q = mp.Queue()
-        self.p = mp.Process(target=plotter, args=(arr, self._q))
-        self.p.start()
+    h = Plot([2, 3, 10, 3])
+    -h
+    """
+    def __init__(self, arr):
+        self._proc = Spawn(self._plot)(arr)
+
+    @staticmethod
+    def _plot(arr):
+        plt.figure()
+        plt.plot(arr)
+        plt.show()
 
     def __neg__(self):
-        self.p.terminate()
-
-    def wait(self):
-        self.p.join()
-        return self._q.get()
-    
+        self._proc.terminate()
 
 if __name__ == '__main__':
     # worker needs to be imported, but other than that, this works great from the blender console!
-    p = mp.Process(target=worker, args=([0, 1, 2, 3],))
-    p.start()
+    p = plot([2, 3, 4, 23])
+    p.terminate()
