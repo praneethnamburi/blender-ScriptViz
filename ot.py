@@ -14,6 +14,8 @@ from bpn import new, env, utils
 from bpn.mantle import Pencil
 from bpn.utils import get
 
+DIST_UNITS = {'Millimeters':-3, 'Centimeters':-2, 'Meters':0}
+
 class Log:
     """
     Read Optitrack log files (CSV export)
@@ -23,7 +25,8 @@ class Log:
     """
     def __init__(self, fname, coord_frame=trf.CoordFrame(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))):
         self.fname = fname
-        self.disp_scale = 100.
+        self.disp_scale = 100. # set during creation! DOES NOT impact export
+        assert self.disp_scale in [1./1000, 1./100, 1./10, 1, 10, 100, 1000]
 
         data = []
         data_len = []
@@ -88,8 +91,7 @@ class Log:
     def vid_frame(self):
         return self._vid_frame
 
-    @property
-    def n(self):
+    def __len__(self):
         return len(self.vid_frame)
 
     @property
@@ -103,7 +105,11 @@ class Log:
 
     @property
     def units(self):
-        return str(self.disp_scale) + " " + self.hdr['Length Units']
+        ux = {-3:'mm', -2:'cm', -1:'dm', 0:'m'}
+        x = DIST_UNITS[self.hdr['Length Units']] + int(np.log10(self.disp_scale))
+        return ux[x]
+
+        # return str(self.disp_scale) + " " + self.hdr['Length Units']
     
     def load_videos(self):
         vids = pn.find("*Camera*.mp4", os.path.dirname(self.fname))
@@ -148,6 +154,9 @@ class Marker(trf.PointCloud):
         if key.sr != self.sr:
             key.sr = self.sr
         return Marker(self.name, self.co[key.start.sample:key.end.sample], self.frame, self.parent)
+
+    def __len__(self):
+        return len(self.vid_frame)
 
     def show_path(self):
         new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
@@ -203,8 +212,12 @@ class Chain:
         self.name = name
 
     @property
-    def markers(self):
+    def marker_names(self):
         return [m.name for m in self._marker_list]
+
+    @property
+    def markers(self):
+        return self._marker_list
 
     def __getitem__(self, key):
         if isinstance(key, int):
@@ -212,6 +225,7 @@ class Chain:
         return [m for m in self._marker_list if m.name == key][0]
     
     def get(self, sample_index):
+        """Positions of all markers in the chain at sample_index"""
         return trf.PointCloud( np.array( [m.co[sample_index] for m in self._marker_list] ) )
     
     def show(self, intvl=(0., 2.), start_frame=1, layer_name="main"):
@@ -231,7 +245,21 @@ class Chain:
         for center_frame, _, index in intvl:
             p.keyframe = index + start_frame
             p.stroke(self.get(center_frame))
-        
+
+    def __len__(self):
+        """Number of markers in the chain"""
+        return len(self._marker_list)
+    
+    def length(self, units='mm'):
+        """Sequence especially matters here."""
+        ux = {'mm':-3, 'cm':-2, 'dm':-1, 'm':0}
+        assert units in ux.keys()
+        log = self._marker_list[0].parent
+        mul_units = 10.**(ux[log.units] - ux[units])
+        le = np.zeros_like(log.t)
+        for m1, m2 in zip(self._marker_list[:-1], self._marker_list[1:]):
+            le += np.linalg.norm(m2.co-m1.co, axis=1)
+        return le*mul_units
 
 class Skeleton:
     """
