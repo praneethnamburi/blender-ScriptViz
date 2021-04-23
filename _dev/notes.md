@@ -694,9 +694,11 @@ git push --set-upstream https://github.com/praneethnamburi/blender-ScriptViz.git
 git push --set-upstream "C:\Drives\Dropbox (Personal)\gitHosting\blenderPython.git"
 
 For blender 2.93, use this:
-conda create -n blenderSV python=3.9.2 numpy scipy pandas jupyter ipython matplotlib blinker scikit-learn
+conda create -n blender293 python=3.9.2 numpy scipy pandas jupyter ipython matplotlib blinker scikit-learn
+conda activate blender293
+conda install -c conda-forge pybullet multiprocess
 pip install decord //Video and optitrack processing
-conda install -c conda-forge pybullet
+pip install urdfpy
 
 for running demo.capsule, these are needed [discard conda commands if you don't mind a lot of pip installs, just install urdfpy]:
 conda install -c conda-forge trimesh freetype-py pyglet
@@ -704,17 +706,18 @@ conda install -c anaconda lxml pyopengl imageio
 pip install urdfpy
 
 separate installs:
-opensim
+opensim [incompatible with python 3.9]
 neuron
+matlab engine [incompatible with python 3.9]
 
 Compatibility issues [doesn't work with blender's latest python]]:
 Use python 3.7 or earlier [blender 2.91 or earlier]
 conda install -c projectchrono pychrono // simulations 3.9 or earlier
 opensim - python 3.7 or earlier
+matlab engine
 
 So, it might be best to separate out the simulation and blender-visualization environments, and perhaps learn to use inter-process communication if it comes down to it.
 
-Failed demos [all these still work in the old environment, but decord does NOT]:
-plane_slice [numpy upgrade issue?]
-capsule
-handler2
+Failed demos:
+capsule [urdfpy won't work with the updates]
+handler2 and plane_slice did not work on my personal laptop, but worked on pnDev
