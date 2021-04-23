@@ -699,7 +699,7 @@ pip install decord //Video and optitrack processing
 conda install -c conda-forge pybullet
 
 for running demo.capsule, these are needed [discard conda commands if you don't mind a lot of pip installs, just install urdfpy]:
-conda install -c conda-forge trimesh freetype-py pyglet
+conda install -c conda-forge trimesh freetype-py pyglet multiprocess
 conda install -c anaconda lxml pyopengl imageio 
 pip install urdfpy
 
