@@ -37,6 +37,7 @@ Code development: (functions that help during code development)
 
 Communication:
     ExComm - Communicate with external programs via a socket
+    Spawn  - Use Multiprocessing to run a function in another process (intended for using matplotlib from blender)
 
 Tools for sampled data:
     Time     - Encapsulates time and sampling rate
@@ -61,6 +62,7 @@ import fnmatch
 from copy import deepcopy
 from timeit import default_timer as timer
 
+import multiprocess
 import numpy as np
 import blinker
 
@@ -966,6 +968,10 @@ class Tracker:
 
 
 class ExComm:
+    """
+    For communicating with other programs via TCPIP.
+    For MATLAB communication, use MATLAB engine!
+    """
     def __init__(self, host='localhost', port=50000):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.bind((host, port))
@@ -990,8 +996,19 @@ class ExComm:
         self.conn.close()
 
 
-## decorate
-run = TimeIt(run)
+class Spawn:
+    def __init__(self, func):
+        self.func = func
+    def __call__(self, *args, **kwargs):
+        self._q = multiprocess.Queue()
+        self._proc = multiprocess.Process(target=self.func, args=(self._q, *args), kwargs=kwargs)
+        self._proc.start()
+        return self
+    def __neg__(self):
+        self._q.put('done')
+        self._proc.terminate()
+    def send(self, msg):
+        self._q.put(msg)
 
 
 ## Tools for working with sampled data

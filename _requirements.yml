@@ -21,6 +21,7 @@ dependencies:
   - cycler=0.10.0=py37_0
   - decorator=4.4.2=py_0
   - defusedxml=0.6.0=py_0
+  - dill=0.3.3=pyhd3eb1b0_0
   - docutils=0.16=py37_0
   - entrypoints=0.3=py37_0
   - et_xmlfile=1.0.1=py37_0
@@ -66,6 +67,7 @@ dependencies:
   - mkl_fft=1.0.15=py37h14836fe_0
   - mkl_random=1.1.0=py37h675688f_0
   - msys2-conda-epoch=20160418=1
+  - multiprocess=0.70.11.1=py37hcc03f2d_1
   - nbconvert=5.6.1=py37_0
   - nbformat=5.0.4=py_0
   - notebook=6.0.3=py37_0

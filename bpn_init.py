@@ -40,6 +40,11 @@ from pntools import run
 Matrix = mathutils.Matrix
 Vector = mathutils.Vector
 
+# for using matplotlib from within blender
+import multiprocess
+multiprocess.set_executable(pn.locate_command('python', 'conda', verbose=False).split('\r\n')[0])
+from plots import plot
+
 # bridge to julia
 # pylint: disable=no-name-in-module, wrong-import-order
 # from julia import Pkg
