@@ -303,7 +303,7 @@ def color_palette(name='MATLAB', prefix='', alpha=0.8):
 
     return None
 
-def new_gp_color(mtrl_name, rgba):
+def new_gp_color(mtrl_name, rgba=None):
     """
     Create a new grease pencil color.
     Create the material if it doesn't exist.
@@ -312,6 +312,9 @@ def new_gp_color(mtrl_name, rgba):
     Returns:
         Material object (bpy.data.materials)
     """
+    if rgba is None:
+        import matplotlib.colors
+        rgba = matplotlib.colors.to_rgba(mtrl_name)
     if mtrl_name in [m.name for m in bpy.data.materials]:
         mtrl = bpy.data.materials[mtrl_name]
     else:

@@ -106,9 +106,7 @@ intvl = pn.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=bp.sr, iter_rat
 sk.show(intvl)
 x = bp.pos['Ref_RWristLat']
 x.show_trajectory(intvl, color=1)
-# for chains, add ability to plot length
 # Computed markers - ability to easily add and/or subtract marker coordinates
-# clean up Marker.show_trajectory - Pencil creation is too cumbersome.
 # Check - when using Pencil from Mantle, it will resist creating a new object, but new.Pencil always creates a new object?
 # add ability to show computed markers
 # add time interval objects for events

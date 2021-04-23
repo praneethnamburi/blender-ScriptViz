@@ -30,20 +30,20 @@ class Pencil(core.GreasePencilObject):
         return super().__new__(cls, name)
 
     def __init__(self, name, **kwargs):
-        names, kwargs = utils.clean_names(name, kwargs, {'layer_name':'main', 'priority_gp': 'current', 'priority_obj': 'current'}, mode='gp')
+        names, kwargs00 = utils.clean_names(name, kwargs, {'layer_name':'main', 'priority_gp': 'current', 'priority_obj': 'current'}, mode='gp')
         gp_name = names['gp_name']
         obj_name = names['obj_name']
         coll_name = names['coll_name']
         layer_name = names['layer_name']
 
         # Create palette in the blender file
-        kwargs, _ = pn.clean_kwargs(kwargs, {
+        kwargs01, kwargs02 = pn.clean_kwargs(kwargs00, {
             'palette_list': ['MATLAB', 'blender_ax'], 
             'palette_prefix': ['MATLAB_', ''], 
             'palette_alpha': [1, 0.8],
             })
         this_palette = {}
-        for pal_name, pal_pre, pal_alpha in zip(kwargs['palette_list'], kwargs['palette_prefix'], kwargs['palette_alpha']):
+        for pal_name, pal_pre, pal_alpha in zip(kwargs01['palette_list'], kwargs01['palette_prefix'], kwargs01['palette_alpha']):
             this_palette = {**this_palette, **utils.color_palette(pal_name, pal_pre, pal_alpha)} # material library for this grease pencil
         for mtrl_name, rgba in this_palette.items(): # create material library
             utils.new_gp_color(mtrl_name, rgba) # will only create if it doesn't exist
@@ -54,7 +54,13 @@ class Pencil(core.GreasePencilObject):
         for color in this_palette:
             self.color = color
 
-        self.color = 0
+        custom, _ = pn.clean_kwargs(kwargs02, {'color': 'white', 'keyframe': 1})
+        color = custom['color']
+        if isinstance(color, int):
+            # NOTE: This is confusing, because the color behavior is core.greasepencilobject is different!
+            color = 'MATLAB_{:02d}'.format(color)
+        self.color = color
+        self.keyframe = custom['keyframe']
         self.to_coll(coll_name)
 
 
