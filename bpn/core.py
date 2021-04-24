@@ -1162,7 +1162,7 @@ class GreasePencilObject(CompoundObject):
         return self._color
 
     @color.setter
-    def color(self, this_color):
+    def color(self, this_color, verbose=False):
         """
         Set the current stroke material (self._color).
         this_color is either a string, a number, a dict, or a tuple.
@@ -1181,7 +1181,8 @@ class GreasePencilObject(CompoundObject):
             key = list(this_color.keys())[0] # key is the name
             val = list(this_color.values())[0]
             if key in [m.name for m in bpy.data.materials]:
-                print('Color '+key+' already exists in the palette!')
+                if verbose:
+                    print('Color '+key+' already exists in the palette!')
             else: # make a new color
                 assert len(val) == 4
                 for v in val:
@@ -1189,8 +1190,11 @@ class GreasePencilObject(CompoundObject):
                 utils.new_gp_color(key, val)
             color_name = key
         if isinstance(this_color, str):
-            color_name = this_color
-        
+            color_name = this_color  
+            # create material if color does not exist
+            if color_name not in [m.name for m in bpy.data.materials]:
+                utils.new_gp_color(color_name)
+
         # add color to the material slot if it does not exist
         if color_name not in [m.name for m in self().data.materials if m is not None]:
             self().data.materials.append(bpy.data.materials[color_name])

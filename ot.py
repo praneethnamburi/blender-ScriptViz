@@ -179,21 +179,9 @@ class Marker(trf.PointCloud):
             ts.loc = self.co[center_frame]
             ts.key(start_frame + index, 'l')
 
-    def show_trajectory(self, intvl, keyframe=1, color=None, layer_name="main"):
+    def show_trajectory(self, intvl=(0., 2.), keyframe=1, color='darkorange', **kwargs):
         """Plot trajectory for a given time interval"""
-        p = Pencil(self.name)
-        if color is None:
-            color = 'MATLAB_00'
-        if isinstance(color, int):
-            color = 'MATLAB_{:02d}'.format(color)
-        if isinstance(color, str):
-            pal = 'MATLAB'
-            if 'crd' in color:
-                pal = 'blender_ax'
-
-        p.color = {color: utils.color_palette(pal)[color]}
-        p.keyframe = keyframe
-
+        p = Pencil(self.name, color=color, keyframe=keyframe, **kwargs)
         p.stroke(self[intvl].in_world())
 
 
@@ -228,11 +216,17 @@ class Chain:
         """Positions of all markers in the chain at sample_index"""
         return trf.PointCloud( np.array( [m.co[sample_index] for m in self._marker_list] ) )
     
-    def show(self, intvl=(0., 2.), start_frame=1, layer_name="main"):
+    def show(self, intvl=(0., 2.), start_frame=1, color='white', **kwargs):
         """
         intvl (pn.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
             or a tuple of (int, int) implying start and end frame
         start_frame (int) - animation start frame
+        color (int, str, or dict) 
+            - integers 0 to 7 - matlab color order
+            - string - name of the color (anything from matplotlib's list will do)
+                https://matplotlib.org/stable/gallery/color/named_colors.html
+            - dict {name: [r, g, b, a]}
+        kwargs - anything that Pencil takes
         """
         if isinstance(intvl, (list, tuple)):
             assert len(intvl) == 2
@@ -240,8 +234,7 @@ class Chain:
         assert isinstance(intvl, pn.Interval)
 
         intvl.iter_rate = env.Key().fps
-        p = Pencil(self.name)
-        p.layer = layer_name
+        p = Pencil(self.name, color=color, **kwargs)
         for center_frame, _, index in intvl:
             p.keyframe = index + start_frame
             p.stroke(self.get(center_frame))
@@ -296,14 +289,15 @@ class Skeleton:
     def markers(self):
         return list(self._markers_all.keys())
     
-    def show(self, intvl=None, start_frame=1, layer_name="main", chains=True, markers=True):
+    def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
+        """kwargs are for Pencil"""
         if chains:
             for c in self._chain_list:
-                c.show(intvl, start_frame, layer_name)
+                c.show(intvl, start_frame=start_frame, **kwargs)
         
         if markers:
             for m in self._markers_all.values():
-                m.show(intvl, start_frame)
+                m.show(intvl, start_frame=start_frame)
         
         env.Key().auto_lim()
 
