@@ -102,7 +102,7 @@ c.append(ot.Chain('LeftArmLat', [bp.pos['Ref_LAcromion'], bp.pos['Ref_LElbowLat'
 c.append(ot.Chain('Legs', [bp.pos['Ref_LBigToe'], bp.pos['Spine_L4'], bp.pos['Ref_RBigToe']]))
 sk = ot.Skeleton('Sk1', c)
 # this says that the timestamp is from a video that was captured at 30 Hz, but the interval is to act on data sampled at bp.sr Hz
-intvl = pn.Interval(('00;09;51;03', 30), ('00;09;54;11', 30), sr=bp.sr, iter_rate=env.Key().fps)
+intvl = pn.Interval('00;09;51;03', '00;09;54;11', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr)
 sk.show(intvl)
 x = bp.pos['Ref_RWristLat']
 x.show_trajectory(intvl, color=1)
@@ -114,6 +114,7 @@ x.show_trajectory(intvl, color=1)
 # show multiple events simultaneously to contrast them
 # event dilation - events have internal markers based on physiological metrics, and the time can be dilated to each phase
 # COM computation
+# Markers, Chains, and Skeleton: Extract events
 
 #%% Working with events
 
@@ -121,4 +122,4 @@ intvl = pn.Interval(-2., 5., 0., sr=180., iter_rate=30.)
 event_times = ['00;09;49;15', '00;10;51;12']
 intervals = []
 for e in event_times:
-    intervals.append(intvl+pn.Time(e, 30.).change_sr(intvl.sr)) # 30 Hz is the sampling rate of the video where the timestamp was recorded, and the accompanying data has a rate of 180 Hz
+    intervals.append(intvl+pn.SampledTime(e, 30.).change_sr(intvl.sr)) # 30 Hz is the sampling rate of the video where the timestamp was recorded, and the accompanying data has a rate of 180 Hz

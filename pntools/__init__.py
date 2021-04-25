@@ -40,7 +40,7 @@ Communication:
     Spawn  - Use Multiprocessing to run a function in another process (intended for using matplotlib from blender)
 
 Tools for sampled data:
-    Time     - Encapsulates time and sampling rate
+    SampledTime     - Encapsulates time and sampling rate
     Interval - Start and stop times with extracting samples at different rates
 
 """
@@ -1013,7 +1013,7 @@ class Spawn:
 
 ## Tools for working with sampled data
 
-class Time:
+class SampledTime:
     """
     Time when working with sampled data (including video). INTEGER IMPLIES SAMPLE NUMBER, FLOAT IMPLIES TIME.
     Use this to encapsulate sampling rate (sr), sample number (sample), and time (s).
@@ -1022,30 +1022,44 @@ class Time:
     When the sample number is changed, the time is updated
     When working in Premiere Pro, use 29.97 fps drop-frame timecode to show the actual time in video.
     You should see semicolons instead of colons
-        inp hh;mm;ss;frame
-            (str)   '00;09;53;29'
-            (list)  [00, 09, 53, 29]
-            (float) assumes provided input is a timestamp
+        inp 
+            (str)   hh;mm;ss;frame#
+            (float) assumes provided input is time in seconds!
             (int)   assumes the provided input is the sample number
+            (tuple) assumes (timestamp/time/sample, sampling rate)
+        sr 
+            sampling rate, in Hz. casted into a float.
 
-        t = Time(12531, 180)
-        t.s
+    Examples:
+        t = SampledTime('00;09;53;29', 30)
+        t = SampledTime(9.32, 180)
+        t = SampledTime(12531, 180)
+        t = SampledTime((9.32, sr=180))
+        t = SampledTime((9.32, 180), 30) # DO NOT DO THIS, sampling rate will be 180
+        t.time
         t.sample
     """
     def __init__(self, inp, sr=30.):
-        assert isinstance(inp, (str, list, float, int))
-        self._sr = float(sr)
+        # set the sampling rate
+        if isinstance(inp, tuple):
+            assert len(inp) == 2
+            self._sr = float(inp[1])
+            inp = inp[0] # input is now either a string, float, or int!
+        else:
+            self._sr = float(sr)
 
+        # set the sample number before setting the time
+        assert isinstance(inp, (str, float, int))
         if isinstance(inp, str):
             inp = [int(x) for x in inp.split(';')]
-        if isinstance(inp, list):
-            assert len(inp) == 4
             self._sample = int((inp[0]*60*60 + inp[1]*60 + inp[2])*self.sr + inp[3])
         if isinstance(inp, float): # time to sample
             self._sample = int(inp*self.sr)
         if isinstance(inp, int):
             self._sample = inp
-        self._s = float(self._sample)/self._sr
+        
+        # set the time based on the sample number
+        self._time = float(self._sample)/self._sr
 
     @property
     def sr(self):
@@ -1056,7 +1070,7 @@ class Time:
         """When changing the sampling rate, time is kept the same, and the sample number is NOT"""
         sr_val = float(sr_val)
         self._sr = sr_val
-        self._sample = int(self._s*self._sr)
+        self._sample = int(self._time*self._sr)
     
     def change_sr(self, new_sr):
         self.sr = new_sr
@@ -1069,26 +1083,26 @@ class Time:
     @sample.setter
     def sample(self, sample_val):
         self._sample = int(sample_val)
-        self._s  = float(self._sample)/self._sr
+        self._time  = float(self._sample)/self._sr
     
     @property
-    def s(self):
+    def time(self):
         """Return time in seconds"""
-        return self._s
+        return self._time
 
-    @s.setter
-    def s(self, s_val):
+    @time.setter
+    def time(self, s_val):
         """If time is changed, then the sample number should be reset as well"""
-        self._s = float(s_val)
-        self._sample = int(self._s*self._sr)
+        self._time = float(s_val)
+        self._sample = int(self._time*self._sr)
 
     def __add__(self, other):
         x = self._arithmetic(other)
-        return Time(x[2].__add__(x[0], x[1]), self.sr)
+        return SampledTime(x[2].__add__(x[0], x[1]), self.sr)
 
     def __sub__(self, other):
         x = self._arithmetic(other)
-        return Time(x[2].__sub__(x[0], x[1]), self.sr)
+        return SampledTime(x[2].__sub__(x[0], x[1]), self.sr)
 
     def _arithmetic(self, other):
         if isinstance(other, self.__class__):
@@ -1098,14 +1112,18 @@ class Time:
             # integer implies sample, float implies time
             return (self.sample, other, int)
         elif isinstance(other, float):
-            return (self.s, other, float)
+            return (self.time, other, float)
         else:
-            os.error("Unexpected input type! Input either a float for time, integer for sample, or time object")
+            raise TypeError(other, "Unexpected input type! Input either a float for time, integer for sample, or time object")
 
+    def to_interval(self, zero=None, iter_rate=None):
+        """Return an interval object with start and end times being the same"""
+        return Interval(self, self, zero, self.sr, iter_rate)
 
 class Interval:
     """
     Interval object with start and stop times. Implements the iterator protocol.
+    INCLUDES BOTH START AND END SAMPLES
     Pictoral understanding:
     start           -> |                                           | <-
     frames          -> |   |   |   |   |   |   |   |   |   |   |   | <- [self.sr, len(self)=12, self.t_data, self.t]
@@ -1117,16 +1135,15 @@ class Interval:
         for nearest_sample, time, index in intvl:
             print((nearest_sample, time, index))
     """
-    def __init__(self, start, end, zero=None, sr=None, iter_rate=None):
-        self.start = self._process_inp(start)
-        self.end = self._process_inp(end)
+    def __init__(self, start, end, zero=None, sr=30., iter_rate=None):
+        # if isinstance(start, (int, float)) and sr is not None:
+        self.start = self._process_inp(start, sr)
+        self.end = self._process_inp(end, sr)
         if zero is None:
             self.zero = self.start
         else:
-            self.zero = self._process_inp(zero)
+            self.zero = self._process_inp(zero, sr)
 
-        if sr is not None:
-            self.sr = sr
         assert self.start.sr == self.end.sr == self.zero.sr # interval is defined for a specific sampled dataset
         
         self._index = 0
@@ -1136,13 +1153,10 @@ class Interval:
             self.iter_rate = float(iter_rate)
 
     @staticmethod
-    def _process_inp(inp):
-        if isinstance(inp, Time):
-            return inp
-        elif isinstance(inp, (tuple, list)):
-            assert len(inp) == 2
-            return Time(inp[0], inp[1])
-        return Time(inp) # string, float and int get processed here
+    def _process_inp(inp, sr):
+        if isinstance(inp, SampledTime):
+            return inp # sr is ignored, superseded by input's sampling rate
+        return SampledTime(inp, sr) # string, float, int or tuple. sr is ignored if tuple.
 
     @property
     def sr(self):
@@ -1155,10 +1169,14 @@ class Interval:
         self.end.sr = sr_val
         self.zero.sr = sr_val
         
+    def change_sr(self, new_sr):
+        self.sr = new_sr
+        return self
+
     @property
-    def dur_s(self):
+    def dur_time(self):
         """Duration in seconds"""
-        return self.end.s - self.start.s
+        return self.end.time - self.start.time
     
     @property
     def dur_sample(self):
@@ -1175,8 +1193,8 @@ class Interval:
     
     def __next__(self):
         index_interval = 1./self.iter_rate
-        if self._index <= int(self.dur_s*self.iter_rate)+1:
-            time = self.start.s + self._index*index_interval
+        if self._index <= int(self.dur_time*self.iter_rate)+1:
+            time = self.start.time + self._index*index_interval
             nearest_sample = self.start.sample + int(self._index*index_interval*self.sr)
             result = (nearest_sample, time, self._index)
         else:
@@ -1199,12 +1217,12 @@ class Interval:
     @property
     def t(self):
         """Time Vector relative to t_zero"""
-        tzero = self.zero.s
+        tzero = self.zero.time
         return [t - tzero for t in self.t_data]
         
     def _t(self, rate):
-        _t = [self.start.s]
-        while _t[-1] <= self.end.s:
+        _t = [self.start.time]
+        while _t[-1] <= self.end.time:
             _t.append(_t[-1] + 1./rate)
         return _t
 

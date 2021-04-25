@@ -1,5 +1,10 @@
 """
-Work with optitrack files in python. This module can be used without blender.
+Work with optitrack files in python.
+
+This module provides the ability to parse csv tracking data from the optitrack motion capture system. 
+It offers three basic data structures - Marker, Chain, and Skeleton
+Chains are a sequential collection of markers, and a skeleton is a collection of chains.
+Each of these data types can be spliced in time using the Interval object from pntools.
 """
 import os
 import csv
@@ -75,24 +80,24 @@ class Log:
         data3d[data3d==''] = 'nan'
         data3d = data3d.astype(float)
 
+        self._sample = data3d[:, frame_num_col].astype(int)
+        self._t = data3d[:, time_col]
+            
         self.pos = {}
         for marker_name in marker_names_valid:
             this_cols, = np.where(np.array(marker_name_row_valid) == marker_name) # assuming X, Y, Z sequence during export
             self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols]/self.disp_scale, coord_frame, self).in_world()
-
-        self._vid_frame = data3d[:, frame_num_col].astype(int)
-        self._t = data3d[:, time_col]
 
     @property
     def t(self):
         return self._t
 
     @property
-    def vid_frame(self):
-        return self._vid_frame
+    def sample(self):
+        return self._sample
 
     def __len__(self):
-        return len(self.vid_frame)
+        return len(self.sample)
 
     @property
     def marker_names(self):
@@ -121,25 +126,28 @@ class Log:
 
 @pn.PortProperties(Log, 'parent')
 class Marker(trf.PointCloud):
-    def __init__(self, name, vert, frame, parent):
+    def __init__(self, name, vert, frame, parent, interval=None):
         """
-        name   (str) - name of the marker
-        vert   (n x 3 numpy array)
-        frame  (4x4 frame, OR, trf.CoordFrame)
-        parent (ot.Log) - Log file object
+        name    (str) - name of the marker
+        vert    (n x 3 numpy array)
+        frame   (4x4 frame, OR, trf.CoordFrame)
+        parent  (ot.Log) - Log file object
+        interval (pn.Interval) - for placing the marker in time
         """
-        assert type(parent).__name__ == "Log"
+        assert isinstance(parent, Log)
         self.name = name
         super().__init__(vert, frame)
         self.parent = parent
+        if interval is None:
+            interval  = pn.Interval(int(parent.sample[0]), int(parent.sample[-1]), sr=parent.sr)
+        assert isinstance(interval, pn.Interval)
+        self._interval = interval # to place the marker in time
 
         self.in_frame = self._pointcloud_to_marker(self.in_frame)
         self.in_world = self._pointcloud_to_marker(self.in_world)
         self.transform = self._pointcloud_to_marker(self.transform)
         self.reframe = self._pointcloud_to_marker(self.reframe)
 
-        ## To automate this
-        # {attr for attr_name, attr in trf.PointCloud.__dict__.items() if attr_name[0] != '_' and (not isinstance(attr, property)) and inspect.signature(attr).return_annotation == 'PointCloud'}
     @staticmethod
     def _pointcloud_to_marker(meth):
         def modifiedMethod(*args, **kwargs):
@@ -150,13 +158,28 @@ class Marker(trf.PointCloud):
 
     def __getitem__(self, key):
         """Use an interval object to slice the marker"""
-        assert isinstance(key, pn.Interval)
+        if isinstance(key, pn.SampledTime):
+            key = key.to_interval()
+        assert isinstance(key, (pn.Interval, pn.SampledTime))
         if key.sr != self.sr:
+            print("Warning: sampling rate of the key is changed to the marker's sampling rate")
             key.sr = self.sr
-        return Marker(self.name, self.co[key.start.sample:key.end.sample], self.frame, self.parent)
+        return Marker(self.name, self.co[key.start.sample:key.end.sample+1], self.frame, self.parent, interval=key) # to include both start and end samples!
 
     def __len__(self):
-        return len(self.vid_frame)
+        return len(self.sample)
+
+    @property
+    def interval(self):
+        return self._interval
+
+    @property
+    def t(self):
+        return self.parent.t[self._interval.start.sample:self._interval.end.sample+1]
+    
+    @property
+    def sample(self):
+        return self.parent.sample[self._interval.start.sample:self._interval.end.sample+1]
 
     def show_path(self):
         new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
@@ -195,7 +218,7 @@ class Chain:
     """
     def __init__(self, name, marker_list):
         for m in marker_list:
-            assert type(m).__name__ == 'Marker'
+            assert isinstance(m, Marker)
         self._marker_list = marker_list
         self.name = name
 
@@ -207,13 +230,23 @@ class Chain:
     def markers(self):
         return self._marker_list
 
+    @property
+    def interval(self):
+        return self._marker_list[0].interval
+
     def __getitem__(self, key):
+        # integer - retrieve a marker by its position in the chain
         if isinstance(key, int):
             return self._marker_list[key]
-        return [m for m in self._marker_list if m.name == key][0]
+        # string - retrieve a marker by its name by searching through the list
+        if isinstance(key, str):
+            return [m for m in self._marker_list if m.name == key][0]
+        # pn.SampledTime, or pn.Interval - splice all markers in the chain, and return a new chain that is localized in time
+        if isinstance(key, (pn.SampledTime, pn.Interval)):
+            return Chain(self.name, [m[key] for m in self._marker_list])
     
-    def get(self, sample_index):
-        """Positions of all markers in the chain at sample_index"""
+    def get_snapshot(self, sample_index):
+        """Positions of all markers in the chain at sample_index as a point cloud"""
         return trf.PointCloud( np.array( [m.co[sample_index] for m in self._marker_list] ) )
     
     def show(self, intvl=(0., 2.), start_frame=1, color='white', **kwargs):
@@ -237,7 +270,7 @@ class Chain:
         p = Pencil(self.name, color=color, **kwargs)
         for center_frame, _, index in intvl:
             p.keyframe = index + start_frame
-            p.stroke(self.get(center_frame))
+            p.stroke(self.get_snapshot(center_frame))
 
     def __len__(self):
         """Number of markers in the chain"""
@@ -254,13 +287,14 @@ class Chain:
             le += np.linalg.norm(m2.co-m1.co, axis=1)
         return le*mul_units
 
+
 class Skeleton:
     """
     Collection of chains
     """
     def __init__(self, name, chain_list):
         for c in chain_list:
-            assert type(c).__name__ == "Chain"
+            assert isinstance(c, Chain)
         self._chain_list = chain_list
         self.name = name
     
@@ -277,18 +311,32 @@ class Skeleton:
         return _m_all
     
     def __getitem__(self, key):
-        if key in self.chains:
-            return self._chains_all[key]
-        return self._markers_all[key]
+        if isinstance(key, str): # should be either the name of a marker or a chain
+            if key in self.chain_names:
+                return self._chains_all[key]
+            elif key in self.marker_names:
+                return self._markers_all[key]
+            else:
+                raise KeyError(key, "Not a chain or marker in this skeleton")
+        if isinstance(key, (pn.SampledTime, pn.Interval)): # new skeleton object, spliced in time
+            return Skeleton(self.name, [c[key] for c in self._chain_list])
 
     @property
-    def chains(self):
+    def chain_names(self):
         return [c.name for c in self._chain_list]
 
     @property
-    def markers(self):
+    def marker_names(self):
         return list(self._markers_all.keys())
     
+    @property
+    def chains(self):
+        return self._chain_list
+
+    @property
+    def markers(self):
+        return list(self._markers_all.values())
+
     def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
         """kwargs are for Pencil"""
         if chains:
@@ -324,7 +372,3 @@ class Clip(Vid):
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop
-
-if __name__ == '__main__':
-    fname = r"C:\Temp\Pitching_01_02_Fill500Frm.csv"
-    bp = Log(fname)
