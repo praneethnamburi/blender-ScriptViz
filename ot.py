@@ -124,6 +124,7 @@ class Log:
     # elements for animation:
     # markers, connections, clips, chains (to measure length)
 
+
 @pn.PortProperties(Log, 'parent')
 class Marker(trf.PointCloud):
     def __init__(self, name, vert, frame, parent, interval=None):
@@ -208,6 +209,7 @@ class Marker(trf.PointCloud):
         p.stroke(self[intvl].in_world())
 
 
+@pn.PortProperties(Log, 'parent')
 class Chain:
     """
     Collection of markers. Sequence matters.
@@ -221,6 +223,7 @@ class Chain:
             assert isinstance(m, Marker)
         self._marker_list = marker_list
         self.name = name
+        self.parent = self.markers[0].parent # assumes all markers are from the same data session
 
     @property
     def marker_names(self):
@@ -288,6 +291,7 @@ class Chain:
         return le*mul_units
 
 
+@pn.PortProperties(Log, 'parent')
 class Skeleton:
     """
     Collection of chains
@@ -297,6 +301,7 @@ class Skeleton:
             assert isinstance(c, Chain)
         self._chain_list = chain_list
         self.name = name
+        self.parent = self.chains[0].markers[0].parent
     
     @property
     def _chains_all(self):
@@ -336,6 +341,10 @@ class Skeleton:
     @property
     def markers(self):
         return list(self._markers_all.values())
+
+    @property
+    def interval(self):
+        return self.chains[0].interval
 
     def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
         """kwargs are for Pencil"""
