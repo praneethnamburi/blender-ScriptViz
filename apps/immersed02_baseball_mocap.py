@@ -116,6 +116,15 @@ x.show_trajectory(intvl, color=1)
 # COM computation
 # Markers, Chains, and Skeleton: Extract events
 
+#%%
+# Extract events, categorize them into practice, pitching without release, pitching with release
+# Instability:
+# Position of the spine
+# Relationship to the back foot
+# Mark the duration of the instability (compare to full speed)
+# Timing of the start of instability (chair drill vs regular)
+# Trajectory - how to separate the hands
+
 #%% Working with events
 
 intvl = pn.Interval(-2., 5., 0., sr=180., iter_rate=30.)
