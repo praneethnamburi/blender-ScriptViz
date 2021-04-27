@@ -7,31 +7,42 @@ def demofunc(pl_z=-0.5):
     c = get_circumference(obj, pl)
     return c
 
+
 class Rachel:
-    def __init__(self, b=None):
+    def __init__(self, b):
         self.pl = new.plane("Plane")
-        if b is None:
-            self.b = get("Bell*")
-        else:
-            self.b = b
+        self.b = b
         self.bcopy = b.deepcopy("CopyObj")
+        self.mod = self.bcopy.get_modifier('boolean')
+        self.mod.operation = 'INTERSECT'
+        self.mod.object = self.pl()
 
     def z(self, z_val):
         self.pl.loc = [0, 0, z_val]
-    
-    def intersect(self):  
-        mod = self.bcopy.get_modifier('boolean')
-        mod.operation = 'INTERSECT'
-        mod.object = self.pl()
 
     @property
     def c(self):
-        return sum(self.bcopy.eL)
-    
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        bcopy_eval = self.bcopy().evaluated_get(depsgraph).to_mesh()
+        edge_lengths = []
+        face_centers = []
+        for face in bcopy_eval.polygons:
+            this_eL = 0
+            for edge in face.edge_keys:
+                this_eL += (bcopy_eval.vertices[edge[0]].co - bcopy_eval.vertices[edge[1]].co).length
+            edge_lengths.append(this_eL)
+
+            this_center = Vector()
+            for v_idx in face.vertices:
+                this_center += bcopy_eval.vertices[v_idx].co
+            face_centers.append(this_center/len(face.vertices))
+        return edge_lengths, face_centers
+
     def refresh(self):
         -self.bcopy.data
         -self.bcopy
         self.bcopy = self.b.deepcopy("CopyObj")
+        
 
 
 def get_circumference(obj, pl, clean=False):
