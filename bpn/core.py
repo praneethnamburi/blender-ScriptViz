@@ -713,7 +713,7 @@ class Mesh(Thing):
     @property
     def f(self):
         """Faces as an nFx3 numpy array."""
-        return np.array([polygon.vertices[:] for polygon in self().polygons])
+        return np.array([polygon.vertices[:] for polygon in self().polygons], dtype=object)
 
     @property
     def fn(self):
@@ -838,7 +838,7 @@ class Mesh(Thing):
         # faces: iterable of tuple of 3 vertex, vertex is tuple of 3 coordinates as float
         # faces = [f1: (v1:(p11, p12, p13), v2:(p21, p22, p23), v3:(p31, p32, p33)), f2:...]
         # poke faces that have more than 3 coordinates (only for saving)
-        tmp_self_flag = False;
+        tmp_self_flag = False
         if any([np.size(x) > 3 for x in self.f]): # if not every face is a 3-gon, then poke faces
             tmp_self_flag = True
             tmp_self = Mesh(self().copy())
