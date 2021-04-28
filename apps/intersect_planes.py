@@ -36,6 +36,7 @@ class Rachel:
             for v_idx in face.vertices:
                 this_center += bcopy_eval.vertices[v_idx].co
             face_centers.append(this_center/len(face.vertices))
+        self.bcopy().to_mesh_clear()
         return edge_lengths, face_centers
 
     def refresh(self):
