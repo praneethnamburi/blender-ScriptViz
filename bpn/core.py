@@ -1008,6 +1008,17 @@ class MeshObject(CompoundObject):
         bpy.context.view_layer.update()
         return self
 
+    def apply_modifiers(self):
+        """
+        Make a copy of the object by applying all the modifiers
+        """
+        dg = bpy.context.evaluated_depsgraph_get()
+        self_eval = self().evaluated_get(dg)
+        m = bpy.data.meshes.new_from_object(self_eval)
+        self_mod = utils.enhance(bpy.data.objects.new(self.name+'_mod', m))
+        self_mod.to_coll(self.coll.name)
+        return self_mod
+
     def slice_ax(self, axis='x', slice_dir='neg'):
         """
         Use a plane as a slicer and set all vertices below it to zero.
