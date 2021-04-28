@@ -102,10 +102,37 @@ c.append(ot.Chain('LeftArmLat', [bp.pos['Ref_LAcromion'], bp.pos['Ref_LElbowLat'
 c.append(ot.Chain('Legs', [bp.pos['Ref_LBigToe'], bp.pos['Spine_L4'], bp.pos['Ref_RBigToe']]))
 sk = ot.Skeleton('Sk1', c)
 # this says that the timestamp is from a video that was captured at 30 Hz, but the interval is to act on data sampled at bp.sr Hz
-intvl = pn.Interval('00;09;51;03', '00;09;54;11', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr)
-sk.show(intvl)
+intvl = []
+intvl.append(pn.Interval('00;05;57;26', '00;06;01;29', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;08;08;01', '00;08;11;20', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;08;16;18', '00;08;20;28', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;08;29;06', '00;08;33;02', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;09;37;24', '00;09;42;28', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;09;48;10', '00;09;54;23', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;09;59;20', '00;10;05;27', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;10;14;15', '00;10;18;22', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;10;23;17', '00;10;27;00', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(pn.Interval('00;10;32;00', '00;10;36;25', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+
 x = bp.pos['Ref_RWristLat']
-x.show_trajectory(intvl, color=1)
+for count, this_intvl in enumerate(intvl):
+    x.show_trajectory(this_intvl, color=count%7, keyframe=count+1)
+    x.show_trajectory(this_intvl, color=count%7, keyframe=len(intvl)+1)
+
+x.show_trajectory(intvl(0, 0), color='white', keyframe=len(intvl)+2)
+curr_keyframe = len(intvl)+1
+
+sk.show(intvl[0], start_frame=curr_keyframe+1+10, markers=False, color='white')
+sk.show(intvl[-1], start_frame=curr_keyframe+1, markers=False, color=3)
+env.Key().lim = [curr_keyframe+66, curr_keyframe+93] 
+env.Key().fps = 12
+
+cr = new.CircularRig()
+cr.scale(10)
+cr.center = [0, 0, 10]
+cr.target = [-12, 2, 15]
+cr.fov = 80
+
 # Computed markers - ability to easily add and/or subtract marker coordinates
 # Check - when using Pencil from Mantle, it will resist creating a new object, but new.Pencil always creates a new object?
 # add ability to show computed markers
