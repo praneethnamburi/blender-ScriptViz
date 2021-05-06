@@ -244,7 +244,8 @@ def render(fname='', out_type='vid', fpath=None):
     """
     rend = bpy.context.scene.render
     if fpath is None:
-        fpath = "C:\\Drives\\Dropbox (Personal)\\Animation\\"+fname
+        fpath = "C:\\Drives\\Dropbox (Personal)\\Animation\\"
+    fpath = fpath+fname
     assert isinstance(fpath, str)
     rend.filepath = fpath
     if out_type == 'vid':
