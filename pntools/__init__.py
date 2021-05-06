@@ -59,6 +59,7 @@ import subprocess
 import weakref
 import socket
 import fnmatch
+import time
 from copy import deepcopy
 from timeit import default_timer as timer
 
@@ -1009,6 +1010,36 @@ class Spawn:
         self._proc.terminate()
     def send(self, msg):
         self._q.put(msg)
+
+
+def spawn_commands(cmds, nproc=3, verbose=False, retry=False, sleep_time=0.5):
+    """
+    Spawn multiple detached processes. Originally designed for converting videos using ffmpeg.
+    cmds is a list of commands, and each command is a list that can be supplied to subprocess.Popen
+    """
+    n_running = lambda: sum([int(p.poll() is None) for p in all_proc])
+    all_proc = []
+    cmd_count = 0
+    if nproc > len(cmds):
+        nproc = len(cmds)
+
+    while True:
+        if n_running() < nproc and cmd_count < len(cmds):
+            all_proc.append(subprocess.Popen(cmds[cmd_count], shell=True, creationflags=0x00000008))
+            time.sleep(sleep_time)
+            if all_proc[-1].poll() == 1 and retry:
+                # process exited - probably graphics card out of memory
+                all_proc.pop()
+                if nproc > 1:
+                    nproc -= 1
+            else:
+                cmd_count += 1
+            if verbose:
+                print({'Poll': [p.poll() for p in all_proc], 'Running': n_running()})
+            if cmd_count == len(cmds):
+                break
+            
+    return all_proc
 
 
 ## Tools for working with sampled data

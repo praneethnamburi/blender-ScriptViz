@@ -14,10 +14,14 @@ from decord import VideoReader
 from bpn import trf
 import pntools as pn
 
-# for drawing - requires blender modules
-from bpn import new, env, utils
-from bpn.mantle import Pencil
-from bpn.utils import get
+try:
+    # for drawing - requires blender modules
+    from bpn import new, env, utils
+    from bpn.mantle import Pencil
+    from bpn.utils import get
+    BLENDER_MODE = True
+except ImportError:
+    BLENDER_MODE = False
 
 DIST_UNITS = {'Millimeters':-3, 'Centimeters':-2, 'Meters':0}
 
@@ -182,31 +186,32 @@ class Marker(trf.PointCloud):
     def sample(self):
         return self.parent.sample[self._interval.start.sample:self._interval.end.sample+1]
 
-    def show_path(self):
-        new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
+    if BLENDER_MODE:
+        def show_path(self):
+            new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
 
-    def show(self, intvl=(0., 2.), start_frame=1, r=0.2):
-        if isinstance(intvl, (list, tuple)):
-            assert len(intvl) == 2
-            intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
-        assert isinstance(intvl, pn.Interval)
+        def show(self, intvl=(0., 2.), start_frame=1, r=0.2):
+            if isinstance(intvl, (list, tuple)):
+                assert len(intvl) == 2
+                intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
+            assert isinstance(intvl, pn.Interval)
 
-        intvl.iter_rate = env.Key().fps
-        ts_name = self.name + '_pos'
-        if not get(ts_name):
-            ts = new.sphere(name=ts_name, r=r)
-            ts.shade("smooth")
-        else:
-            ts = get(ts_name)
+            intvl.iter_rate = env.Key().fps
+            ts_name = self.name + '_pos'
+            if not get(ts_name):
+                ts = new.sphere(name=ts_name, r=r)
+                ts.shade("smooth")
+            else:
+                ts = get(ts_name)
 
-        for center_frame, _, index in intvl:
-            ts.loc = self.co[center_frame]
-            ts.key(start_frame + index, 'l')
+            for center_frame, _, index in intvl:
+                ts.loc = self.co[center_frame]
+                ts.key(start_frame + index, 'l')
 
-    def show_trajectory(self, intvl=(0., 2.), keyframe=1, color='darkorange', **kwargs):
-        """Plot trajectory for a given time interval"""
-        p = Pencil(self.name, color=color, keyframe=keyframe, **kwargs)
-        p.stroke(self[intvl].in_world())
+        def show_trajectory(self, intvl=(0., 2.), keyframe=1, color='darkorange', **kwargs):
+            """Plot trajectory for a given time interval"""
+            p = Pencil(self.name, color=color, keyframe=keyframe, **kwargs)
+            p.stroke(self[intvl].in_world())
 
 
 @pn.PortProperties(Log, 'parent')
@@ -261,31 +266,6 @@ class Chain:
         """Positions of all markers in the chain at sample_index as a point cloud"""
         return trf.PointCloud( np.array( [m.co[sample_index] for m in self._marker_list] ) )
     
-    def show(self, intvl=(0., 2.), start_frame=1, color=None, **kwargs):
-        """
-        intvl (pn.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
-            or a tuple of (int, int) implying start and end frame
-        start_frame (int) - animation start frame
-        color (int, str, or dict) 
-            - integers 0 to 7 - matlab color order
-            - string - name of the color (anything from matplotlib's list will do)
-                https://matplotlib.org/stable/gallery/color/named_colors.html
-            - dict {name: [r, g, b, a]}
-        kwargs - anything that Pencil takes
-        """
-        if isinstance(intvl, (list, tuple)):
-            assert len(intvl) == 2
-            intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
-        assert isinstance(intvl, pn.Interval)
-
-        if color is None:
-            color = self._color
-
-        intvl.iter_rate = env.Key().fps
-        p = Pencil(self.name, color=color, **kwargs)
-        for center_frame, _, index in intvl:
-            p.keyframe = index + start_frame
-            p.stroke(self.get_snapshot(center_frame))
 
     def __len__(self):
         """Number of markers in the chain"""
@@ -301,6 +281,33 @@ class Chain:
         for m1, m2 in zip(self._marker_list[:-1], self._marker_list[1:]):
             le += np.linalg.norm(m2.co-m1.co, axis=1)
         return le*mul_units
+
+    if BLENDER_MODE:
+        def show(self, intvl=(0., 2.), start_frame=1, color=None, **kwargs):
+            """
+            intvl (pn.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
+                or a tuple of (int, int) implying start and end frame
+            start_frame (int) - animation start frame
+            color (int, str, or dict) 
+                - integers 0 to 7 - matlab color order
+                - string - name of the color (anything from matplotlib's list will do)
+                    https://matplotlib.org/stable/gallery/color/named_colors.html
+                - dict {name: [r, g, b, a]}
+            kwargs - anything that Pencil takes
+            """
+            if isinstance(intvl, (list, tuple)):
+                assert len(intvl) == 2
+                intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
+            assert isinstance(intvl, pn.Interval)
+
+            if color is None:
+                color = self._color
+
+            intvl.iter_rate = env.Key().fps
+            p = Pencil(self.name, color=color, **kwargs)
+            for center_frame, _, index in intvl:
+                p.keyframe = index + start_frame
+                p.stroke(self.get_snapshot(center_frame))
 
 
 @pn.PortProperties(Log, 'parent')
@@ -358,17 +365,18 @@ class Skeleton:
     def interval(self):
         return self.chains[0].interval
 
-    def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
-        """kwargs are for Pencil"""
-        if chains:
-            for c in self._chain_list:
-                c.show(intvl, start_frame=start_frame, **kwargs)
-        
-        if markers:
-            for m in self._markers_all.values():
-                m.show(intvl, start_frame=start_frame)
-        
-        env.Key().auto_lim()
+    if BLENDER_MODE:
+        def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
+            """kwargs are for Pencil"""
+            if chains:
+                for c in self._chain_list:
+                    c.show(intvl, start_frame=start_frame, **kwargs)
+            
+            if markers:
+                for m in self._markers_all.values():
+                    m.show(intvl, start_frame=start_frame)
+            
+            env.Key().auto_lim()
 
 
 class Vid(VideoReader):
@@ -386,6 +394,7 @@ class Vid(VideoReader):
             return "Optitrack " + self.name.split(" (#")[-1].split(").")[0]
         return "Unknown"
 
+
 class Clip(Vid):
     """
     Clip is a Vid with start and stop
@@ -393,3 +402,32 @@ class Clip(Vid):
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop
+
+
+def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3):
+    """
+    Use ffmpeg to convert avi to mp4 [preset for optitrack exports], including introducing the transpose
+    path_or_file (str) either file or directory
+    NOTE: Adjust nproc according to your graphics card capability when using gpu codec
+    Command template:
+        "ffmpeg -i "rumba_001-Camera 21 (#83743).avi" -c:v h264_nvenc -vf "transpose=1" -preset fast "rumba_001-Camera 21.mp4"
+    Example:
+        convert_avi("P:\\data\\20210312 - Santosh Boxing", nproc=3, overwrite=False)
+    """
+    assert os.path.isfile(path_or_file) or os.path.isdir(path_or_file)
+    if os.path.isfile(path_or_file):
+        all_files = [path_or_file]
+    else:
+        all_files = pn.find(pattern, path_or_file)
+    
+    all_cmds = []
+    for f in all_files:
+        fout = f[:-4]+'.mp4'
+        if (not os.path.exists(fout)) or overwrite:
+            all_cmds.append(['ffmpeg', '-y' if overwrite else '-n', '-i', f, '-c:v', 'h264_nvenc', '-vf', 'transpose=1', '-preset', 'fast', fout])
+
+    if not all_cmds: # empty list
+        return all_cmds
+
+    pn.spawn_commands(all_cmds, nproc=nproc, retry=True)
+    return all_cmds
