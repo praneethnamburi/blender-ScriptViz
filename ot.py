@@ -404,7 +404,7 @@ class Clip(Vid):
         self.stop = stop
 
 
-def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3):
+def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3, verbose=False):
     """
     Use ffmpeg to convert avi to mp4 [preset for optitrack exports], including introducing the transpose
     path_or_file (str) either file or directory
@@ -429,5 +429,5 @@ def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3):
     if not all_cmds: # empty list
         return all_cmds
 
-    pn.spawn_commands(all_cmds, nproc=nproc, retry=True)
+    pn.spawn_commands(all_cmds, nproc=nproc, retry=True, verbose=verbose)
     return all_cmds
