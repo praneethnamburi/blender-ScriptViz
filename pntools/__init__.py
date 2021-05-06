@@ -591,8 +591,6 @@ def find(pattern, path=None):
         for name in files:
             if fnmatch.fnmatch(name, pattern):
                 result.append(os.path.join(root, name))
-    if len(result) == 1:
-        return result[0]
     return result
 
 def run(filename, start_line=1, end_line=None):
@@ -603,7 +601,7 @@ def run(filename, start_line=1, end_line=None):
     Runs the last line number indicated as well!
     """
     if not os.path.isfile(filename):
-        filename = find(filename)
+        filename = find(filename)[0]
     assert os.path.isfile(filename)
     code = open(filename).readlines()
     if end_line is None:
