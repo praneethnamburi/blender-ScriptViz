@@ -414,12 +414,22 @@ def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3, verbose=
     Example:
         convert_avi("P:\\data\\20210312 - Santosh Boxing", nproc=3, overwrite=False)
     """
-    assert os.path.isfile(path_or_file) or os.path.isdir(path_or_file)
-    if os.path.isfile(path_or_file):
-        all_files = [path_or_file]
+    if isinstance(path_or_file, list):
+        # assume each entry is either a directory or a file
+        all_files = []
+        for pf in path_or_file:
+            assert os.path.isfile(pf) or os.path.isdir(path_or_file)
+            if os.path.isfile(pf):
+                all_files.append(pf)
+            else: # add all avi files in directory
+                all_files += pn.find(pattern, pf)
     else:
-        all_files = pn.find(pattern, path_or_file)
-    
+        assert os.path.isfile(path_or_file) or os.path.isdir(path_or_file)
+        if os.path.isfile(path_or_file):
+            all_files = [path_or_file]
+        else:
+            all_files = pn.find(pattern, path_or_file)
+        
     all_cmds = []
     for f in all_files:
         fout = f[:-4]+'.mp4'
