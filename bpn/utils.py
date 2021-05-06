@@ -20,6 +20,7 @@ import os
 import re
 
 import numpy as np
+import matplotlib.colors as mc
 
 import bpy # pylint: disable=import-error
 import mathutils # pylint: disable=import-error
@@ -263,45 +264,45 @@ def bpy_coll_name(this_type):
 
 
 # color management
-def color_palette(name='MATLAB', prefix='', alpha=0.8):
+def color_palette(name='all', prefix='', alpha=0.8):
     """
     Commonly used color palettes for plotting.
     """
-    def rgba2dict(rgba, names):
-        n = np.shape(rgba)[0] # number of colors in the palette
-        if isinstance(names, str): # names is a prefix instead of an array
-            ndec = len(str(n))+1 # number of decimal places
-            fstr = '{:0'+str(ndec)+'d}'
-            names = [names+fstr.format(i) for i in range(n)]
-        assert len(names) == n
-        return {names[i] : rgba[i, :] for i in range(n)}
+    assert name in ('MATLAB', 'blender_ax', 'mpl', 'all')
 
     alpha_broadcast = lambda n: alpha*np.ones(n) if isinstance(alpha, (int, float)) else alpha
     
     if name == 'MATLAB':
         α = alpha_broadcast(7)
-        rgba = np.array([
-            [0.000, 0.447, 0.741, α[0]],
-            [0.850, 0.325, 0.098, α[1]],
-            [0.929, 0.694, 0.125, α[2]],
-            [0.494, 0.184, 0.556, α[3]],
-            [0.466, 0.674, 0.188, α[4]],
-            [0.301, 0.745, 0.933, α[5]],
-            [0.635, 0.078, 0.184, α[6]],
-        ])
         if not prefix:
             prefix = 'MATLAB_'
-        return rgba2dict(rgba, prefix) 
+        return {
+            prefix+'00': (0.000, 0.447, 0.741, α[0]),
+            prefix+'01': (0.850, 0.325, 0.098, α[1]),
+            prefix+'02': (0.929, 0.694, 0.125, α[2]),
+            prefix+'03': (0.494, 0.184, 0.556, α[3]),
+            prefix+'04': (0.466, 0.674, 0.188, α[4]),
+            prefix+'05': (0.301, 0.745, 0.933, α[5]),
+            prefix+'06': (0.635, 0.078, 0.184, α[6]),
+        }
 
     if name == 'blender_ax':
         α = alpha_broadcast(3)
         return {
-            prefix+'crd_i': [1.000, 0.125, 0.400, α[0]],
-            prefix+'crd_j': [0.400, 0.850, 0.125, α[1]],
-            prefix+'crd_k': [0.055, 0.500, 1.000, α[2]],
+            prefix+'crd_i': (1.000, 0.125, 0.400, α[0]),
+            prefix+'crd_j': (0.400, 0.850, 0.125, α[1]),
+            prefix+'crd_k': (0.055, 0.500, 1.000, α[2]),
         }
+    
+    if name == 'mpl': # matplotlib        
+        return {c: mc.to_rgba(c, alpha) for c in mc.cnames} # does it make sense to broadcast alpha?
+    
+    if name == 'all':
+        return {**color_palette('MATLAB', alpha=alpha), **color_palette('blender_ax', alpha=alpha), **color_palette('mpl', alpha=alpha)}
 
     return None
+
+colors = color_palette('all', alpha=1)
 
 def new_gp_color(mtrl_name, rgba=None):
     """
@@ -313,8 +314,7 @@ def new_gp_color(mtrl_name, rgba=None):
         Material object (bpy.data.materials)
     """
     if rgba is None:
-        import matplotlib.colors
-        rgba = matplotlib.colors.to_rgba(mtrl_name)
+        rgba = mc.to_rgba(mtrl_name)
     if mtrl_name in [m.name for m in bpy.data.materials]:
         mtrl = bpy.data.materials[mtrl_name]
     else:

@@ -218,12 +218,13 @@ class Chain:
         c = ot.Chain('Spine', [bp.pos['Spine_' + x] for x in 'L4 T11 T4 C3'.split(' ')])
         c.show(start_time=9.*60+51.25, end_time=9*60.+54+11/30)
     """
-    def __init__(self, name, marker_list):
+    def __init__(self, name, marker_list, color='white'):
         for m in marker_list:
             assert isinstance(m, Marker)
         self._marker_list = marker_list
         self.name = name
         self.parent = self.markers[0].parent # assumes all markers are from the same data session
+        self._color = color
 
     @property
     def marker_names(self):
@@ -236,6 +237,14 @@ class Chain:
     @property
     def interval(self):
         return self._marker_list[0].interval
+
+    @property
+    def color(self):
+        return self._color
+
+    @color.setter
+    def color(self, col):
+        self._color = col
 
     def __getitem__(self, key):
         # integer - retrieve a marker by its position in the chain
@@ -252,7 +261,7 @@ class Chain:
         """Positions of all markers in the chain at sample_index as a point cloud"""
         return trf.PointCloud( np.array( [m.co[sample_index] for m in self._marker_list] ) )
     
-    def show(self, intvl=(0., 2.), start_frame=1, color='white', **kwargs):
+    def show(self, intvl=(0., 2.), start_frame=1, color=None, **kwargs):
         """
         intvl (pn.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
             or a tuple of (int, int) implying start and end frame
@@ -268,6 +277,9 @@ class Chain:
             assert len(intvl) == 2
             intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
         assert isinstance(intvl, pn.Interval)
+
+        if color is None:
+            color = self._color
 
         intvl.iter_rate = env.Key().fps
         p = Pencil(self.name, color=color, **kwargs)
