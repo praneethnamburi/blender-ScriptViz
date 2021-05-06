@@ -418,7 +418,7 @@ def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3, verbose=
         # assume each entry is either a directory or a file
         all_files = []
         for pf in path_or_file:
-            assert os.path.isfile(pf) or os.path.isdir(path_or_file)
+            assert os.path.isfile(pf) or os.path.isdir(pf)
             if os.path.isfile(pf):
                 all_files.append(pf)
             else: # add all avi files in directory
