@@ -413,7 +413,7 @@ class Daemon:
                 base_dir = '/home/praneeth/nas/data'
 
         if all_dir is None:
-            all_dir = [x for x in os.listdir(self.base_dir) if os.path.isdir(os.path.join(self.base_dir, x)) and x[0] != '_']
+            all_dir = [x for x in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, x)) and x[0] != '_']
             # self.all_dir = ['20200220 - foot nutations tensegrity', '20200221 - Arm reach EMG', '20200220 - Arm reach EMG', '20200219 - resistance bands', '20200206 FL EMG', '20200124 - Spiral line Functional lines', '20200123 - back functional line 2', '20200116 - back functional line', '20200115 - spine', '20200114', '20200109', '20200108']
 
         if nproc is None:
