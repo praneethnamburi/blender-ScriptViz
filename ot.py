@@ -405,6 +405,16 @@ class Clip(Vid):
 
 
 class Daemon:
+    """
+    Example:
+        d = Daemon(base_dir='/home/praneeth/motive')
+        d.report()
+        d.convert_avi(verbose=True)
+    Next:
+        1. Number of frames in each avi and mp4 file
+        2. Moving files (after doing some checks, but it should be fine)
+        3. Saving serialized log files
+    """
     def __init__(self, base_dir=None, all_dir=None, nproc=None):
         if base_dir is None:
             if os.name == 'nt':
@@ -541,3 +551,11 @@ class Daemon:
             conversion_list = self.avi_without_mp4   
         all_cmds = self._to_commands(conversion_list, overwrite)
         pn.spawn_commands(all_cmds, nproc=self.nproc, retry=True, verbose=verbose)
+
+    def n_frames(self, file_list=None):
+        if file_list is None:
+            file_list = self.all_avi
+        ret = {}
+        for f in file_list:
+            ret[f.lstrip(self.base_dir)] = len(VideoReader(f))
+            
