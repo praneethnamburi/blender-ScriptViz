@@ -8,6 +8,7 @@ Each of these data types can be spliced in time using the Interval object from p
 """
 import os
 import csv
+import subprocess
 import numpy as np
 from decord import VideoReader
 
@@ -411,9 +412,10 @@ class Daemon:
         d.report()
         d.convert_avi(verbose=True)
     Next:
-        1. Number of frames in each avi and mp4 file
-        2. Moving files (after doing some checks, but it should be fine)
-        3. Saving serialized log files
+        1. Delete avi files when the corresponding mp4 matches a duration check
+        2. Saving serialized log files
+    Workflow:
+
     """
     def __init__(self, base_dir=None, all_dir=None, nproc=None, load_videos=False):
         if base_dir is None:
@@ -480,16 +482,12 @@ class Daemon:
     def all_mp4(self):
         return self._proc_dir('*Camera *.mp4')
 
-    @staticmethod
-    def file_size(file_list):
-        return sum([os.path.getsize(x) for x in file_list])/(1024*1024*1024)
-
     def report(self):
         all_avi = self.all_avi
         all_mp4 = self.all_mp4
 
-        avi_size = sum(list(pn.file_size(all_avi).keys()))
-        mp4_size = sum(list(pn.file_size(all_mp4).keys()))
+        avi_size = sum(list(pn.file_size(all_avi).values()))
+        mp4_size = sum(list(pn.file_size(all_mp4).values()))
         print(str(len(all_avi)) + ' AVI files taking up ' + '{:4.3f} GB'.format(avi_size))
         print(str(len(all_mp4)) + ' MP4 files taking up ' + '{:4.3f} GB'.format(mp4_size))
 
@@ -571,4 +569,58 @@ class Daemon:
     @property
     def big_videos(self):
         # return all videos with size > 4 GB
-        return {s:f for s in self.video_size if s > 4*1024}
+        return {f:s for f,s in self.video_size.items() if s > 4*1024}
+
+    @staticmethod
+    def vid_dur(vid_name):
+        x = subprocess.getoutput("ffprobe -hide_banner -show_entries stream=duration '" + vid_name + "'")
+        return float(x.split('[STREAM]')[-1].split('[/STREAM]')[0].split('duration=')[-1])
+
+    def duration_check(self, verbose=True):
+        """
+        Return videos with mismatched duration.
+        Example:
+            matched_dur, mismatched_dur = d.duration_check()
+            for fname, dur in mismatched_dur.items():
+                print(dur, fname)
+        
+        dur is a tuple of mp4 duration and avi duration
+        """
+        avi_with_mp4 = self.avi_with_mp4
+        matched_dur = {}
+        mismatched_dur = {}
+        for avi_name in avi_with_mp4:
+            avi_dur = self.vid_dur(avi_name)
+            mp4_dur = self.vid_dur(avi_name[:-4]+'.mp4')
+            if avi_dur != mp4_dur:
+                mismatched_dur[avi_name] = (avi_dur, mp4_dur)
+            else:
+                matched_dur[avi_name] = (avi_dur, mp4_dur)
+        
+        if verbose:
+            for fname, dur in mismatched_dur.items():
+                print(dur, fname)
+
+        return matched_dur, mismatched_dur
+
+    def fix_avi_with_problems(self, vid_list=None, verbose=False):
+        if vid_list is None:
+            matched_dur, mismatched_dur = self.duration_check()
+            vid_list = list(mismatched_dur.keys())
+        
+        all_cmds = []
+        for vid_name in vid_list:
+            vid_fix_name = vid_name[:-4]+'_fixed.avi'
+            all_cmds.append(['ffmpeg', '-err_detect', 'ignore_err', '-i', vid_name, '-c', 'copy', vid_fix_name])
+        pn.spawn_commands(all_cmds, nproc=self.nproc, retry=True, verbose=verbose, wait=True)
+        import shutil
+        for vid_name in vid_list:
+            vid_fix_name = vid_name[:-4]+'_fixed.avi'
+            shutil.move(vid_fix_name, vid_name)
+
+    def clean_avi(self):
+        """Delete all AVI files with a corresponding mp4 if the pair passes duration check"""
+        matched_dur, _ = self.duration_check()
+        for avi_name in matched_dur:
+            os.remove(avi_name)
+            

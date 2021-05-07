@@ -617,10 +617,10 @@ def file_size(file_list, units='MB'):
         if isinstance(file_list, str):
             file_list = [file_list]
         assert isinstance(file_list, list)
-        size_mb = {os.path.getsize(f)/div[units]:f for f in file_list}
+        size_mb = {os.path.getsize(f)/div[units]:f for f in file_list} # {size: file_name}
         size_list = list(size_mb.keys())
         size_list.sort(reverse=True)
-        return {s:size_mb[s] for s in size_list}
+        return {size_mb[s]:s for s in size_list} # {file_name : size}
 
 
 ## Package management
@@ -1024,7 +1024,7 @@ class Spawn:
         self._q.put(msg)
 
 
-def spawn_commands(cmds, nproc=3, verbose=False, retry=False, sleep_time=0.5):
+def spawn_commands(cmds, nproc=3, verbose=False, retry=False, sleep_time=0.5, wait=True):
     """
     Spawn multiple detached processes. Originally designed for converting videos using ffmpeg.
     cmds is a list of commands, and each command is a list that can be supplied to subprocess.Popen
@@ -1053,6 +1053,10 @@ def spawn_commands(cmds, nproc=3, verbose=False, retry=False, sleep_time=0.5):
                 print({'Poll': [p.poll() for p in all_proc], 'Running': n_running()})
             if cmd_count == len(cmds):
                 break
+    
+    if wait:
+        while n_running() > 0:
+            time.sleep(sleep_time)
 
     return all_proc
 
