@@ -404,40 +404,140 @@ class Clip(Vid):
         self.stop = stop
 
 
-def convert_avi(path_or_file, pattern='*.avi', overwrite=True, nproc=3, verbose=False):
-    """
-    Use ffmpeg to convert avi to mp4 [preset for optitrack exports], including introducing the transpose
-    path_or_file (str) either file or directory
-    NOTE: Adjust nproc according to your graphics card capability when using gpu codec
-    Command template:
-        "ffmpeg -i "rumba_001-Camera 21 (#83743).avi" -c:v h264_nvenc -vf "transpose=1" -preset fast "rumba_001-Camera 21.mp4"
-    Example:
-        convert_avi("P:\\data\\20210312 - Santosh Boxing", nproc=3, overwrite=False)
-    """
-    if isinstance(path_or_file, list):
-        # assume each entry is either a directory or a file
-        all_files = []
-        for pf in path_or_file:
-            assert os.path.isfile(pf) or os.path.isdir(pf)
-            if os.path.isfile(pf):
-                all_files.append(pf)
-            else: # add all avi files in directory
-                all_files += pn.find(pattern, pf)
-    else:
-        assert os.path.isfile(path_or_file) or os.path.isdir(path_or_file)
-        if os.path.isfile(path_or_file):
-            all_files = [path_or_file]
+class Daemon:
+    def __init__(self, base_dir=None, all_dir=None, nproc=None):
+        if base_dir is None:
+            if os.name == 'nt':
+                base_dir = "P:\data"
+            else:
+                base_dir = '/home/praneeth/nas/data'
+
+        if all_dir is None:
+            all_dir = [x for x in os.listdir(self.base_dir) if os.path.isdir(os.path.join(self.base_dir, x)) and x[0] != '_']
+            # self.all_dir = ['20200220 - foot nutations tensegrity', '20200221 - Arm reach EMG', '20200220 - Arm reach EMG', '20200219 - resistance bands', '20200206 FL EMG', '20200124 - Spiral line Functional lines', '20200123 - back functional line 2', '20200116 - back functional line', '20200115 - spine', '20200114', '20200109', '20200108']
+
+        if nproc is None:
+            if os.name == 'nt':
+                nproc = 3
+            else:
+                nproc = 4
+
+        assert isinstance(base_dir, str)
+        assert isinstance(all_dir, list)
+        assert isinstance(nproc, int)
+
+        self.base_dir = base_dir
+        self.all_dir = all_dir
+        self.nproc = nproc
+
+    @property
+    def all_dirs(self):
+        return [os.path.join(self.base_dir, x) for x in self.all_dir]
+
+    def _proc_dir(self, pattern):
+        path_or_file = self.all_dirs
+        if isinstance(path_or_file, list):
+            # assume each entry is either a directory or a file
+            all_files = []
+            for pf in path_or_file:
+                assert os.path.isfile(pf) or os.path.isdir(pf)
+                if os.path.isfile(pf):
+                    all_files.append(pf)
+                else: # add all avi files in directory
+                    all_files += pn.find(pattern, pf)
         else:
-            all_files = pn.find(pattern, path_or_file)
+            assert os.path.isfile(path_or_file) or os.path.isdir(path_or_file)
+            if os.path.isfile(path_or_file):
+                all_files = [path_or_file]
+            else:
+                all_files = pn.find(pattern, path_or_file)
+        return all_files
+
+    @property
+    def all_avi(self):
+        return self._proc_dir('*Camera *.avi')
+    
+    @property
+    def all_mp4(self):
+        return self._proc_dir('*Camera *.mp4')
+
+    @staticmethod
+    def file_size(file_list):
+        return sum([os.path.getsize(x) for x in file_list])/(1024*1024*1024)
+
+    def avi_size(self, avi_list=None):
+        if avi_list is None:
+            avi_list = self.all_avi
+        return self.file_size(avi_list)
+
+    def mp4_size(self, mp4_list=None):
+        if mp4_list is None:
+            mp4_list = self.all_mp4
+        return self.file_size(mp4_list)
+
+    def report(self):
+        print(str(len(self.all_avi)) + ' AVI files taking up ' + '{:4.3f} GB'.format(self.avi_size()))
+        print(str(len(self.all_mp4)) + ' MP4 files taking up ' + '{:4.3f} GB'.format(self.mp4_size()))
+
+    def conversion_status(self):
+        """Is there a corresponding MP4 file?"""
+        avi_with_mp4 = []
+        avi_without_mp4 = []
+        for f in self.all_avi:
+            if os.path.isfile(f[:-4]+'.mp4'):
+                avi_with_mp4.append(f)
+            else:
+                avi_without_mp4.append(f)
         
-    all_cmds = []
-    for f in all_files:
-        fout = f[:-4]+'.mp4'
-        if (not os.path.exists(fout)) or overwrite:
-            all_cmds.append(['ffmpeg', '-y' if overwrite else '-n', '-i', f, '-c:v', 'h264_nvenc', '-vf', 'transpose=1', '-preset', 'fast', fout])
+        mp4_with_avi = []
+        mp4_without_avi = []
+        for f in self.all_mp4:
+            if os.path.isfile(f[:-4]+'.avi'):
+                mp4_with_avi.append(f)
+            else:
+                mp4_without_avi.append(f)
 
-    if not all_cmds: # empty list
+        return avi_with_mp4, avi_without_mp4, mp4_with_avi, mp4_without_avi
+
+    @property
+    def avi_with_mp4(self):
+        return [f for f in self.all_avi if os.path.isfile(f[:-4]+'.mp4')]
+    
+    @property
+    def avi_without_mp4(self):
+        return [f for f in self.all_avi if not os.path.isfile(f[:-4]+'.mp4')]
+    
+    @property
+    def mp4_with_avi(self):
+        return [f for f in self.all_mp4 if os.path.isfile(f[:-4]+'.avi')]
+    
+    @property
+    def mp4_without_avi(self):
+        return [f for f in self.all_mp4 if not os.path.isfile(f[:-4]+'.avi')]
+
+    def _to_commands(self, all_files, overwrite):
+        """
+        Use ffmpeg to convert avi to mp4 [preset for optitrack exports], including introducing the transpose
+        Command template:
+            "ffmpeg -i "rumba_001-Camera 21 (#83743).avi" -c:v h264_nvenc -vf "transpose=1" -preset fast "rumba_001-Camera 21.mp4"
+        Example:
+            convert_avi("P:\\data\\20210312 - Santosh Boxing", nproc=3, overwrite=False)
+        """  
+        all_cmds = []
+        for f in all_files:
+            fout = f[:-4]+'.mp4'
+            if (not os.path.exists(fout)) or overwrite:
+                all_cmds.append(['ffmpeg', '-y' if overwrite else '-n', '-i', f, '-c:v', 'h264_nvenc', '-vf', 'transpose=1', '-preset', 'fast', fout])
+
         return all_cmds
-
-    pn.spawn_commands(all_cmds, nproc=nproc, retry=True, verbose=verbose)
-    return all_cmds
+    
+    def convert_avi(self, conversion_list=None, overwrite=False, verbose=False):
+        """
+        Parallel-process conversion of avi files in conversion_list
+        NOTE: Adjust nproc according to your graphics card capability when using a gpu codec
+        3 processes for RTX2080
+        """
+        if conversion_list is None:
+            conversion_list = self.avi_without_mp4   
+        all_cmds = self._to_commands(conversion_list, overwrite)
+        pn.spawn_commands(all_cmds, nproc=self.nproc, retry=True, verbose=verbose)
