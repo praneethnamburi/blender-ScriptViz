@@ -415,7 +415,7 @@ class Daemon:
         2. Moving files (after doing some checks, but it should be fine)
         3. Saving serialized log files
     """
-    def __init__(self, base_dir=None, all_dir=None, nproc=None):
+    def __init__(self, base_dir=None, all_dir=None, nproc=None, load_videos=False):
         if base_dir is None:
             if os.name == 'nt':
                 base_dir = "P:\data"
@@ -430,7 +430,7 @@ class Daemon:
             if os.name == 'nt':
                 nproc = 3
             else:
-                nproc = 4
+                nproc = 10
 
         assert isinstance(base_dir, str)
         assert isinstance(all_dir, list)
@@ -439,6 +439,15 @@ class Daemon:
         self.base_dir = base_dir
         self.all_dir = all_dir
         self.nproc = nproc
+        self._videos = {}
+        if load_videos:
+            file_list = self.all_avi + self.all_mp4
+            for f in file_list:
+                self._videos[f.lstrip(self.base_dir)] = Vid(f)
+
+    @property
+    def videos(self):
+        return self._videos
 
     @property
     def all_dirs(self):
@@ -475,19 +484,14 @@ class Daemon:
     def file_size(file_list):
         return sum([os.path.getsize(x) for x in file_list])/(1024*1024*1024)
 
-    def avi_size(self, avi_list=None):
-        if avi_list is None:
-            avi_list = self.all_avi
-        return self.file_size(avi_list)
-
-    def mp4_size(self, mp4_list=None):
-        if mp4_list is None:
-            mp4_list = self.all_mp4
-        return self.file_size(mp4_list)
-
     def report(self):
-        print(str(len(self.all_avi)) + ' AVI files taking up ' + '{:4.3f} GB'.format(self.avi_size()))
-        print(str(len(self.all_mp4)) + ' MP4 files taking up ' + '{:4.3f} GB'.format(self.mp4_size()))
+        all_avi = self.all_avi
+        all_mp4 = self.all_mp4
+
+        avi_size = sum(list(pn.file_size(all_avi).keys()))
+        mp4_size = sum(list(pn.file_size(all_mp4).keys()))
+        print(str(len(all_avi)) + ' AVI files taking up ' + '{:4.3f} GB'.format(avi_size))
+        print(str(len(all_mp4)) + ' MP4 files taking up ' + '{:4.3f} GB'.format(mp4_size))
 
     def conversion_status(self):
         """Is there a corresponding MP4 file?"""
@@ -557,6 +561,14 @@ class Daemon:
             file_list = self.all_avi
         ret = {}
         for f in file_list:
-            ret[f.lstrip(self.base_dir)] = len(VideoReader(f))
+            ret[f.lstrip(self.base_dir)] = len(self.videos[f])
         return ret
-        
+
+    @property
+    def video_size(self):
+        return pn.file_size(self.all_avi + self.all_mp4)
+
+    @property
+    def big_videos(self):
+        # return all videos with size > 4 GB
+        return {s:f for s in self.video_size if s > 4*1024}

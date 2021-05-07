@@ -16,6 +16,7 @@ File system:
     ospath         - Find file or directory
     find           - Find a file (accepts patterns)
     run            - Run the contents of a file in the console
+    file_size      - Return size of a list of files in descending order
 
 Package management: (mostly useful during deployment)
     pkg_list - return list of installed packages
@@ -607,6 +608,19 @@ def run(filename, start_line=1, end_line=None):
     if end_line is None:
         end_line = len(code)
     exec(''.join(code[(start_line-1):end_line]))
+
+def file_size(file_list, units='MB'):
+        """
+        Returns files sizes in descending order (default: megabytes)
+        """
+        div = {'B':1, 'KB':1024, 'MB':1024**2, 'GB':1024**3, 'TB':1024**4}
+        if isinstance(file_list, str):
+            file_list = [file_list]
+        assert isinstance(file_list, list)
+        size_mb = {os.path.getsize(f)/div[units]:f for f in file_list}
+        size_list = list(size_mb.keys())
+        size_list.sort(reverse=True)
+        return {s:size_mb[s] for s in size_list}
 
 
 ## Package management
