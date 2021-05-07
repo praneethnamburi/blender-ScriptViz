@@ -558,4 +558,5 @@ class Daemon:
         ret = {}
         for f in file_list:
             ret[f.lstrip(self.base_dir)] = len(VideoReader(f))
-            
+        return ret
+        
