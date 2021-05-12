@@ -120,12 +120,6 @@ class Log:
         return ux[x]
 
         # return str(self.disp_scale) + " " + self.hdr['Length Units']
-    
-    def load_videos(self):
-        vids = pn.find("*Camera*.mp4", os.path.dirname(self.fname))
-        if not vids:
-            vids = pn.find("*Camera*.avi", os.path.dirname(self.fname))
-        return [Vid(vid_name) for vid_name in vids]
     # elements for animation:
     # markers, connections, clips, chains (to measure length)
 
@@ -417,7 +411,7 @@ class Daemon:
     Workflow:
 
     """
-    def __init__(self, base_dir=None, all_dir=None, nproc=None, load_videos=False):
+    def __init__(self, base_dir=None, all_dir=None, nproc=None, system='motive', video_filter=''):
         if base_dir is None:
             if os.name == 'nt':
                 base_dir = "P:\data"
@@ -437,19 +431,21 @@ class Daemon:
         assert isinstance(base_dir, str)
         assert isinstance(all_dir, list)
         assert isinstance(nproc, int)
+        assert system in ('motive', 'qualisys')
+        assert isinstance(video_filter, str)
 
-        self.base_dir = base_dir
+        self.base_dir = os.path.realpath(base_dir)
         self.all_dir = all_dir
         self.nproc = nproc
-        self._videos = {}
-        if load_videos:
-            file_list = self.all_avi + self.all_mp4
-            for f in file_list:
-                self._videos[f.lstrip(self.base_dir)] = Vid(f)
+        self.system = system
 
-    @property
-    def videos(self):
-        return self._videos
+        if video_filter == '':
+            if self.system == 'motive':
+                self._video_filter = '*Camera *'
+            elif self.system == 'qualisys':
+                self._video_filter = '*_Miqus_*'
+        else:
+            self._video_filter = video_filter
 
     @property
     def all_dirs(self):
@@ -476,18 +472,18 @@ class Daemon:
 
     @property
     def all_avi(self):
-        return self._proc_dir('*Camera *.avi')
+        return self._proc_dir(self._video_filter + '.avi')
     
     @property
     def all_mp4(self):
-        return self._proc_dir('*Camera *.mp4')
+        return self._proc_dir(self._video_filter + '.mp4')
 
     def report(self):
         all_avi = self.all_avi
         all_mp4 = self.all_mp4
 
-        avi_size = sum(list(pn.file_size(all_avi).values()))
-        mp4_size = sum(list(pn.file_size(all_mp4).values()))
+        avi_size = sum(list(pn.file_size(all_avi, units='GB').values()))
+        mp4_size = sum(list(pn.file_size(all_mp4, units='GB').values()))
         print(str(len(all_avi)) + ' AVI files taking up ' + '{:4.3f} GB'.format(avi_size))
         print(str(len(all_mp4)) + ' MP4 files taking up ' + '{:4.3f} GB'.format(mp4_size))
 
@@ -539,7 +535,7 @@ class Daemon:
         for f in all_files:
             fout = f[:-4]+'.mp4'
             if (not os.path.exists(fout)) or overwrite:
-                all_cmds.append(['ffmpeg', '-y' if overwrite else '-n', '-i', f, '-c:v', 'h264_nvenc', '-vf', 'transpose=1', '-preset', 'fast', fout])
+                all_cmds.append(['ffmpeg', '-y' if overwrite else '-n', '-i', f, '-c:v', 'h264_nvenc', '-vf', 'transpose=1', fout])
 
         return all_cmds
     
@@ -554,14 +550,6 @@ class Daemon:
         all_cmds = self._to_commands(conversion_list, overwrite)
         pn.spawn_commands(all_cmds, nproc=self.nproc, retry=True, verbose=verbose)
 
-    def n_frames(self, file_list=None):
-        if file_list is None:
-            file_list = self.all_avi
-        ret = {}
-        for f in file_list:
-            ret[f.lstrip(self.base_dir)] = len(self.videos[f])
-        return ret
-
     @property
     def video_size(self):
         return pn.file_size(self.all_avi + self.all_mp4)
@@ -573,8 +561,12 @@ class Daemon:
 
     @staticmethod
     def vid_dur(vid_name):
-        x = subprocess.getoutput("ffprobe -hide_banner -show_entries stream=duration '" + vid_name + "'")
-        return float(x.split('[STREAM]')[-1].split('[/STREAM]')[0].split('duration=')[-1])
+        x = subprocess.getoutput('ffprobe -hide_banner -show_entries stream=duration "' + vid_name + '"')
+        return float(x.split('[STREAM]')[-1].split('[/STREAM]')[0].split('duration=')[-1].rstrip('\n'))
+
+    def video_duration(self, vid_list=None):
+        if vid_list is None:
+            vid_list = self.all_avi + self.all_mp4
 
     def duration_check(self, verbose=True):
         """
@@ -623,4 +615,4 @@ class Daemon:
         matched_dur, _ = self.duration_check()
         for avi_name in matched_dur:
             os.remove(avi_name)
-            
+        return list(matched_dur.keys()) # list of deleted files

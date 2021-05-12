@@ -1280,7 +1280,7 @@ class Interval:
         return Interval(self.start+other, self.end+other, zero=self.zero+other, sr=self.sr, iter_rate=self.iter_rate)
 
     def __sub__(self, other):
-        return Interval(self.start-other, self.end-other, zero=self.zero-other, sr=self.sr, inter_rate=self.iter_rate)
+        return Interval(self.start-other, self.end-other, zero=self.zero-other, sr=self.sr, iter_rate=self.iter_rate)
 
     def add(self, other):
         """Add to object, rather than returning a new object"""

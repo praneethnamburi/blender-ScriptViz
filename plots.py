@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pntools as pn
 
 @pn.Spawn
-def plot(q, arr, ion=False):
+def plot(q, arr_x, arr_y=None, ion=False):
     """
     example:
         p = plot([2, 3, 43, 23])
@@ -10,7 +10,10 @@ def plot(q, arr, ion=False):
         -p
     """
     plt.figure()
-    plt.plot(arr)
+    if arr_y is None:
+        plt.plot(arr_x)
+    else:
+        plt.plot(arr_x, arr_y)
     if ion:
         while True:
             plt.pause(0.1)
