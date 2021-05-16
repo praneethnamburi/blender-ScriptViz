@@ -13,7 +13,7 @@ except ImportError:
     BLENDER_MODE = False
 
 def load_rumba():
-    fdir = "C:\\Temp\\dl\\"
+    fdir = "C:\\data\\20210503 - dance lesson\\"
     fname_all = [fdir + "rumba" + x + ".csv" for x in ['', '_001', '_002', '_003']]
     fname_pkl = "rumba_all.pkl"
     if os.path.exists(fdir + fname_pkl):
@@ -65,7 +65,7 @@ def timestamps():
 
     t_pose = {}
     t_pose['Arrival'] = pn.SampledTime(7916, sr)
-    return event, t_pose
+    return event, t0, t_pose
 
 if BLENDER_MODE:
     def create_rig():
@@ -85,12 +85,9 @@ if BLENDER_MODE:
     def ev_show(ev, sk, t0):
         sk.show(ev.change_sr(sk.sr) - t0.change_sr(sk.sr))
 
-if __name__ == '__main__':
-    fname_all, r = load_rumba()
-    sk = [make_skeleton(rsession) for rsession in r]
-    # sk.show(pn.Interval('00;00;00;01', '00;00;04;29', sr=30, iter_rate=env.Key().fps).change_sr(rsession.sr))
-    # sk.show(pn.Interval(int(rsession.sample[0]), int(rsession.sample[-1]), sr=rsession.sr, iter_rate=env.Key().fps))
-    if BLENDER_MODE:
+    def demo(event_num=2):
+        fname_all, r = load_rumba()
+        sk = [make_skeleton(rsession) for rsession in r]
+        event, t0, t_pose = timestamps()
         env.Key().fps = 25
-        sk[-1].show(pn.Interval(int(sk[-1].sample[0]), int(sk[-1].sample[-240]), sr=sk[-1].sr, iter_rate=env.Key().fps))
-    
+        sk[1].show(event[event_num].change_sr(sk[1].sr) - t0.change_sr(sk[1].sr))
