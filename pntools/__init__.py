@@ -2,13 +2,21 @@
 Praneeth's tools for making life easy while coding in python.
 
 The tools are organized into the following categories:
-Inheritance, File system, Package management, Introspection, Input management and Code development
+Inheritance, Event handlers, File system, Package management, 
+Introspection, Input management, Code development,
+Communication (with external processes), and Tools for sampled data
 
 Inheritance: (Special cases where I needed to tweak inheritance)
     AddMethods      - (Decorator) Add methods to a class
     Mixin           - (Decorator) Grab methods from another class, and deepcopy list/dict class attributes
     port_properties - Implement containers with automatic method routing
     PortProperties  - (Decorator) for using port_properties
+
+Event handlers:
+    Handler             - Event handlers based on blinker's signal.
+    handler_id2dict     - Turn a handler ID into meaningful parts
+    add_handler         - One-liner access to setting up a broadcaster and receiver.
+    BroadcastProperties - (Decorator) Enables properties in a class to have event handlers.
 
 File system:
     locate_command - locate an executable in the system path
@@ -17,6 +25,7 @@ File system:
     find           - Find a file (accepts patterns)
     run            - Run the contents of a file in the console
     file_size      - Return size of a list of files in descending order
+    FileManager    - Manage files in a project
 
 Package management: (mostly useful during deployment)
     pkg_list - return list of installed packages
@@ -37,24 +46,23 @@ Code development: (functions that help during code development)
     Tracker - (Decorator) Track objects created by a class (turns classes into Tracker objects)
 
 Communication:
-    ExComm - Communicate with external programs via a socket
-    Spawn  - Use Multiprocessing to run a function in another process (intended for using matplotlib from blender)
+    ExComm         - Communicate with external programs via a socket
+    Spawn          - Use Multiprocessing to run a function in another process (intended for using matplotlib from blender)
+    spawn_commands - Spawn multiple detached processes.
 
 Tools for sampled data:
-    SampledTime     - Encapsulates time and sampling rate
-    Interval - Start and stop times with extracting samples at different rates
+    SampledTime - Encapsulates time and sampling rate
+    Interval    - Start and stop times with extracting samples at different rates
+    SampledData - Encapsulate and manipulate sampled data using signal processing algorithms
 
 """
 
-import datetime
 import errno
 import functools
 import importlib
 import inspect
-import json
 import os
 import re
-import pickle
 import sys
 import subprocess
 import weakref
@@ -63,10 +71,12 @@ import fnmatch
 import time
 from copy import deepcopy
 from timeit import default_timer as timer
+from scipy.signal import hilbert, firwin, filtfilt, butter
 
 import multiprocess
 import numpy as np
 import blinker
+
 
 ## Inheritance
 class AddMethods:
@@ -221,21 +231,6 @@ class PortProperties:
 
 
 ## Event handlers and broadcasting using blinker's signal
-def handler_id2dict(k):
-    """
-    Turn a handler ID into meaningful parts
-    A handler id is a string that has the following construction:
-    mode-module-class-attribute(instance)
-    """
-    k_dict = {}
-    stg1 = k.split('(')
-    k_dict['instance'] = stg1[-1].rstrip(')') if len(stg1) == 2 else ''
-    stg2 = stg1[0].split('-')
-    assert len(stg2) == 4
-    k_dict['mode'], k_dict['module'], k_dict['class'], stg3 = stg2
-    k_dict['attr'] = stg3.replace('.fset', '')
-    return k_dict
-
 class Handler:
     """
     Event handlers based on blinker's signal.
@@ -452,6 +447,20 @@ class Handler:
         _new_fset.__broadcast__ += [signal_name] # this is the signal name for the class
         return property(p.fget, _new_fset)
 
+def handler_id2dict(k):
+    """
+    Turn a handler ID into meaningful parts
+    A handler id is a string that has the following construction:
+    mode-module-class-attribute(instance)
+    """
+    k_dict = {}
+    stg1 = k.split('(')
+    k_dict['instance'] = stg1[-1].rstrip(')') if len(stg1) == 2 else ''
+    stg2 = stg1[0].split('-')
+    assert len(stg2) == 4
+    k_dict['mode'], k_dict['module'], k_dict['class'], stg3 = stg2
+    k_dict['attr'] = stg3.replace('.fset', '')
+    return k_dict
 
 def add_handler(thing, attr, receiver_func, mode='post', sig=None):
     """
@@ -583,15 +592,19 @@ def ospath(thingToFind, errContent=None):
     print('Did not find ', errContent)
     return ''
 
-def find(pattern, path=None):
+def find(pattern, path=None, exclude_hidden=True):
     "Example: find('*.txt', '/path/to/dir')"
     if path is None:
         path = os.getcwd()
+        
     result = []
     for root, dirs, files in os.walk(path):
         for name in files:
             if fnmatch.fnmatch(name, pattern):
                 result.append(os.path.join(root, name))
+
+    if exclude_hidden:
+        return [r for r in result if not (r.split(os.sep)[-1].startswith('~$') or r.split(os.sep)[-1].startswith('.'))]
     return result
 
 def run(filename, start_line=1, end_line=None):
@@ -621,6 +634,49 @@ def file_size(file_list, units='MB'):
         size_list = list(size_mb.keys())
         size_list.sort(reverse=True)
         return {size_mb[s]:s for s in size_list} # {file_name : size}
+
+class FileManager:
+    """
+    Manage files in a project.
+    Created with working on the operator project.
+    Useful for creating datasets with data distributed across files and modalities.
+    """
+    def __init__(self, base_dir):
+        assert isinstance(base_dir, str)
+        self.base_dir = os.path.realpath(base_dir)
+        self._files = {}
+        self._filters = {}
+    
+    def add(self, type_name, pattern_list):
+        """
+        Add a type of file with a given filter.
+        e.g. fm.add('video', '*Camera*.avi')
+        """
+        if isinstance(pattern_list, str):
+            pattern_list = [pattern_list]
+        self._files[type_name] = []
+        for pattern in pattern_list:
+            self._files[type_name] += find(pattern, path=self.base_dir)
+        self._filters[type_name] = pattern_list
+
+    def __getitem__(self, key):
+        assert key in self._files
+        return self._files[key]
+    
+    def types(self):
+        return self._files.keys()
+
+    @property
+    def all_files(self):
+        ret = []
+        for ftype in self.types():
+            ret += self[ftype]
+        return ret
+
+    def report(self, units='MB'):
+        for file_type, file_list in self._files.items():
+            fs = sum(list(file_size(file_list, units=units).values()))
+            print(str(len(file_list)) + ' ' + file_type + ' files taking up {:4.3f} '.format(fs) + units)
 
 
 ## Package management
@@ -1292,3 +1348,90 @@ class Interval:
         self.start = self.start - other
         self.end = self.end - other
         self.zero = self.zero - other
+
+
+class SampledData: # Signal processing
+    def __init__(self, sig, sr, axis=None, history=None, t0=0.):
+        """
+        axis (int) time axis
+        t0 (float) time at start sample
+        """
+        self._sig = sig # assumes sig is uniformly resampled
+        self.sr = sr
+        if axis is None:
+            self.axis = np.argmax(np.shape(self._sig))
+        else:
+            self.axis = axis
+        if history is None:
+            self._history = [('initialized', None)]
+        else:
+            assert isinstance(history, list)
+            self._history = history
+        self._t0 = t0
+    
+    def __call__(self):
+        return self._sig
+
+    def _clone(self, proc_sig, his_append=None):
+        if his_append is None:
+            his = self._history # only useful when cloning without manipulating the data, e.g. returning a subset of columns
+        else:
+            his = self._history + [his_append]
+        return self.__class__(proc_sig, self.sr, self.axis, his, self._t0)
+
+    def analytic(self):
+        proc_sig = hilbert(self._sig, axis=self.axis)
+        return self._clone(proc_sig, ('analytic', None))
+
+    def envelope(self, type='upper', lowpass=True):
+        # analytic envelope, optionally low-passed
+        assert type in ('upper', 'lower')
+        if type == 'upper':
+            proc_sig = np.abs(hilbert(self._sig, axis=self.axis))
+        else:
+            proc_sig = -np.abs(hilbert(-self._sig, axis=self.axis))
+
+        if lowpass:
+            if lowpass is True: # set cutoff frequency to lower end of bandpass filter
+                assert 'bandpass' in [h[0] for h in self._history]
+                lowpass = [h[1]['low'] for h in self._history if h[0] == 'bandpass'][0]
+            assert isinstance(lowpass, (int, float)) # cutoff frequency
+            return self._clone(proc_sig, ('envelope_'+type)).lowpass(lowpass)
+        return self._clone(proc_sig, ('envelope_'+type, None))
+    
+    def phase(self):
+        proc_sig = np.unwrap(np.angle(hilbert(self._sig, axis=self.axis)))
+        return self._clone(proc_sig, ('instantaneous_phase', None))
+    
+    def instantaneous_frequency(self):
+        proc_sig = np.diff(self.phase()._sig) / (2.0*np.pi) * self.sr
+        return self._clone(proc_sig, ('instantaneous_frequency', None))
+
+    def bandpass(self, low, high, order=None):
+        if order is None:
+            order = int(self.sr/2) + 1
+        filt_pts = firwin(order, (low, high), fs=self.sr, pass_zero='bandpass')
+        proc_sig = filtfilt(filt_pts, 1, self._sig, axis=self.axis)
+        return self._clone(proc_sig, ('bandpass', {'filter':'firwin', 'low':low, 'high':high, 'order':order}))
+
+    def _butterfilt(self, cutoff, order, btype):
+        assert btype in ('low', 'high')
+        if order is None:
+            order = 6
+        b, a = butter(order, cutoff/(0.5*self.sr), btype=btype, analog=False)
+        proc_sig = filtfilt(b, a, self._sig, axis=self.axis)
+        return self._clone(proc_sig, (btype+'pass', {'filter':'butter', 'cutoff':cutoff, 'order':order}))
+
+    def lowpass(self, cutoff, order=None):
+        return self._butterfilt(cutoff, order, 'low')
+    
+    def highpass(self, cutoff, order=None):
+        return self._butterfilt(cutoff, order, 'high')
+
+    def __len__(self):
+        return np.shape(self._sig)[self.axis]
+
+    @property
+    def t(self):
+        n_samples = len(self)
+        return np.linspace(self._t0, self._t0 + (n_samples-1)/self.sr, n_samples)
