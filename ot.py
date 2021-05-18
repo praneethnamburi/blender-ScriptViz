@@ -132,15 +132,15 @@ class Marker(trf.PointCloud):
         vert    (n x 3 numpy array)
         frame   (4x4 frame, OR, trf.CoordFrame)
         parent  (ot.Log) - Log file object
-        interval (pn.Interval) - for placing the marker in time
+        interval (pn.sampled.Interval) - for placing the marker in time
         """
         assert isinstance(parent, Log)
         self.name = name
         super().__init__(vert, frame)
         self.parent = parent
         if interval is None:
-            interval  = pn.Interval(int(parent.sample[0]), int(parent.sample[-1]), sr=parent.sr)
-        assert isinstance(interval, pn.Interval)
+            interval  = pn.sampled.Interval(int(parent.sample[0]), int(parent.sample[-1]), sr=parent.sr)
+        assert isinstance(interval, pn.sampled.Interval)
         self._interval = interval # to place the marker in time
 
         self.in_frame = self._pointcloud_to_marker(self.in_frame)
@@ -158,9 +158,9 @@ class Marker(trf.PointCloud):
 
     def __getitem__(self, key):
         """Use an interval object to slice the marker"""
-        if isinstance(key, pn.SampledTime):
+        if isinstance(key, pn.sampled.Time):
             key = key.to_interval()
-        assert isinstance(key, (pn.Interval, pn.SampledTime))
+        assert isinstance(key, (pn.sampled.Interval, pn.sampled.Time))
         if key.sr != self.sr:
             print("Warning: sampling rate of the key is changed to the marker's sampling rate")
             key.sr = self.sr
@@ -188,8 +188,8 @@ class Marker(trf.PointCloud):
         def show(self, intvl=(0., 2.), start_frame=1, r=0.2):
             if isinstance(intvl, (list, tuple)):
                 assert len(intvl) == 2
-                intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
-            assert isinstance(intvl, pn.Interval)
+                intvl  = pn.sampled.Interval(intvl[0], intvl[1], sr=self[0].sr)
+            assert isinstance(intvl, pn.sampled.Interval)
 
             intvl.iter_rate = env.Key().fps
             ts_name = self.name + '_pos'
@@ -253,8 +253,8 @@ class Chain:
         # string - retrieve a marker by its name by searching through the list
         if isinstance(key, str):
             return [m for m in self._marker_list if m.name == key][0]
-        # pn.SampledTime, or pn.Interval - splice all markers in the chain, and return a new chain that is localized in time
-        if isinstance(key, (pn.SampledTime, pn.Interval)):
+        # pn.sampled.Time, or pn.sampled.Interval - splice all markers in the chain, and return a new chain that is localized in time
+        if isinstance(key, (pn.sampled.Time, pn.sampled.Interval)):
             return Chain(self.name, [m[key] for m in self._marker_list])
     
     def get_snapshot(self, sample_index):
@@ -280,7 +280,7 @@ class Chain:
     if BLENDER_MODE:
         def show(self, intvl=(0., 2.), start_frame=1, color=None, **kwargs):
             """
-            intvl (pn.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
+            intvl (pn.sampled.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
                 or a tuple of (int, int) implying start and end frame
             start_frame (int) - animation start frame
             color (int, str, or dict) 
@@ -292,8 +292,8 @@ class Chain:
             """
             if isinstance(intvl, (list, tuple)):
                 assert len(intvl) == 2
-                intvl  = pn.Interval(intvl[0], intvl[1], sr=self[0].sr)
-            assert isinstance(intvl, pn.Interval)
+                intvl  = pn.sampled.Interval(intvl[0], intvl[1], sr=self[0].sr)
+            assert isinstance(intvl, pn.sampled.Interval)
 
             if color is None:
                 color = self._color
@@ -337,7 +337,7 @@ class Skeleton:
                 return self._markers_all[key]
             else:
                 raise KeyError(key, "Not a chain or marker in this skeleton")
-        if isinstance(key, (pn.SampledTime, pn.Interval)): # new skeleton object, spliced in time
+        if isinstance(key, (pn.sampled.Time, pn.sampled.Interval)): # new skeleton object, spliced in time
             return Skeleton(self.name, [c[key] for c in self._chain_list])
 
     @property
