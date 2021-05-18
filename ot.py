@@ -10,6 +10,7 @@ import os
 import csv
 import subprocess
 import numpy as np
+import dill
 from decord import VideoReader
 
 from bpn import trf
@@ -34,8 +35,12 @@ class Log:
         bp = ot.Log(fname)
     """
     def __init__(self, fname, coord_frame=trf.CoordFrame(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))):
+        # full file name
         self.fname = fname
-        self.disp_scale = 100. # set during creation! DOES NOT impact export
+        # csv name without the path or the extension
+        self.name = os.path.splitext(os.path.split(fname)[1])[0] 
+        # display scale set during creation! DOES NOT impact export.
+        self.disp_scale = 100.
         assert self.disp_scale in [1./1000, 1./100, 1./10, 1, 10, 100, 1000]
 
         data = []
@@ -78,9 +83,6 @@ class Log:
 
         data_start_row = frame_hdr_row + 1
 
-        n_data_rows = len(data)-data_start_row
-        n_data_cols = len(data[data_start_row])
-
         data3d = np.array(data[data_start_row:])
         data3d[data3d==''] = 'nan'
         data3d = data3d.astype(float)
@@ -92,6 +94,10 @@ class Log:
         for marker_name in marker_names_valid:
             this_cols, = np.where(np.array(marker_name_row_valid) == marker_name) # assuming X, Y, Z sequence during export
             self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols]/self.disp_scale, coord_frame, self).in_world()
+
+        # initalize events, which will be populated later
+        self.events = {} # make this an ordered dictionary?
+        self.skeletons = [] # make this an ordered dictionary?
 
     @property
     def t(self):
@@ -119,9 +125,26 @@ class Log:
         x = DIST_UNITS[self.hdr['Length Units']] + int(np.log10(self.disp_scale))
         return ux[x]
 
-        # return str(self.disp_scale) + " " + self.hdr['Length Units']
+    def add_skeleton(self, skeleton_name=None):
+        if skeleton_name is None:
+            skeleton_name = self.name
+        sk = Skeleton(skeleton_name, parent=self)
+        self.skeletons.append(sk)
+        return sk
+
+    def add_event(self, name, start, end, zero=None, iter_rate=None):
+        self.events[name] = pn.sampled.Interval(start, end, zero, self.sr, iter_rate)
+
+    if BLENDER_MODE:
+        def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
+            # if the log file has only one skeleton, the show command from that skeleton will be invoked
+            assert len(self.skeletons) == 1
+            self.skeletons[0].show(intvl, start_frame, chains, markers, **kwargs)
+            
+    # return str(self.disp_scale) + " " + self.hdr['Length Units']
     # elements for animation:
-    # markers, connections, clips, chains (to measure length)
+    # Todo: video clip processing and plotting
+    # Todo: show events one after the other
 
 
 @pn.PortProperties(Log, 'parent')
@@ -310,12 +333,17 @@ class Skeleton:
     """
     Collection of chains
     """
-    def __init__(self, name, chain_list):
-        for c in chain_list:
-            assert isinstance(c, Chain)
-        self._chain_list = chain_list
+    def __init__(self, name, chain_list=None, parent=None):
+        if chain_list is None:
+            assert isinstance(parent, Log)
+            self._chain_list = []
+            self.parent = parent
+        else:
+            for c in chain_list:
+                assert isinstance(c, Chain)
+            self._chain_list = chain_list
+            self.parent = self.chains[0].markers[0].parent # log file
         self.name = name
-        self.parent = self.chains[0].markers[0].parent
     
     @property
     def _chains_all(self):
@@ -359,6 +387,13 @@ class Skeleton:
     @property
     def interval(self):
         return self.chains[0].interval
+
+    def add_chain(self, chain_name, marker_names, color='white'):
+        for mname in marker_names:
+            assert mname in self.parent.marker_names # make sure the marker names are in the log file
+        c = Chain(chain_name, [self.parent.pos[mname] for mname in marker_names], color=color)
+        self._chain_list.append(c)
+        return c
 
     if BLENDER_MODE:
         def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
@@ -616,3 +651,47 @@ class Daemon:
         for avi_name in matched_dur:
             os.remove(avi_name)
         return list(matched_dur.keys()) # list of deleted files
+
+
+class Dataset:
+    """
+    Collection of trials / files. Meant to be a collection of files with the same marker positions.
+    """
+    def __init__(self, fdir, fname_all, fname_pkl, force_import):
+        assert os.path.isdir(fdir)
+        for fname in fname_all:
+            assert os.path.exists(fname)
+        assert force_import in (True, False)
+
+        self.fdir = fdir
+        self.fname_all = fname_all
+        self.fname_pkl = fname_pkl
+        self.force_import = force_import
+        if os.path.exists(self.fname_pkl) and not self.force_import:
+            self.data = dill.load(open(self.fname_pkl, mode='rb'))
+            # Make sure the saved data has the same files. Otherwise, reload.
+            if set([os.path.splitext(os.path.split(fname)[1])[0] for fname in fname_all]) != set(self.names):
+                self.reload()
+        else:
+            self.data = self._load_data()
+
+    def _load_data(self):
+        data = []
+        for fname in self.fname_all:
+            data.append(Log(fname))
+        dill.dump(data, open(self.fname_pkl, mode='wb'))
+        return data
+    
+    def reload(self):
+        self.data = self._load_data()
+
+    @property
+    def names(self):
+        """Names of all log files in the dataset"""
+        return [x.name for x in self.data]
+
+    def __getitem__(self, key):
+        if key not in self.names:
+            print(self.names)
+            raise KeyError
+        return {d.name : d for d in self.data}[key]
