@@ -2,27 +2,17 @@ import os
 
 import numpy as np
 import pntools as pn
-import dill
 
 import ot
 
-try:
+if pn.BLENDER_MODE:
     from bpn import new, env, io
-    BLENDER_MODE = True
-except ImportError:
-    BLENDER_MODE = False
 
-def load_rumba():
+def load_rumba(force_import=False):
     fdir = "C:\\data\\20210503 - dance lesson\\"
     fname_all = [fdir + "rumba" + x + ".csv" for x in ['', '_001', '_002', '_003']]
-    fname_pkl = "rumba_all.pkl"
-    if os.path.exists(fdir + fname_pkl):
-        return dill.load(open(fdir + "rumba_all.pkl", mode='rb'))
-    else:
-        r = []
-        for fname in fname_all:
-            r.append(ot.Log(fname))        
-        dill.dump((fname_all, r), open(fdir + fname_pkl, mode='wb'))
+    fname_pkl = os.path.join(fdir, "rumba_all.pkl")
+    return ot.load_data(fname_all, fname_pkl, force_import)
 
 def make_skeleton(rsession):
     c = []
@@ -67,7 +57,7 @@ def timestamps():
     t_pose['Arrival'] = pn.sampled.Time(7916, sr)
     return event, t0, t_pose
 
-if BLENDER_MODE:
+if pn.BLENDER_MODE:
     def create_rig():
         cr = new.CircularRig()
         cr.center = [13, 6, 14]
@@ -86,7 +76,7 @@ if BLENDER_MODE:
         sk.show(ev.change_sr(sk.sr) - t0.change_sr(sk.sr))
 
     def demo(event_num=2):
-        fname_all, r = load_rumba()
+        r = load_rumba()
         sk = [make_skeleton(rsession) for rsession in r]
         event, t0, t_pose = timestamps()
         env.Key().fps = 25
