@@ -16,14 +16,11 @@ from decord import VideoReader
 from bpn import trf
 import pntools as pn
 
-try:
+if pn.BLENDER_MODE:
     # for drawing - requires blender modules
     from bpn import new, env, utils
     from bpn.mantle import Pencil
     from bpn.utils import get
-    BLENDER_MODE = True
-except ImportError:
-    BLENDER_MODE = False
 
 DIST_UNITS = {'Millimeters':-3, 'Centimeters':-2, 'Meters':0}
 
@@ -96,7 +93,7 @@ class Log:
             self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols]/self.disp_scale, coord_frame, self).in_world()
 
         # initalize events, which will be populated later
-        self.events = {} # make this an ordered dictionary?
+        self.events = pn.IndexedDict() # make this an ordered dictionary?
         self.skeletons = [] # make this an ordered dictionary?
 
     @property
@@ -133,9 +130,11 @@ class Log:
         return sk
 
     def add_event(self, name, start, end, zero=None, iter_rate=None):
-        self.events[name] = pn.sampled.Interval(start, end, zero, self.sr, iter_rate)
+        intvl = pn.sampled.Interval(start, end, zero, self.sr, iter_rate)
+        self.events[name] = intvl
+        return intvl
 
-    if BLENDER_MODE:
+    if pn.BLENDER_MODE:
         def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
             # if the log file has only one skeleton, the show command from that skeleton will be invoked
             assert len(self.skeletons) == 1
@@ -204,7 +203,7 @@ class Marker(trf.PointCloud):
     def sample(self):
         return self.parent.sample[self._interval.start.sample:self._interval.end.sample+1]
 
-    if BLENDER_MODE:
+    if pn.BLENDER_MODE:
         def show_path(self):
             new.mesh(name=self.name, x=self.co[:,0], y=self.co[:,1], z=self.co[:,2])
 
@@ -228,8 +227,9 @@ class Marker(trf.PointCloud):
 
         def show_trajectory(self, intvl=(0., 2.), keyframe=1, color='darkorange', **kwargs):
             """Plot trajectory for a given time interval"""
+            pressure = kwargs.get('stroke_pressure', 0.5)
             p = Pencil(self.name, color=color, keyframe=keyframe, **kwargs)
-            p.stroke(self[intvl].in_world())
+            p.stroke(self[intvl].in_world(), pressure=pressure)
 
 
 @pn.PortProperties(Log, 'parent')
@@ -300,7 +300,7 @@ class Chain:
             le += np.linalg.norm(m2.co-m1.co, axis=1)
         return le*mul_units
 
-    if BLENDER_MODE:
+    if pn.BLENDER_MODE:
         def show(self, intvl=(0., 2.), start_frame=1, color=None, **kwargs):
             """
             intvl (pn.sampled.Interval, tuple) - Interval object, or a tuple of (float, float) implying start and end time, 
@@ -395,7 +395,7 @@ class Skeleton:
         self._chain_list.append(c)
         return c
 
-    if BLENDER_MODE:
+    if pn.BLENDER_MODE:
         def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
             """kwargs are for Pencil"""
             if chains:
