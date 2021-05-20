@@ -664,3 +664,28 @@ class Quat:
         # assume they are specified in world coordinates, turn them into a point cloud
         # apply the transformation in the quaternion's reference frame
         return _quat_pc_mul(self, PointCloud(np.array(other), np.eye(4)).in_frame(self.frame))
+
+    def to_euler(self):
+        """
+        :return: roll, pitch, yaw
+
+            Convert a quaternion into euler angles (roll, pitch, yaw)
+
+            roll is rotation around x in radians (counterclockwise)
+            pitch is rotation around y in radians (counterclockwise)
+            yaw is rotation around z in radians (counterclockwise)
+        """
+        t0 = +2.0 * (self.w * self.x + self.y * self.z)
+        t1 = +1.0 - 2.0 * (self.x * self.x + self.y * self.y)
+        roll_x = math.atan2(t0, t1)
+
+        t2 = +2.0 * (self.w * self.y - self.z * self.x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitch_y = math.asin(t2)
+
+        t3 = +2.0 * (self.w * self.z + self.x * self.y)
+        t4 = +1.0 - 2.0 * (self.y * self.y + self.z * self.z)
+        yaw_z = math.atan2(t3, t4)
+
+        return (roll_x, pitch_y, yaw_z)  # in radians
