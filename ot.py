@@ -93,8 +93,8 @@ class Log:
             self.pos[marker_name] = Marker(marker_name, data3d[:, this_cols]/self.disp_scale, coord_frame, self).in_world()
 
         # initalize events, which will be populated later
-        self.events = pn.IndexedDict() # make this an ordered dictionary?
-        self.skeletons = [] # make this an ordered dictionary?
+        self.events = pn.sampled.Events()
+        self.skeletons = []
 
     @property
     def t(self):
@@ -129,10 +129,14 @@ class Log:
         self.skeletons.append(sk)
         return sk
 
-    def add_event(self, name, start, end, zero=None, iter_rate=None):
-        intvl = pn.sampled.Interval(start, end, zero, self.sr, iter_rate)
-        self.events[name] = intvl
-        return intvl
+    def add_event(self, start, end, **kwargs):
+        if 'sr' in kwargs:
+            assert kwargs['sr'] == self.sr # just to thorw an error in case a conflicting sampling rate is passed by mistake
+        else:
+            kwargs['sr'] = self.sr
+        ev = pn.sampled.Event(start, end, **kwargs)
+        self.events.append(ev)
+        return ev
 
     if pn.BLENDER_MODE:
         def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
