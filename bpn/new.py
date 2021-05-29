@@ -371,6 +371,44 @@ def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
 # other primitives:
 # cylinder, grid, ico_sphere
 
+class Image:
+    def __init__(self, path, **kwargs):
+        """Load image from file onto a plane"""
+        assert os.path.isfile(path)
+        name = kwargs.get('name', os.path.splitext(os.path.split(path)[-1])[0])
+        p = plane(name)
+        # vertex order matters for correct uv mapping
+        p.v = np.array([[-1., -1., 0],
+                        [1., -1., 0.],
+                        [1., 1., 0.],
+                        [-1., 1., 0.]])
+        p().data.uv_layers.new(name='imUV')
+        img = bpy.data.images.load(path)
+        im_width, im_height = img.size[:]
+        p.scale((1, im_height/im_width, 1))
+        p.apply_matrix()
+        p.rotate((90, 0, 0)) # default plane is XZ
+
+        mtrl_name = utils.new_name('immaterial', [m.name for m in bpy.data.materials])
+        mat = bpy.data.materials.new(name=mtrl_name)
+        mat.use_nodes = True
+        bsdf = mat.node_tree.nodes["Principled BSDF"]
+        im_node = mat.node_tree.nodes.new('ShaderNodeTexImage')
+        im_node.image = img
+        mat.node_tree.links.new(bsdf.inputs['Base Color'], im_node.outputs['Color'])
+
+        if p().data.materials:
+            p().data.materials[0] = mat
+        else:
+            p().data.materials.append(mat)
+        
+        self.nodes = {}
+        self.nodes['image'] = im_node
+        self.nodes['bsdf'] = bsdf
+        
+        self.material = mat
+        self.plane = p
+
 
 # Enhanced meshes
 class Tube(core.MeshObject):
