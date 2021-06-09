@@ -139,6 +139,13 @@ class Log:
         self.events.append(ev)
         return ev
 
+    def __getitem__(self, key):
+        sk = [s for s in self.skeletons if s.name == key]
+        if not len(sk) == 1:
+            raise KeyError
+        else:
+            return sk[0]
+
     if pn.BLENDER_MODE:
         def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
             # if the log file has only one skeleton, the show command from that skeleton will be invoked
@@ -676,7 +683,7 @@ class Dataset:
             self.LogLoader = Log
         else:
             assert Log in LogLoader.__mro__ # is a subclass of Log
-            self.LogLoader = Log
+            self.LogLoader = LogLoader
         if os.path.exists(self.fname_pkl) and not self.force_import:
             self.data = dill.load(open(self.fname_pkl, mode='rb'))
             # Make sure the saved data has the same files. Otherwise, reload.
