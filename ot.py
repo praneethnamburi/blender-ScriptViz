@@ -9,6 +9,7 @@ Each of these data types can be spliced in time using the Interval object from p
 import os
 import csv
 import subprocess
+import inspect
 import numpy as np
 import dill
 from decord import VideoReader
@@ -661,7 +662,7 @@ class Dataset:
     """
     Collection of trials / files. Meant to be a collection of files with the same marker positions.
     """
-    def __init__(self, fdir, fname_all, fname_pkl, force_import):
+    def __init__(self, fdir, fname_all, fname_pkl, force_import, LogLoader=None):
         assert os.path.isdir(fdir)
         for fname in fname_all:
             assert os.path.exists(fname)
@@ -671,6 +672,11 @@ class Dataset:
         self.fname_all = fname_all
         self.fname_pkl = fname_pkl
         self.force_import = force_import
+        if LogLoader is None:
+            self.LogLoader = Log
+        else:
+            assert Log in LogLoader.__mro__ # is a subclass of Log
+            self.LogLoader = Log
         if os.path.exists(self.fname_pkl) and not self.force_import:
             self.data = dill.load(open(self.fname_pkl, mode='rb'))
             # Make sure the saved data has the same files. Otherwise, reload.
@@ -682,7 +688,7 @@ class Dataset:
     def _load_data(self):
         data = []
         for fname in self.fname_all:
-            data.append(Log(fname))
+            data.append(self.LogLoader(fname))
         dill.dump(data, open(self.fname_pkl, mode='wb'))
         return data
     
