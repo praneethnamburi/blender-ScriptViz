@@ -147,10 +147,10 @@ class Log:
             return sk[0]
 
     if pn.BLENDER_MODE:
-        def show(self, intvl=None, start_frame=1, chains=True, markers=True, **kwargs):
-            # if the log file has only one skeleton, the show command from that skeleton will be invoked
-            assert len(self.skeletons) == 1
-            self.skeletons[0].show(intvl, start_frame, chains, markers, **kwargs)
+        def show(self, intvl=None, start_frame=1, chains=True, markers=True, skeleton_ind = 0, **kwargs):
+            # if the log file has only one skeleton or the skeleton is specified by skeleton_ind, the show command from that skeleton will be invoked
+            assert len(self.skeletons) >= 1
+            self.skeletons[skeleton_ind].show(intvl, start_frame, chains, markers, **kwargs)
             
     # return str(self.disp_scale) + " " + self.hdr['Length Units']
     # elements for animation:
