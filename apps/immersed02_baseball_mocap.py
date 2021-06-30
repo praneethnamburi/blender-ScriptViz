@@ -1,4 +1,5 @@
 from bpn_init import *
+from immersionlab import ot
 
 fname = r"P:\data\20210311 - Coach Todd Baseball pitch\Pitching_01_02_Fill500Frm.csv"
 bp = ot.Log(fname)
@@ -103,16 +104,16 @@ c.append(ot.Chain('Legs', [bp.pos['Ref_LBigToe'], bp.pos['Spine_L4'], bp.pos['Re
 sk = ot.Skeleton('Sk1', c)
 # this says that the timestamp is from a video that was captured at 30 Hz, but the interval is to act on data sampled at bp.sr Hz
 intvl = []
-intvl.append(pn.sampled.Interval('00;05;57;26', '00;06;01;29', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;08;08;01', '00;08;11;20', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;08;16;18', '00;08;20;28', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;08;29;06', '00;08;33;02', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;09;37;24', '00;09;42;28', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;09;48;10', '00;09;54;23', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;09;59;20', '00;10;05;27', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;10;14;15', '00;10;18;22', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;10;23;17', '00;10;27;00', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
-intvl.append(pn.sampled.Interval('00;10;32;00', '00;10;36;25', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;05;57;26', '00;06;01;29', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;08;08;01', '00;08;11;20', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;08;16;18', '00;08;20;28', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;08;29;06', '00;08;33;02', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;09;37;24', '00;09;42;28', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;09;48;10', '00;09;54;23', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;09;59;20', '00;10;05;27', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;10;14;15', '00;10;18;22', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;10;23;17', '00;10;27;00', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
+intvl.append(sampled.Interval('00;10;32;00', '00;10;36;25', sr=30, iter_rate=env.Key().fps).change_sr(bp.sr))
 
 x = bp.pos['Ref_RWristLat']
 for count, this_intvl in enumerate(intvl):
@@ -154,8 +155,8 @@ cr.fov = 80
 
 #%% Working with events
 
-intvl = pn.sampled.Interval(-2., 5., 0., sr=180., iter_rate=30.)
+intvl = sampled.Interval(-2., 5., 0., sr=180., iter_rate=30.)
 event_times = ['00;09;49;15', '00;10;51;12']
 intervals = []
 for e in event_times:
-    intervals.append(intvl+pn.sampled.Time(e, 30.).change_sr(intvl.sr)) # 30 Hz is the sampling rate of the video where the timestamp was recorded, and the accompanying data has a rate of 180 Hz
+    intervals.append(intvl+sampled.Time(e, 30.).change_sr(intvl.sr)) # 30 Hz is the sampling rate of the video where the timestamp was recorded, and the accompanying data has a rate of 180 Hz
