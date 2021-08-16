@@ -1,4 +1,5 @@
 from bpn_init import *
+import mathutils
 
 def demofunc(pl_z=-0.5):
     obj = new.sphere("sph", r=0.55)
@@ -8,8 +9,9 @@ def demofunc(pl_z=-0.5):
     return c
 
 
-class Rachel:
+class Circumference:
     def __init__(self, b):
+        """b is the lenscloud scan object (enhanced, obtained using get)"""
         self.pl = new.plane("Plane")
         self.b = b
         self.bcopy = b.deepcopy("CopyObj")
@@ -32,7 +34,7 @@ class Rachel:
                 this_eL += (bcopy_eval.vertices[edge[0]].co - bcopy_eval.vertices[edge[1]].co).length
             edge_lengths.append(this_eL)
 
-            this_center = Vector()
+            this_center = mathutils.Vector()
             for v_idx in face.vertices:
                 this_center += bcopy_eval.vertices[v_idx].co
             face_centers.append(this_center/len(face.vertices))
