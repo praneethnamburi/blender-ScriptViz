@@ -1201,6 +1201,10 @@ class GreasePencilObject(CompoundObject):
                 utils.new_gp_color(key, val)
             color_name = key
         if isinstance(this_color, str):
+            if this_color == 'random':
+                import matplotlib.colors as mc
+                import random
+                this_color = random.choice(list(mc.cnames.keys()))
             color_name = this_color  
             # create material if color does not exist
             if color_name not in [m.name for m in bpy.data.materials]:
