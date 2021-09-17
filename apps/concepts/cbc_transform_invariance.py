@@ -1,27 +1,15 @@
+import numpy as np
 from bpn import new, trf
 from bpn.utils import get
+from numpy.linalg.linalg import inv
 
 def demo():
     """camera, object = demo()"""
-    # create object of interest
-    s = new.cone('object')
-    s.scale(0.12)
-    s.rotate((40, 0, 0))
-    s.apply_matrix()
-
-    # move object to a new position
-    s.frame = trf.CoordFrame(origin=(0., 3., 0.))
-
-    # create a proxy object for the camera
-    c = new.cube('camera')
-
-    # record original object frame position with respect to the camera
-    s_orig_frame = s.frame
-
-    # fix the object with respect to the camera by transforming it with the camera's transformation matrix in the world
-    s.frame = trf.CoordFrame(c.frame.m@s_orig_frame.m)
-    # every time you move the camera object, just run the above line of code to get the object in the camera's reference frame
-    return c, s
+    d = Dancer()
+    d.translate((2, 1, 0))
+    d.turn(30)
+    d.turn_head(45)
+    return d
 
 class Dancer:
     def __init__(self):
@@ -48,31 +36,42 @@ class Dancer:
         self.body = body
         self.head = head
         self.m1 = m1
+        self.screen = new.empty()
+        self.screen.frame = self.head.frame
+        self.screen.translate((1, 0, -0.3))
 
-        self.screen = new.plane('screen')
         self.m1viz = new.sphere(name='m1viz', r=0.08)
         self._update_m1()
     
     def translate(self, delta=(0., 0., 0.)):
         self.body.translate(delta)
         self.head.translate(delta)
+        self.screen.translate(delta)
         self._update_m1()
         self.body.show_frame()
         self.head.show_frame()
+        self.screen.show_frame()
 
     def turn(self, angle_deg):
         self.body.rotate((0., 0., angle_deg))
+        self.screen.frame = self.screen.frame.transform(trf.m4(trf.twisttf(angle_deg*np.pi/180)), tf_frame=self.head.frame)
         self.head.rotate((0., 0., angle_deg))
         self._update_m1()
         self.body.show_frame()
         self.head.show_frame()
+        self.screen.show_frame()
 
     def turn_head(self, angle_deg):
         self.head.rotate((0., 0., angle_deg))
+        self.screen.frame = self.screen.frame.transform(trf.m4(trf.twisttf(angle_deg*np.pi/180)), tf_frame=self.head.frame) 
         self.head.show_frame()
+        self.screen.show_frame()
+        self._update_m1()
     
     def _update_m1(self):
         self.m1.loc = self.m1_pos.transform(self.body.frame.m).co[0]
+        self.m1viz.loc = (self.screen.frame.m@inv(self.body.frame.m)@np.hstack((self.m1.loc, 1)))[:-1]
+        # self.m1viz.loc = trf.PointCloud(trf.PointCloud(self.m1.loc).in_frame(self.body.frame.m).co[0], self.screen.frame).in_world().co[0]
 
     def __neg__(self):
         -self.body
