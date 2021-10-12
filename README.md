@@ -37,53 +37,46 @@ These are detailed instructions that worked for me on a windows 10 laptop.
 ### blender+Anaconda+VSCode
 
 1. Download blender (get the zip file, NOT a binary installer), or just follow this link: <https://builder.blender.org/download/>
-2. Unzip to C:\blender\2.83.0 (which has a folder called 2.83)
+2. Unzip to C:\\blender\\2.93.0 (which has a folder called 2.93)
 3. Open the python console within blender, and check the python version 
-   - e.g. 3.7.4
-4. Delete the python folder and all its contents (C:\\blender\\2.83.0\\2.83\\python)
-5. Add the blender executable folder (C:\\blender\\2.83.0) to the system path
-   - This is used by the _requirementsCheck.py file
-6. Install Anaconda (NOT miniconda), and open anaconda prompt with admin privileges
-   - Make sure you have "C:\\Users\\Praneeth\\anaconda3\\Library\\bin" in the system path
+   - e.g. 3.9.2
+4. Delete the python folder and all its contents (C:\\blender\\2.93.0\\2.93\\python)
+5. Install Anaconda (NOT miniconda), and open anaconda prompt with admin privileges
+   - Make sure you have "C:\\Users\\Praneeth\\anaconda3\\condabin" in the system path
    - On windows, check the Path variable in the 'System Variables' box when editing environment variables
-7. Clone this repository in your workspace (make sure git is installed and added to your system path)
+6. Clone this repository, and the dependency to your workspace (make sure git is installed and added to your system path)
    - Navigate to your workspace in the command prompt (e.g. C:\\dev)
    - git clone https://github.com/praneethnamburi/blender-ScriptViz.git
+   - git clone https://github.com/praneethnamburi/pn-utilities.git
    - cd blender-ScriptViz
-8. Create an anaconda environment using the _requirements.yml file
-   - conda env update -f requirements.yml
-   - Make sure to wait until it finishes running. It might appear stuck when installing pip packages. You might see a temporary text file created by conda in your current directory, for example "condaenv.p5qt3m3s.requirements.txt". Conda has finished doing its job when this file is deleted. 
-   - conda activate blender2830
-9.  Install VSCode and activate the environment from within VSCode's command line
-10. Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
-    - blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender2830"
-    - blender.exe --env-system-python "C:\\Users\\Praneeth\\anaconda3\\envs\\blender2830"
+7. Create an anaconda environment using the following commands:
+   - Recommended method:
+     - conda create -n blender293 python=3.9.2 numpy scipy pandas jupyter ipython matplotlib blinker scikit-learn
+     - conda activate blender293
+     - conda install -c conda-forge pybullet multiprocess pysimplegui
+     - pip install decord imageio imageio-ffmpeg ffmpeg-python pytube ahrs urdfpy pint soundfile celluloid
+   - Alternate method: Create an anaconda environment using the _requirements.yml file (simpler, but doesn't always work)
+     - conda env update -f requirements.yml
+     - Make sure to wait until it finishes running. It might appear stuck when installing pip packages. You might see a temporary text file created by conda in your current directory, for example "condaenv.p5qt3m3s.requirements.txt". Conda has finished doing its job when this file is deleted. 
+     - conda activate blender293
+8.  Install VSCode and activate the environment from within VSCode's command line
+9.  Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
+    - C:\\blender\\2.93.0\\2.93\\blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender293"
+    - C:\\blender\\2.93.0\\2.93\\blender.exe --env-system-python "C:\\Users\\Praneeth\\anaconda3\\envs\\blender293"
     - Remember to use double quotes if there is a space in the path!
     - If this works, you're good to go! Rest of the steps make are meant to make your life easier in the long run.
     - You should be able to install additional packages using conda and import them in the blender console.
-11. Use the _requirementsCheck.py file through the command python _requirementsCheck.py. It will:
-    -  Check if blender, and the correct python executables are visible to the terminal.
-    -  Make a startup file in blender's startup directory, which just adds your workspace folder to python's sys.path. Alternatively you can type these command within blender's python console once you invoke blender from the command line, or using the extension (see below). import sys; sys.path.append("C:\\dev\\blender-ScriptViz"). Typing those two commands into the prompt every time you start blender can be annoying, and the startup script removes that specific annoyance.
-    -  Blender startup directory is at C:\\blender\\2.83.0\\2.83\\scripts\\startup
-    -  Update _requirements.yml file with your current conda environment.
-12. Set up debugging. Install Blender Development add-on for VSCode.
-13. *Modify* the add-on's source code. The add-on launches blender with a custom-written script to enable debugging. We need the add-on to pass an additional --env-system-python argument. 
-    - Locate the blender_executable.js file in the add-on install folder.
-    - C:\\Users\\Praneeth\\.vscode\\extensions\\jacqueslucke.blender-development-0.0.12\\out\\blender_executable.js
-    - Modify the getBlenderLaunchArgs function
-    - return ['--env-system-python', 'C:\\Users\\Praneeth\\.conda\\envs\\blender2830', '--python', paths_1.launchPath];
-    - Within the function testIfPathIsBlender, in the if-else clause contained within the Promise, change the if condition to if (false)
-    - This is so it does not throw 'A simple check to test...'
-    - (There is probably a much more elegant way to do this)
-    - Restart VSCode (for some reason it took 2 re-starts for me)
-14. From VSCode's command palette, use the command Blender: start
-    - If this fails, make sure that the python from your blender environment is in the system path! C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe
-15. Troubleshooting:
+10. Recommended: Add the path to this repository to your python path. For example, create a 'paths.pth' file, open it in notepad, and type the following lines into it:
+    - C:\\dev\\blender-ScritpViz
+    - C:\\dev\\pn-utilities
+    - Save this as C:\\Users\\Praneeth\\anaconda3\\envs\\blender293\\Lib\\site-packages\\paths.pth
+
+### Troubleshooting:
     - A useful tip is to check if you're able to find the correct python, pip, conda and blender commands from your command prompt. Most of the issues I encountered had something to do with the correct paths.
     - Use 'where blender' in the windows command prompt inside VSCode
-    - Result: C:\\blender\\2.83.0\\blender.exe
+    - Result: C:\\blender\\2.93.0\\blender.exe
     - where python
-    - C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe
+    - C:\\Users\\Praneeth\\.conda\\envs\\blender293\\python.exe
     - where conda
     - C:\\ProgramData\\Anaconda3\\condabin\\conda.bat
     - Check VSCode settings - 
@@ -97,28 +90,13 @@ These are detailed instructions that worked for me on a windows 10 laptop.
     - If conda env create -f _requirements.yml fails, activate the environment, and use conda env export > temp.yml, and check which packages failed to install. If it is pybullet, then it is probably because it needs Visual C++ 14. You can install Visual Studio Community edition (if you have the space, or perhaps the redistributable VC++ also works, I haven't tested it.)
 
 
-### Development workflow
-
-1. Start VSCode
-2. sync VSCode settings (automated this using the extension)
-3. git pull
-4. Check requirements using shift+f6 (blender --python
-   _requirementsCheck.py)
-5. Start blender using VSCode extension
-   - automated 3, 4, and 5 using the multi-command extension
-6. Import this software into the python console within blender using 'from bpn_init import *'. This will work if _requirementsCheck.py completed successfully.
-7. Run scripts (blender extension, add shortcut f6) and develop!
-8. During development, update documentation, notes and readme.md
-9. git Commit and push
-10. Sync VSCode settings (automated this using the extension setting)
-
-
 ### Current workflow
 
 1. Start VSCode
-2. Press shift+f6 to start a sesstion (multicommand automation)
-3. Start coding! Use f6 to run scripts
-
+2. Activatec conda environment from the terminal
+   - conda activate blender293
+3. Start blender
+   - C:\\blender\\2.93.0\\2.93\\blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender293"
 
 ## Folder structure
 
