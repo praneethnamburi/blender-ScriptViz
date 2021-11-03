@@ -99,7 +99,7 @@ def get(name=None, mode=None, priority='Object'):
             if all_obj_items: # one of the items was object item
                 return enhance(all_obj_items[0])
             return enhance(all_items[0])
-        print('No prop found with name: ' + name)
+        # print('No prop found with name: ' + name) # can throw too many warnings in practice
         return []
     
     def _get_all_with_name(name):
