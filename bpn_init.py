@@ -41,9 +41,10 @@ from pntools import run
 # Vector = mathutils.Vector
 
 # for using matplotlib from within blender
-import multiprocess
-multiprocess.set_executable(pn.locate_command('python', 'conda', verbose=False).split('\r\n')[0])
-from plots import plot
+if os.name == 'nt':
+    import multiprocess
+    multiprocess.set_executable(pn.locate_command('python', 'conda', verbose=False).split('\r\n')[0])
+    from plots import plot
 
 def reset():
     env.reset()
