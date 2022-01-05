@@ -371,6 +371,21 @@ def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
 # other primitives:
 # cylinder, grid, ico_sphere
 
+def box(name=None, **kwargs):
+    """Extend the functionality of a cube to create bounding boxes"""
+    class Box(core.MeshObject):
+        def __init__(self, name, **kwargs):
+            this_obj = easycreate(bmesh.ops.create_cube, name, **kwargs)
+            super().__init__(this_obj.name, this_obj.data)
+        
+        def lim(self, round_dec=3):
+            v = trf.apply_matrix(self().matrix_world, self.data.v)
+            x, y, z = [(round(np.min(v[:, dim]), round_dec), round(np.max(v[:, dim]), round_dec)) for dim in (0, 1, 2)]
+            return pn.dotdict(x=x, y=y, z=z)
+
+    name = utils.new_name('new_box', [o.name for o in bpy.data.objects]) if name is None else name
+    return Box(name, **kwargs)
+
 class Image:
     def __init__(self, path, **kwargs):
         """Load image from file onto a plane"""
