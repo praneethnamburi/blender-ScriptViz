@@ -372,11 +372,24 @@ def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
 # cylinder, grid, ico_sphere
 
 def box(name=None, **kwargs):
-    """Extend the functionality of a cube to create bounding boxes"""
+    """
+    Extend the functionality of a cube to create bounding boxes
+    b = new.box(limits=pn.dotdict({'x': (-0.383, 0.165), 'y': (-0.143, 0.405), 'z': (0.069, 0.617)}))
+    """
     class Box(core.MeshObject):
         def __init__(self, name, **kwargs):
+            limits = kwargs.pop('limits', None)
             this_obj = easycreate(bmesh.ops.create_cube, name, **kwargs)
             super().__init__(this_obj.name, this_obj.data)
+            if limits is not None: # put the cube in the right place
+                assert isinstance(limits, pn.dotdict)
+                new_origin = [np.mean(limits[dim]) for dim in limits]
+                new_span = [np.diff(limits[dim])[0] for dim in limits]
+                curr_lim = self.lim()
+                curr_span = [np.diff(curr_lim[dim])[0] for dim in curr_lim]
+                self.loc = (0., 0., 0.)
+                self.scale(np.array(new_span)/np.array(curr_span))
+                self.loc = new_origin
         
         def lim(self, round_dec=3):
             v = trf.apply_matrix(self().matrix_world, self.data.v)
