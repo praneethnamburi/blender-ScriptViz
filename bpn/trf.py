@@ -311,6 +311,26 @@ class PointCloud:
     @property
     def z(self):
         return self.co[:, 2]
+      
+    def pts_in_box(self, bbox):
+        """Check if marker coordinates are within a bounding box."""
+        def _pts_in_lim(arr, lim):
+            """
+            Check if points are inside specified limits
+            arr : 1D numpy array
+            lim : 2-element list or tuple
+            Returns numpy logical array
+            """
+            return np.logical_and(arr > lim[0], arr < lim[1])
+        return np.logical_and(_pts_in_lim(self.x, bbox['x']), _pts_in_lim(self.y, bbox['y']), _pts_in_lim(self.z, bbox['z']))
+
+    def in_box(self, bbox) -> bool:
+        """Returns (bool) True if all the marker's points are within a bounding box."""
+        return np.all(self.pts_in_box(bbox))
+    
+    def frac_pts_in_box(self, bbox) -> float:
+        """Returns (float) fraction of marker's points inside the bounding box"""
+        return np.sum(self.pts_in_box(bbox))/len(self.co)
 
 
 def transform(tfmat, vert, vert_frame_mat=np.eye(4), tf_frame_mat=None, out_frame_mat=None):
