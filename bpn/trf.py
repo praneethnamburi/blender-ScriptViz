@@ -322,7 +322,7 @@ class PointCloud:
             Returns numpy logical array
             """
             return np.logical_and(arr > lim[0], arr < lim[1])
-        return np.logical_and(_pts_in_lim(self.x, bbox['x']), _pts_in_lim(self.y, bbox['y']), _pts_in_lim(self.z, bbox['z']))
+        return _pts_in_lim(self.x, bbox['x']) * _pts_in_lim(self.y, bbox['y']) * _pts_in_lim(self.z, bbox['z'])
 
     def in_box(self, bbox) -> bool:
         """Returns (bool) True if all the marker's points are within a bounding box."""
