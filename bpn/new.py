@@ -281,8 +281,12 @@ def easycreate(mshfunc, name=None, **kwargs):
 
     # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
-        kwargs_def = {'u_segments':16, 'v_segments':8, 'diameter':0.5}
-        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], 'diameter': ['r', 'diameter']}
+        if int(bpy.app.version_string.split('.')[0]) == 2:
+            size_param_name = 'diameter'
+        else:
+            size_param_name = 'radius' # API change in version 3
+        kwargs_def = {'u_segments':16, 'v_segments':8, size_param_name:0.5}
+        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], size_param_name: ['r', 'radius', 'diameter']}
         kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_cube):
