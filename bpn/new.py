@@ -278,11 +278,15 @@ def easycreate(mshfunc, name=None, **kwargs):
     Warning: Avoid empty creates such as new.sphere()!
     """
     names, kwargs = utils.clean_names(name, kwargs, {'priority_obj':'new', 'priority_msh':'current'})
+    if int(bpy.app.version_string.split('.')[0]) == 2:
+        size_param_name = 'diameter'
+    else:
+        size_param_name = 'radius' # API change in version 3
 
     # input control
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
-        kwargs_def = {'u_segments':16, 'v_segments':8, 'diameter':0.5}
-        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], 'diameter': ['r', 'diameter']}
+        kwargs_def = {'u_segments':16, 'v_segments':8, size_param_name:0.5}
+        kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], size_param_name: ['r', 'radius', 'diameter']}
         kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_cube):
@@ -291,8 +295,8 @@ def easycreate(mshfunc, name=None, **kwargs):
         kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
     if str(mshfunc) == str(bmesh.ops.create_cone):
-        kwargs_def = {'segments':12, 'diameter1':2, 'diameter2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
-        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], 'diameter1':['diameter1', 'r1', 'r'], 'diameter2':['diameter2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
+        kwargs_def = {'segments':12, f'{size_param_name}1':2, f'{size_param_name}2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
+        kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], f'{size_param_name}1':['diameter1', 'radius1', 'r1', 'r'], f'{size_param_name}2':['diameter2', 'radius2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
         kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_monkey):

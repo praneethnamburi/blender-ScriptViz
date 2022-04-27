@@ -117,10 +117,10 @@ intvl.append(sampled.Interval('00;10;32;00', '00;10;36;25', sr=30, iter_rate=env
 
 x = bp.pos['Ref_RWristLat']
 for count, this_intvl in enumerate(intvl):
-    x.show_trajectory(this_intvl, color=count%7, keyframe=count+1)
-    x.show_trajectory(this_intvl, color=count%7, keyframe=len(intvl)+1)
+    x.show_path(this_intvl, color=count%7, keyframe=count+1)
+    x.show_path(this_intvl, color=count%7, keyframe=len(intvl)+1)
 
-x.show_trajectory(intvl(0, 0), color='white', keyframe=len(intvl)+2)
+x.show_path(intvl(0, 0), color='white', keyframe=len(intvl)+2)
 curr_keyframe = len(intvl)+1
 
 sk.show(intvl[0], start_frame=curr_keyframe+1+10, markers=False, color='white')

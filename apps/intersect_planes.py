@@ -22,7 +22,6 @@ class Circumference:
     def z(self, z_val):
         self.pl.loc = [0, 0, z_val]
 
-    @property
     def c(self):
         depsgraph = bpy.context.evaluated_depsgraph_get()
         bcopy_eval = self.bcopy().evaluated_get(depsgraph).to_mesh()
