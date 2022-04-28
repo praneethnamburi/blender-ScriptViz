@@ -37,10 +37,10 @@ These are detailed instructions that worked for me on a windows 10 laptop.
 ### blender+Anaconda+VSCode
 
 1. Download blender (get the zip file, NOT a binary installer), or just follow this link: <https://builder.blender.org/download/>
-2. Unzip to C:\\blender\\2.93.0 (which has a folder called 2.93)
+2. Unzip to C:\\blender\\3.0.0 (which has a folder called 3.0)
 3. Open the python console within blender, and check the python version 
-   - e.g. 3.9.2
-4. Delete the python folder and all its contents (C:\\blender\\2.93.0\\2.93\\python)
+   - e.g. 3.9.7
+4. Delete the python folder and all its contents (C:\\blender\\3.0.0\\3.0\\python)
 5. Install Anaconda (NOT miniconda), and open anaconda prompt with admin privileges
    - Make sure you have "C:\\Users\\Praneeth\\anaconda3\\condabin" in the system path
    - On windows, check the Path variable in the 'System Variables' box when editing environment variables
@@ -50,53 +50,40 @@ These are detailed instructions that worked for me on a windows 10 laptop.
    - git clone https://github.com/praneethnamburi/pn-utilities.git
    - cd blender-ScriptViz
 7. Create an anaconda environment using the following commands:
-   - Recommended method:
-     - conda create -n blender293 python=3.9.2 numpy scipy pandas jupyter ipython matplotlib blinker scikit-learn
-     - conda activate blender293
-     - conda install -c conda-forge pybullet multiprocess pysimplegui
-     - pip install decord imageio imageio-ffmpeg ffmpeg-python pytube ahrs urdfpy pint soundfile celluloid
-   - Alternate method: Create an anaconda environment using the _requirements.yml file (simpler, but doesn't always work)
-     - conda env update -f requirements.yml
-     - Make sure to wait until it finishes running. It might appear stuck when installing pip packages. You might see a temporary text file created by conda in your current directory, for example "condaenv.p5qt3m3s.requirements.txt". Conda has finished doing its job when this file is deleted. 
-     - conda activate blender293
+   - conda create -n blender3 python=3.9.7 numpy scipy pandas jupyter ipython matplotlib blinker scikit-learn -y
+   - conda activate blender3
+   - conda install -c conda-forge pybullet multiprocess pysimplegui
+   - pip install decord imageio imageio-ffmpeg ffmpeg-python pytube ahrs urdfpy pint soundfile celluloid ipympl
 8.  Install VSCode and activate the environment from within VSCode's command line
 9.  Call blender from the command line. The idea is to pass an extra argument while launching blender to set the path the python we want to use. 
-    - C:\\blender\\2.93.0\\2.93\\blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender293"
-    - C:\\blender\\2.93.0\\2.93\\blender.exe --env-system-python "C:\\Users\\Praneeth\\anaconda3\\envs\\blender293"
+    - C:\\blender\\3.0.0\\3.0\\blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender3"
+    - C:\\blender\\3.0.0\\3.0\\blender.exe --env-system-python "C:\\Users\\Praneeth\\anaconda3\\envs\\blender3"
     - Remember to use double quotes if there is a space in the path!
     - If this works, you're good to go! Rest of the steps make are meant to make your life easier in the long run.
     - You should be able to install additional packages using conda and import them in the blender console.
-10. Recommended: Add the path to this repository to your python path. For example, create a 'paths.pth' file, open it in notepad, and type the following lines into it:
+10. Delete/rename C:\\blender\\3.0.0\\python39.dll if you are having trouble loading numpy.
+11. Recommended: Add the path to this repository to your python path. For example, create a 'paths.pth' file, open it in notepad, and type the following lines into it:
     - C:\\dev\\blender-ScritpViz
     - C:\\dev\\pn-utilities
-    - Save this as C:\\Users\\Praneeth\\anaconda3\\envs\\blender293\\Lib\\site-packages\\paths.pth
+    - Save this as C:\\Users\\Praneeth\\anaconda3\\envs\\blender3\\Lib\\site-packages\\paths.pth
 
 ### Troubleshooting:
     - A useful tip is to check if you're able to find the correct python, pip, conda and blender commands from your command prompt. Most of the issues I encountered had something to do with the correct paths.
     - Use 'where blender' in the windows command prompt inside VSCode
-    - Result: C:\\blender\\2.93.0\\blender.exe
+    - Result: C:\\blender\\3.0.0\\blender.exe
     - where python
-    - C:\\Users\\Praneeth\\.conda\\envs\\blender293\\python.exe
+    - C:\\Users\\Praneeth\\.conda\\envs\\blender3\\python.exe
     - where conda
     - C:\\ProgramData\\Anaconda3\\condabin\\conda.bat
-    - Check VSCode settings - 
-      Add these settings in VSCode (to your workspace) - Modify this example
-         -  "settings": {
-               "terminal.integrated.env.windows": {
-                  "PATH": "C:\\blender\\2.83.0;C:\\Users\\Praneeth\\.conda\\envs\\blender2830;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\mingw-w64\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\usr\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Library\\bin;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\Scripts;C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\bin;C:\\ProgramData\\Anaconda3\\condabin;*OTHER THINGS IN YOUR PATH*,
-               },
-               "python.pythonPath": "C:\\Users\\Praneeth\\.conda\\envs\\blender2830\\python.exe",
-            },
-    - If conda env create -f _requirements.yml fails, activate the environment, and use conda env export > temp.yml, and check which packages failed to install. If it is pybullet, then it is probably because it needs Visual C++ 14. You can install Visual Studio Community edition (if you have the space, or perhaps the redistributable VC++ also works, I haven't tested it.)
 
 
 ### Current workflow
 
 1. Start VSCode
 2. Activatec conda environment from the terminal
-   - conda activate blender293
+   - conda activate blender3
 3. Start blender
-   - C:\\blender\\2.93.0\\2.93\\blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender293"
+   - C:\\blender\\3.0.0\\3.0\\blender.exe --env-system-python "C:\\Users\\Praneeth\\.conda\\envs\\blender3"
 
 ## Folder structure
 
