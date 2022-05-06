@@ -181,6 +181,9 @@ class PointCloud:
         """Number of points in the cloud."""
         return np.shape(self.co)[0]
     
+    def __len__(self):
+        return np.shape(self.co)[0] # same as n
+    
     def as_frame(self):
         """
         Return point cloud as coordinate frame.
