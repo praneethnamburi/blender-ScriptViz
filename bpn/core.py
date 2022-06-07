@@ -1051,6 +1051,15 @@ class MeshObject(CompoundObject):
     slice_y = functools.partialmethod(slice_ax, axis='y')
     slice_z = functools.partialmethod(slice_ax, axis='z')
 
+    def groups(self, vert_attr='co'):
+        """Return a dictionary of vertex group names : vertex attribute (e.g. coordinates)"""
+        ret = {g.name: [] for g in self().vertex_groups}
+        group_index_to_name = {g.index:g.name for g in self().vertex_groups}
+        for v in self().data.vertices:
+            for g in v.groups:
+                ret[group_index_to_name[g.group]].append(getattr(v, vert_attr))
+        return ret
+
 
 class GreasePencil(Thing):
     """Wrapper around blender's grease pencil."""
