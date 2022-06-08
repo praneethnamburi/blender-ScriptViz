@@ -68,7 +68,7 @@ def load(files):
         import_func(filepath=fname)
 
 def save(fname):
-    bpy.ops.wm.save_mainfile(fname)
+    bpy.ops.wm.save_mainfile(filepath=fname)
 
 @env.ReportDelta
 def loadSVG(svgfile, name=None, **kwargs):
