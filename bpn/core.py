@@ -8,6 +8,7 @@ Wrappers add functionality to a blender prop. They also:
     - a new 'Thing' is created only if it doesn't already exist in the database
 """
 import functools
+import json
 import math
 import os
 import copy
@@ -1051,13 +1052,22 @@ class MeshObject(CompoundObject):
     slice_y = functools.partialmethod(slice_ax, axis='y')
     slice_z = functools.partialmethod(slice_ax, axis='z')
 
-    def groups(self, vert_attr='co'):
+    def groups(self, vert_attr='co', sav_name=None, ret_type=None):
         """Return a dictionary of vertex group names : vertex attribute (e.g. coordinates)"""
         ret = {g.name: [] for g in self().vertex_groups}
         group_index_to_name = {g.index:g.name for g in self().vertex_groups}
+        if ret_type is None:
+            if vert_attr == 'index':
+                ret_type = int
+            else:
+                ret_type = list
         for v in self().data.vertices:
             for g in v.groups:
-                ret[group_index_to_name[g.group]].append(getattr(v, vert_attr))
+                ret[group_index_to_name[g.group]].append(ret_type(getattr(v, vert_attr)))
+        if sav_name is not None:
+            assert isinstance(sav_name, str) and sav_name.endswith('.json')
+            with open(sav_name, 'w') as f:
+                json.dump(ret, f, indent=4)
         return ret
 
 
