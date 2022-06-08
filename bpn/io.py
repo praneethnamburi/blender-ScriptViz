@@ -5,6 +5,7 @@ import os
 import errno
 import functools
 import inspect
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -35,6 +36,39 @@ def loadSTL(files):
         if not os.path.exists(f):
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), f)
         bpy.ops.import_mesh.stl(filepath=f)
+
+@env.ReportDelta
+def load(files):
+    suffix_to_import_func = {
+        '.dae'  : bpy.ops.wm.collada_import,
+        '.abc'  : bpy.ops.wm.alembic_import,
+        '.usd'  : bpy.ops.wm.usd_import,
+        '.usdc' : bpy.ops.wm.usd_import,
+        '.usda' : bpy.ops.wm.usd_import,
+        '.svg'  : bpy.ops.wm.gpencil_import_svg,
+        '.x3d'  : bpy.ops.import_scene.x3d,
+        '.wrl'  : bpy.ops.import_scene.x3d,
+        '.bvh'  : bpy.ops.import_anim.bvh,
+        '.svg'  : bpy.ops.import_curve.svg,
+        '.ply'  : bpy.ops.import_mesh.ply,
+        '.stl'  : bpy.ops.import_mesh.stl,
+        '.fbx'  : bpy.ops.import_scene.fbx,
+        '.glb'  : bpy.ops.import_scene.gltf,
+        '.gltf' : bpy.ops.import_scene.gltf,
+        '.obj'  : bpy.ops.import_scene.obj,
+    }
+    if isinstance(files, str):
+        files = [files]
+    for fname in files:
+        suffix = Path(fname).suffix.lower()
+        assert suffix in suffix_to_import_func
+        if not os.path.exists(fname):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), fname)
+        import_func = suffix_to_import_func[suffix]
+        import_func(filepath=fname)
+
+def save(fname):
+    bpy.ops.wm.save_mainfile(fname)
 
 @env.ReportDelta
 def loadSVG(svgfile, name=None, **kwargs):
