@@ -242,7 +242,7 @@ class Key:
         """Use this function after doing an animation."""
         action_list = np.array([action.frame_range for action in bpy.data.actions if action.users > 0])
         if action_list.size:
-            self.lim = np.min(action_list), np.max(action_list)
+            self.lim = int(np.min(action_list)), int(np.max(action_list))
 
     def goto(self, frame):
         """Go to a frame given by frame."""
