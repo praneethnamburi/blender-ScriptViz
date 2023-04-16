@@ -264,27 +264,43 @@ class PointCloud:
             j-direction of the new frame uses PC2
             Supply only two. The third one will be automatically computed assuming a right handed frame.
         """
+        new_frame = self.get_pca_frame(self, **mapping)
+        return self.reframe(new_frame)
+
+    def get_pca_frame(self, **mapping):
         if not mapping:
             mapping = {'i':3, 'k':1}
         assert len(mapping) == 2
         pca = PCA(n_components=3)
         pca.fit(self.in_world().co)
         if 'i' in mapping:
-            x_dir = pca.components_.T[:, np.abs(mapping['i'])-1]
-            x_dir = x_dir if np.sign(mapping['i'])*x_dir[0] > 0 else -x_dir # prioritize 'front' of anatomy with positive i in mapping
+            if isinstance(mapping['i'], int):
+                x_dir = pca.components_.T[:, np.abs(mapping['i'])-1]
+                x_dir = x_dir if np.sign(mapping['i'])*x_dir[0] > 0 else -x_dir # prioritize 'front' of anatomy with positive i in mapping
+            else:
+                assert len(mapping['i']) == 3 # i is a vector
+                x_dir = norm_vec(np.array(mapping['i']))
         if 'j' in mapping:
-            y_dir = pca.components_.T[:, np.abs(mapping['j'])-1]
-            y_dir = y_dir if np.sign(mapping['j'])*y_dir[1] > 0 else -y_dir
+            if isinstance(mapping['j'], int):
+                y_dir = pca.components_.T[:, np.abs(mapping['j'])-1]
+                y_dir = y_dir if np.sign(mapping['j'])*y_dir[1] > 0 else -y_dir
+            else:
+                assert len(mapping['j']) == 3 # i is a vector
+                y_dir = norm_vec(np.array(mapping['j']))
         if 'k' in mapping:
-            z_dir = pca.components_.T[:, np.abs(mapping['k'])-1]
-            z_dir = z_dir if np.sign(mapping['k'])*z_dir[2] > 0 else -z_dir # prioritize 'down' facing with a negative k in mapping (e.g. arm bones)
+            if isinstance(mapping['k'], int):
+                z_dir = pca.components_.T[:, np.abs(mapping['k'])-1]
+                z_dir = z_dir if np.sign(mapping['k'])*z_dir[2] > 0 else -z_dir # prioritize 'down' facing with a negative k in mapping (e.g. arm bones)
+            else:
+                assert len(mapping['k']) == 3 # i is a vector
+                z_dir = norm_vec(np.array(mapping['k']))
         if 'i' not in mapping:
             x_dir = np.cross(y_dir, z_dir)
         if 'j' not in mapping:
             y_dir = np.cross(z_dir, x_dir)
         if 'k' not in mapping:
             z_dir = np.cross(x_dir, y_dir)
-        return self.reframe(CoordFrame(i=x_dir, j=y_dir, k=z_dir, origin=self.frame.origin))
+        return CoordFrame(i=x_dir, j=y_dir, k=z_dir, origin=self.frame.origin)
 
     # syntactic ease
     def __call__(self):
