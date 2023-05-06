@@ -1199,7 +1199,8 @@ class GreasePencilObject(CompoundObject):
         Set the current stroke material (self._color).
         this_color is either a string, a number, a dict, or a tuple.
         string - material name
-        number - matplotlib color cycler (OLD version interpreted this as blender's material index)
+        integer - cycle through colors in COLOR LIST, which defaults to the matplotlib color cycler 
+            Note that older versions of this code interpreted the integer as blender's material index)
         tuple - 4-element tuple : select the closest color
         dict - create new material
             one key, value pair {name: 4-tuple rgba}
