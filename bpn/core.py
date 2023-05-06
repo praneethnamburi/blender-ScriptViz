@@ -15,6 +15,8 @@ import copy
 
 import numpy as np
 import blinker
+from matplotlib.pyplot import rcParams
+COLOR_LIST = rcParams['axes.prop_cycle'].by_key()['color']
 
 import pntools as pn
 
@@ -1197,15 +1199,17 @@ class GreasePencilObject(CompoundObject):
         Set the current stroke material (self._color).
         this_color is either a string, a number, a dict, or a tuple.
         string - material name
-        number - material index
+        number - matplotlib color cycler (OLD version interpreted this as blender's material index)
         tuple - 4-element tuple : select the closest color
         dict - create new material
             one key, value pair {name: 4-tuple rgba}
             if material with that name exists, print a warning and DO NOTHING
         """
         if isinstance(this_color, int):
-            assert this_color < len(self().material_slots)
-            color_name = {i : m.name for i, m in enumerate(self().material_slots)}[this_color]
+            # assert this_color < len(self().material_slots)
+            # color_name = {i : m.name for i, m in enumerate(self().material_slots)}[this_color]
+            this_color = COLOR_LIST[this_color % len(COLOR_LIST)]
+
         if isinstance(this_color, dict):
             assert len(this_color) == 1 # supply only one color at a time?'
             key = list(this_color.keys())[0] # key is the name
