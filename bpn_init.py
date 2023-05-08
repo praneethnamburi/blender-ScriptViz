@@ -31,7 +31,7 @@ import bpn
 # modules
 from bpn import new, env, demo, utils, turtle, vef, trf, io, mantle, core
 # classes
-from bpn.mantle import Pencil, Screen, figure
+from bpn.mantle import Pencil, Screen
 # functions
 from bpn.utils import get
 from pntools import run

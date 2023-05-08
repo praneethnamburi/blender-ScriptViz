@@ -13,7 +13,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from bpn import vef, utils, core, turtle, trf, io, env
+from bpn import vef, utils, core, mantle, turtle, trf, io, env
 
 def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     """
@@ -440,6 +440,35 @@ class Image:
         
         self.material = mat
         self.plane = p
+
+
+def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
+    """
+    Convenient instantiation of Screen. Perhaps this belongs in new?
+    kwargs:
+        figsize (2-tuple) similar to matplotlib's figsize argument
+    """
+    assert orientation in ('xy', 'xz', 'yz')
+    
+    if 'figsize' in kwargs:
+        kwargs['w'], kwargs['h'] = kwargs.pop('figsize')
+    name = kwargs.pop('name', utils.new_name('figure'))
+    
+    sc = mantle.Screen(name, **kwargs)
+    offset = kwargs.pop('offset', None)
+    if isinstance(origin, (int, float)):
+        offset = float(origin)
+    if offset is not None:
+        origin = {'xy': (0., 0., offset), 'xz': (0., offset, 0.), 'yz': (offset, 0., 0.)}[orientation]
+    if orientation == 'xz':
+        frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 0, 1), k=(0, -1, 0), origin=origin)
+    elif orientation == 'xy':
+        frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 1, 0), k=(0, 0, 1), origin=origin)
+    elif orientation == 'yz':
+        frame = trf.CoordFrame(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0), origin=origin)
+    sc.frame = frame
+
+    return sc
 
 
 # Enhanced meshes

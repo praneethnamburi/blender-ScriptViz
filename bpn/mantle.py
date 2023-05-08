@@ -65,11 +65,6 @@ class Pencil(core.GreasePencilObject):
         self.to_coll(coll_name)
 
 
-def figure(name=None, **kwargs):
-    if name is None:
-        name = utils.new_name('figure')
-    return Screen(name, **kwargs)
-
 class Screen(Pencil):
     """
     Precursor to 2d plotting (figure)
@@ -195,4 +190,4 @@ class Screen(Pencil):
         y_plt = _norm_inp(y, self._ylim)*self._height
         pc = trf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
-        return super().stroke(pc, **{**plot_defaults, **kwargs})
+        return self.stroke(pc, **{**plot_defaults, **kwargs})
