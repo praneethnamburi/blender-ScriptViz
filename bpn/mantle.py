@@ -19,6 +19,7 @@ They are some derivates of the CompoundObject class in core.
 import numpy as np
 
 import pntools as pn
+from pntools import sampled
 
 from bpn import core, utils, trf
 
@@ -64,12 +65,29 @@ class Pencil(core.GreasePencilObject):
         self.to_coll(coll_name)
 
 
+def figure(name=None, **kwargs):
+    if name is None:
+        name = utils.new_name('figure')
+    return Screen(name, **kwargs)
+
 class Screen(Pencil):
     """
     Precursor to 2d plotting (figure)
     By default, it is an XY plot
+
+    Screen and Screen.plot are the equivalent of Pencil and Pencil.stroke, just a bit easier to use in practice for making 2D plots
     """
     def __init__(self, name, **kwargs):
+        """
+        kwargs: 
+            height or h (float) height (in m / number of litte squares) in blender
+            width or w (float) width (in m / number of litte squares) in blender
+            xlim (2-tuple of float) x limits
+            ylim (2-tuple of float) y limits
+            ncolors (int) number of colors to cycle through, use this only if the number of colors to cycle through is below the matplotlib default
+            color (dict of str : rgba 4-tuple) color of the axes right now - perhaps replace this in the future with show_axes (bool)
+            Any other kwargs that a Pencil object would take
+        """
         if 'w' in kwargs:
             kwargs['width'] = kwargs.pop('w')
         self._width = kwargs.pop('width', 20.0)
@@ -79,6 +97,7 @@ class Screen(Pencil):
         self._xlim = kwargs.pop('xlim', None)
         self._ylim = kwargs.pop('ylim', None)
         self._plot_color_idx = 0
+        self._ncolors = kwargs.pop('ncolors', None)
         self._color = kwargs.pop('color', {'black': (0.0, 0.0, 0.0, 1.0)})
         super().__init__(name, **{**{'layer_name':'ax'}, **kwargs})
         self.draw()
@@ -100,17 +119,16 @@ class Screen(Pencil):
     def height(self, h):
         s = self.scl
         self.scl = (s[0], h/self._height, s[2])
-    
-    @property
-    def plot_color(self):
-        """Name of the current plot color."""
-        return 'MATLAB_{:02d}'.format(self._plot_color_idx)
 
     @property
-    def next_color(self):
+    def current_color(self):
         """Increment plot color in the palette, and return the next one."""
-        self._plot_color_idx = (self._plot_color_idx + 1)%7
-        return self.plot_color
+        current_color = self._plot_color_idx
+        if self._ncolors is None:
+            self._plot_color_idx  += 1
+        else:
+            self._plot_color_idx  = (self._plot_color_idx+1) % self._ncolors
+        return current_color
 
     def draw(self):
         """Primary function to re-draw the plot."""
@@ -127,25 +145,54 @@ class Screen(Pencil):
             [0, 0, 0]
         )), self.frame)
         ax_defaults = {'layer': 'ax', 'color':'black', 'keyframe':0, 'pressure':1.5, 'strength':1.0}   
-        return self.stroke(screen_points, **{**ax_defaults, **kwargs})
+        return super().stroke(screen_points, **{**ax_defaults, **kwargs})
 
-    def plot(self, x, y, **kwargs):
+    def plot(self, arg1, arg2=None, **kwargs):
         """(x, y) plot"""
+        # Not yet sure if this is a good idea, why not just use the for loop in the calling function?
+        if arg2 is None and isinstance(arg1, (list, tuple)):
+            ret = []
+            for arg in arg1:
+                ret.append(self.plot(arg, None, **kwargs))
+            return ret
+        
+        if arg2 is None:
+            if isinstance(arg1, sampled.Data):
+                x = arg1.t
+                y = arg1()
+            else:
+                y = arg1
+                x = np.arange(np.shape(y)[0], dtype=float)
+        else:
+            x, y = arg1, arg2
+            assert len(x) == np.shape(y)[0]
+        if not isinstance(x, np.ndarray):
+            x = np.array(x)
+        if not isinstance(y, np.ndarray):
+            y = np.array(y)
         self._xlim = kwargs.pop('xlim', self._xlim)
         self._ylim = kwargs.pop('ylim', self._ylim)
-        def _norm_inp(d, d_lim=None): # scale the input between 0 and 1
-            d = np.array(d)
-            if d_lim is None:
-                do = np.min(d)
-                dw = np.max(d) - do
-            else:
-                assert np.size(d_lim) == 2
-                do = d_lim[0]
-                dw = d_lim[1] - d_lim[0]
+        if self._xlim is None:
+            self._xlim = (np.min(x), np.max(x))
+        if self._ylim is None:
+            self._ylim = (np.min(y), np.max(y))
+
+        if y.ndim == 2: # call the plotter recursively when y is multiple timecourses
+            assert len(x) == y.shape[0]
+            ret = []
+            for col_count in range(y.shape[1]):
+                ret.append(self.plot(x, y[:, col_count], **kwargs))
+            return ret
+        
+        def _norm_inp(d, d_lim): # scale the input between 0 and 1
+            do = d_lim[0]
+            dw = d_lim[1] - d_lim[0]
+            d[d < d_lim[0]] = np.nan
+            d[d > d_lim[1]] = np.nan
             return (d - do)/dw
             
         x_plt = _norm_inp(x, self._xlim)*self._width
         y_plt = _norm_inp(y, self._ylim)*self._height
         pc = trf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
-        plot_defaults = {'layer':'plot', 'color':self.next_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
+        plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         return super().stroke(pc, **{**plot_defaults, **kwargs})

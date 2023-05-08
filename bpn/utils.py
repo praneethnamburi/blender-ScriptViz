@@ -170,7 +170,7 @@ def enhance(item): # item is bpy.data.(sometype)
     return core.Thing(item.name, thing_type)
 
 ### Name management
-def new_name(name, curr_names):
+def new_name(name, curr_names=None):
     """
     Blender-style name conflict resolution.
 
@@ -180,6 +180,8 @@ def new_name(name, curr_names):
     Example:
         obj_name = new_name(obj_name, [o.name for o in bpy.data.objects])
     """
+    if curr_names is None:
+        curr_names = [o.name for o in bpy.data.objects]
     i = 0
     tmp_name = name
     while tmp_name in curr_names:
