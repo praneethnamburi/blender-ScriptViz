@@ -178,16 +178,9 @@ class Screen(Pencil):
             for col_count in range(y.shape[1]):
                 ret.append(self.plot(x, y[:, col_count], **kwargs))
             return ret
-        
-        def _norm_inp(d, d_lim): # scale the input between 0 and 1
-            do = d_lim[0]
-            dw = d_lim[1] - d_lim[0]
-            d[d < d_lim[0]] = np.nan
-            d[d > d_lim[1]] = np.nan
-            return (d - do)/dw
             
-        x_plt = _norm_inp(x, self._xlim)*self._width
-        y_plt = _norm_inp(y, self._ylim)*self._height
+        x_plt = pn.scale_data(x, self._xlim, clip=True)*self._width
+        y_plt = pn.scale_data(y, self._ylim, clip=True)*self._height
         pc = trf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         return self.stroke(pc, **{**plot_defaults, **kwargs})
