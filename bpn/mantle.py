@@ -70,13 +70,18 @@ class Screen(Pencil):
     By default, it is an XY plot
     """
     def __init__(self, name, **kwargs):
+        if 'w' in kwargs:
+            kwargs['width'] = kwargs.pop('w')
+        self._width = kwargs.pop('width', 20.0)
+        if 'h' in kwargs:
+            kwargs['height'] = kwargs.pop('h')
+        self._height = kwargs.pop('height', 15.0)
+        self._xlim = kwargs.pop('xlim', None)
+        self._ylim = kwargs.pop('ylim', None)
+        self._plot_color_idx = 0
+        self._color = kwargs.pop('color', {'black': (0.0, 0.0, 0.0, 1.0)})
         super().__init__(name, **{**{'layer_name':'ax'}, **kwargs})
-        if not hasattr(self, '_width'):
-            self._width = 4.0
-            self._height = 3.0
-            self._plot_color_idx = 0
-            self.color = {'black': (0.0, 0.0, 0.0, 1.0)}
-            self.draw()
+        self.draw()
     
     @property
     def width(self):
@@ -126,6 +131,8 @@ class Screen(Pencil):
 
     def plot(self, x, y, **kwargs):
         """(x, y) plot"""
+        self._xlim = kwargs.pop('xlim', self._xlim)
+        self._ylim = kwargs.pop('ylim', self._ylim)
         def _norm_inp(d, d_lim=None): # scale the input between 0 and 1
             d = np.array(d)
             if d_lim is None:
@@ -137,8 +144,8 @@ class Screen(Pencil):
                 dw = d_lim[1] - d_lim[0]
             return (d - do)/dw
             
-        x_plt = _norm_inp(x)*self._width
-        y_plt = _norm_inp(y)*self._height
+        x_plt = _norm_inp(x, self._xlim)*self._width
+        y_plt = _norm_inp(y, self._ylim)*self._height
         pc = trf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.next_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         return super().stroke(pc, **{**plot_defaults, **kwargs})
