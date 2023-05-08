@@ -444,31 +444,41 @@ class Image:
 
 def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
     """
-    Convenient instantiation of Screen. Perhaps this belongs in new?
+    Convenient instantiation of mantle.Space. Perhaps this belongs in new?
     kwargs:
         figsize (2-tuple) similar to matplotlib's figsize argument
     """
-    assert orientation in ('xy', 'xz', 'yz')
+    assert orientation in ('xy', 'xz', 'yz', 'xyz')
     
     if 'figsize' in kwargs:
-        kwargs['w'], kwargs['h'] = kwargs.pop('figsize')
+        if len(kwargs['figsize']) == 2: # 2d plot
+            kwargs['w'], kwargs['h'] = kwargs.pop('figsize')
+        else:
+            assert len(kwargs['figsize']) == 3
+            kwargs['w'], kwargs['h'], kwargs['d'] = kwargs.pop('figsize')
     name = kwargs.pop('name', utils.new_name('figure'))
-    
-    sc = mantle.Screen(name, **kwargs)
-    offset = kwargs.pop('offset', None)
-    if isinstance(origin, (int, float)):
-        offset = float(origin)
-    if offset is not None:
-        origin = {'xy': (0., 0., offset), 'xz': (0., offset, 0.), 'yz': (offset, 0., 0.)}[orientation]
-    if orientation == 'xz':
-        frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 0, 1), k=(0, -1, 0), origin=origin)
-    elif orientation == 'xy':
-        frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 1, 0), k=(0, 0, 1), origin=origin)
-    elif orientation == 'yz':
-        frame = trf.CoordFrame(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0), origin=origin)
-    sc.frame = frame
+    if orientation == 'xyz':
+        type = '3D'
+    else:
+        type = '2D'
+    ax = mantle.Space(name, type=type, **kwargs)
+    if type == '3D':
+        ax.frame = trf.CoordFrame(origin=origin)
+    else:
+        offset = kwargs.pop('offset', None)
+        if isinstance(origin, (int, float)):
+            offset = float(origin)
+        if offset is not None:
+            origin = {'xy': (0., 0., offset), 'xz': (0., offset, 0.), 'yz': (offset, 0., 0.)}[orientation]
+        if orientation == 'xz':
+            frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 0, 1), k=(0, -1, 0), origin=origin)
+        elif orientation == 'xy':
+            frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 1, 0), k=(0, 0, 1), origin=origin)
+        elif orientation == 'yz':
+            frame = trf.CoordFrame(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0), origin=origin)
+        ax.frame = frame
 
-    return sc
+    return ax
 
 
 # Enhanced meshes
