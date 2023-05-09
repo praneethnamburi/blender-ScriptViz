@@ -165,6 +165,8 @@ def enhance(item): # item is bpy.data.(sometype)
         return core.GreasePencilObject(item.name)
     if thing_type == 'Object' and item.type == 'CURVE':
         return core.CurveObject(item.name)
+    if thing_type == 'Object' and item.type == 'EMPTY':
+        return core.ContainerObject(item.name)
     if hasattr(core, thing_type):
         return getattr(core, thing_type)(item.name)
     return core.Thing(item.name, thing_type)
