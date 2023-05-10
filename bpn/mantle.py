@@ -233,6 +233,8 @@ class Space(Pencil):
 
         self.plot_data = [] # store data from each plot
         
+        self._show_axes = kwargs.pop('show_axes', False)
+
         super().__init__(name, **{**{'layer_name':'ax'}, **kwargs})
         self.draw()
 
@@ -249,7 +251,8 @@ class Space(Pencil):
     def draw(self):
         """Primary function to re-draw the plot."""
         # Similar to your update_plots strategy in MATLAB GUIs
-        self.draw_axes()
+        if self._show_axes:
+            self.draw_axes()
 
     def draw_axes(self, **kwargs):
         """Draw a cube. Re-draws strokes every time!"""
@@ -365,6 +368,8 @@ class Space(Pencil):
             'params': final_kwargs,
             'stroke': stroke,
             'data': this_plot_data,
+            'ax': self, # Screen object, convenient when using new.plot
+            'f': self().parent if self().parent is None else utils.enhance(self().parent) # Empty container object, also convenient when using new.plot
         })
         self.plot_data.append(ret)
         return ret

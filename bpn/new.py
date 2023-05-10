@@ -444,11 +444,24 @@ class Image:
 
 def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
     """
-    Convenient instantiation of mantle.Space. Perhaps this belongs in new?
+    Create a container and axes for making 2d or 3d plots
     kwargs:
+        name (str) name of the figure
         figsize (2-tuple) similar to matplotlib's figsize argument
+
+    This is a Convenient instantiation of mantle.Space
+    Usage is similar to adding a subplot in matplotlib - 
+        f, ax = new.figure() # similar to f, ax = plt.subplots(1,1)
+    returns:
+        f (new.empty) container that holds the screen object.
+        ax (mantle.Space) object that serves to scale plots within a specified bounding box.
+    
+    By default, all 2D space objects instantiated through here are going to be XY plots.
+    Manipulate the container to move things around.
     """
     assert orientation in ('xy', 'xz', 'yz', 'xyz')
+    name = kwargs.pop('name', utils.new_name('figure'))
+    f = empty(name=name)
     
     if 'figsize' in kwargs:
         if len(kwargs['figsize']) == 2: # 2d plot
@@ -456,14 +469,12 @@ def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
         else:
             assert len(kwargs['figsize']) == 3
             kwargs['w'], kwargs['h'], kwargs['d'] = kwargs.pop('figsize')
-    name = kwargs.pop('name', utils.new_name('figure'))
-    if orientation == 'xyz':
-        type = '3D'
-    else:
-        type = '2D'
-    ax = mantle.Space(name, type=type, **kwargs)
+
+    type = '3D' if orientation == 'xyz' else '2D'
+
+    ax = mantle.Space(utils.new_name(f'ax_{name}'), type=type, **kwargs)
     if type == '3D':
-        ax.frame = trf.CoordFrame(origin=origin)
+        frame = trf.CoordFrame(origin=origin)
     else:
         offset = kwargs.pop('offset', None)
         if isinstance(origin, (int, float)):
@@ -476,9 +487,21 @@ def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
             frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 1, 0), k=(0, 0, 1), origin=origin)
         elif orientation == 'yz':
             frame = trf.CoordFrame(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0), origin=origin)
-        ax.frame = frame
 
-    return ax
+    f.add(ax)
+    f.frame = frame
+    return f, ax
+
+def plot(arg1, arg2=None, arg3=None, **kwargs):
+    """Quick access to plotting!"""
+    kwargs_figure_default = {'orientation': 'xz', 'figsize':(20, 15), 'origin':(0., 0., 0.), 'name':'figure'}
+    if 'offset' in kwargs:
+        kwargs_figure_default['offset'] = kwargs.pop('offset')
+    kwargs_figure, kwargs_plot = pn.clean_kwargs(kwargs, kwargs_figure_default)
+    print(kwargs_figure)
+    _, ax = figure(**kwargs_figure)
+    h_plt = ax.plot(arg1, arg2, arg3, **kwargs_plot)
+    return h_plt
 
 
 # Enhanced meshes
