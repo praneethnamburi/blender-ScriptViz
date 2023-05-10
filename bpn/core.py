@@ -1264,7 +1264,9 @@ class GreasePencilObject(CompoundObject):
         if kwargs['layer'] is not None:
             self.data.layer = kwargs['layer']
         if kwargs['keyframe'] is not None:
-            self.data.keyframe = kwargs['keyframe']
+            if isinstance(kwargs['keyframe'], (tuple, list)):
+                assert len(kwargs['keyframe']) == 2 # start and stop frame
+                self.data.keyframe = kwargs['keyframe'][0]
         if kwargs['color'] is not None:
             self.color = kwargs['color']
 
@@ -1284,6 +1286,9 @@ class GreasePencilObject(CompoundObject):
             else:
                 assert len(kwargs[attr]) == n_pts
             gp_stroke.points.foreach_set(attr, tuple(kwargs[attr]))
+        
+        if isinstance(kwargs['keyframe'], (tuple, list)):
+            self.data.keyframe = kwargs['keyframe'][1]+1 # if a range was specified, turn off the stroke on the keyframe after the end frame specified
         return gp_stroke
 
 
