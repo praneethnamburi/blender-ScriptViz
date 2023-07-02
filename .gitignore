@@ -11,3 +11,4 @@ node_modules/
 apps/simchrono/
 tmp/
 *.swp
+.idea
