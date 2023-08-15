@@ -357,12 +357,19 @@ def grease_pencil():
     pc2 = copy.deepcopy(pc1)
     pc1.frame = trf.Quat([-1, 1, 0], np.pi/4)*pc1.frame
     
-    gp.stroke(pc1, color=2, layer='sl1', keyframe=0)
+    gp.layer = 'sl1'
+    gp.keyframe = 1
+    gp.stroke(pc1, color=2)
     # pressure controls thickness of individual points
-    gp.stroke(pc2, color=1, layer='sl3', keyframe=10, pressure=np.linspace(0, 3, len(θ)))
-    # strength seems to control transparencu of individual points
-    gp.stroke(pc1, color=2, layer='sl1', keyframe=20, strength=np.linspace(0, 1, len(θ)))
+    gp.layer = 'sl3'
+    gp.keyframe = 10
+    gp.stroke(pc2, color=1, pressure=np.linspace(0, 3, len(θ)))
+    # strength seems to control transparency of individual points
+    gp.layer = 'sl1'
+    gp.keyframe = 20
+    gp.stroke(pc1, color=2, strength=np.linspace(0, 1, len(θ)))
     gp.keyframe = 30
+    gp.stroke(trf.PointCloud([0, 0, 0]))
 
     # show the frame for point cloud 1
     emp = new.empty('pc1_frame', coll_name='Pencil')
