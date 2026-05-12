@@ -12,3 +12,5 @@ apps/simchrono/
 tmp/
 *.swp
 .idea
+# AI workflow context (auto-loaded by Claude Code; kept local to avoid exposing private repo refs)
+CLAUDE.md
