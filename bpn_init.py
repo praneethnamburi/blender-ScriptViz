@@ -26,7 +26,7 @@ import mathutils #pylint: disable=import-error
 
 # Peronal library
 import pntools as pn
-import pysampled as sampled
+import pysampled
 import bpn
 # modules
 from bpn import new, env, demo, utils, turtle, vef, trf, io, mantle, core

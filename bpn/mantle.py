@@ -19,7 +19,7 @@ They are some derivates of the CompoundObject class in core.
 import numpy as np
 
 import pntools as pn
-import pysampled as sampled
+import pysampled
 
 from bpn import core, utils, trf
 
@@ -152,7 +152,7 @@ class Screen(Pencil):
             return ret
         
         if arg2 is None:
-            if isinstance(arg1, sampled.Data):
+            if isinstance(arg1, pysampled.Data):
                 x = arg1.t
                 y = arg1()
             else:
@@ -292,9 +292,9 @@ class Space(Pencil):
         2D plots - 
             plot(x, y) # x is n x 1, y is n x 1
             plot(x, y) # x is n x 1, y is n x m (the function will be called multiple times with each n x 1 array)
-            plot(d:sampled.Data) # x will be time d.t and y will be d()
+            plot(d:pysampled.Data) # x will be time d.t and y will be d()
             plot(y) # x will be similar to list(range(len(y)))
-            plot(list_or_tuple) # this can be a list of tuple of sampled.Data, or numpu arrays, and it will be called recursively
+            plot(list_or_tuple) # this can be a list of tuple of pysampled.Data, or numpu arrays, and it will be called recursively
         """
         if self.type == '3D':
             if arg2 is None:
@@ -319,7 +319,7 @@ class Space(Pencil):
                 return ret
             
             if arg2 is None:
-                if isinstance(arg1, sampled.Data): # plot(d:sampled.Data)
+                if isinstance(arg1, pysampled.Data): # plot(d:pysampled.Data)
                     x = arg1.t
                     y = arg1()
                 else: # plot(y)
