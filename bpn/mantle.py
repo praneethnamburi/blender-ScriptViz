@@ -19,7 +19,7 @@ They are some derivates of the CompoundObject class in core.
 import numpy as np
 
 import pntools as pn
-from pntools import sampled
+import pysampled as sampled
 
 from bpn import core, utils, trf
 
