@@ -38,7 +38,7 @@ import bpy #pylint: disable=import-error
 import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from bpn import new, env, turtle, trf, utils
+from bpn import new, env, turtle, trf, utils, handlers
 
 def spheres():
     """
@@ -465,7 +465,7 @@ def handler1():
         s2.show_frame()
 
     # when s1 changes location, show s2's frame
-    pn.add_handler(s1, 'loc', receiver, 'post')
+    handlers.add_handler(s1, 'loc', receiver, 'post')
 
     s2.loc = (0, 2, 0)
     s1.loc = (0, -2, 0)

@@ -25,7 +25,7 @@ import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
-from bpn import new, utils, trf
+from bpn import new, utils, trf, handlers
 
 class _ThingDB(dict):
     """
@@ -89,7 +89,7 @@ class _HandlerDB(blinker.base.Namespace):
         if ret_vals is None:
             ret_vals = ['mode', 'module', 'class', 'attr', 'instance']
         for k in self:
-            idd = pn.handler_id2dict(k)
+            idd = handlers.handler_id2dict(k)
             ret[tuple([idd[r] for r in ret_vals])] = k
         return ret
 
@@ -177,15 +177,15 @@ class Thing:
 
     def add_handler(self, attr, receiver_func, mode='post'):
         """Add an event handler"""
-        h = pn.Handler(self, attr, mode, HandlerDB.signal)
+        h = handlers.Handler(self, attr, mode, HandlerDB.signal)
         h.broadcast()
         h.add_receiver(receiver_func)
         return h
 
     @property
     def handlers(self):
-        """Return a list of pn.Handler objects associated with this thing"""
-        h_ref = pn.Handler(self, 'name') # dummy handler
+        """Return a list of handlers.Handler objects associated with this thing"""
+        h_ref = handlers.Handler(self, 'name') # dummy handler
         class Ret(list):
             """Change the list representation for handlers to summarize handlers nicely. Debug/summary tool."""
             def __repr__(self):
@@ -196,12 +196,12 @@ class Thing:
         ret = Ret()
         # add object-level handlers
         h_ref_desc = (h_ref.mod_name, h_ref.instance_name)
-        signal_id_list = [pn.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'instance']).items() if k == h_ref_desc]
-        ret += [pn.Handler(self, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
+        signal_id_list = [handlers.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'instance']).items() if k == h_ref_desc]
+        ret += [handlers.Handler(self, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
         # add class-level handlers
         h_class_desc = (h_ref.mod_name, h_ref.thing_class.__name__, '')
-        signal_id_list = [pn.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'class', 'attr', 'instance']).items() if (k[0], k[1], k[3]) == h_class_desc]
-        ret += [pn.Handler(self.__class__, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
+        signal_id_list = [handlers.handler_id2dict(v) for k, v in HandlerDB.split_keys(['module', 'class', 'attr', 'instance']).items() if (k[0], k[1], k[3]) == h_class_desc]
+        ret += [handlers.Handler(self.__class__, d['attr'], d['mode'], HandlerDB.signal) for d in signal_id_list]
         return ret
 
 
