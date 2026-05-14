@@ -7,6 +7,7 @@ Wrappers add functionality to a blender prop. They also:
 2) maintain their internal states by using a database (ThingDB)
     - a new 'Thing' is created only if it doesn't already exist in the database
 """
+import coordframe as cf
 import functools
 import json
 import math
@@ -25,7 +26,7 @@ import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 from io_mesh_stl.stl_utils import write_stl #pylint: disable=import-error
 
-from bpn import new, utils, trf, handlers
+from bpn import new, utils, handlers
 
 class _ThingDB(dict):
     """
@@ -289,12 +290,12 @@ class Object(Thing):
 
     @property
     def frame(self):
-        """Object frame expressed as trf.CoordFrame"""
-        return trf.CoordFrame(self().matrix_world, unit_vectors=False)
+        """Object frame expressed as cf.CoordFrame"""
+        return cf.CoordFrame(self().matrix_world, unit_vectors=False)
     
     @frame.setter
     def frame(self, new_frame):
-        m = new_frame.m if isinstance(new_frame, trf.CoordFrame) else new_frame
+        m = new_frame.m if isinstance(new_frame, cf.CoordFrame) else new_frame
         self().matrix_world = mathutils.Matrix(m)
         bpy.context.view_layer.update()
 
@@ -316,9 +317,9 @@ class Object(Thing):
         new_normal = np.array(new_normal)
         assert len(new_normal) == 3
         # Using Quaternions
-        n1 = trf.norm_vec(self.normal)
-        n2 = trf.norm_vec(new_normal)
-        q = trf.Quat(np.cross(n1, n2), np.arccos(np.dot(n1, n2)), trf.CoordFrame(origin=self.frame.origin))
+        n1 = cf.norm_vec(self.normal)
+        n2 = cf.norm_vec(new_normal)
+        q = cf.Quat(np.cross(n1, n2), np.arccos(np.dot(n1, n2)), cf.CoordFrame(origin=self.frame.origin))
         self.frame = q*self.frame # quaternion direction specified in world frame, origin at origin of the object
         bpy.context.view_layer.update()
 
@@ -343,7 +344,7 @@ class Object(Thing):
             'line_width': 80,
             'scale': 1,
             })
-        pcf = trf.CoordFrame(self.frame.m, unit_vectors=True).as_points().transform(trf.scaletf(kwargs['scale']), self.frame.m)
+        pcf = cf.CoordFrame(self.frame.m, unit_vectors=True).as_points().transform(cf.scaletf(kwargs['scale']), self.frame.m)
         if self.frame_gp is None:
             self.frame_gp = new.pencil(name, **{**names, **kwargs})
         for cnt in (0, 1, 2):
@@ -352,7 +353,7 @@ class Object(Thing):
             if this_stroke:
                 this_stroke[0].points.foreach_set('co', pcf.co[[0, cnt+1]].flatten())
             else:
-                self.frame_gp.stroke(trf.PointCloud(pcf.co[[0, cnt+1]], np.eye(4)), color='crd_'+('i', 'j', 'k')[cnt], line_width=kwargs['line_width']*kwargs['scale'])
+                self.frame_gp.stroke(cf.PointCloud(pcf.co[[0, cnt+1]], np.eye(4)), color='crd_'+('i', 'j', 'k')[cnt], line_width=kwargs['line_width']*kwargs['scale'])
         self.frame_gp().update_tag()
         return self.frame_gp
 
@@ -983,8 +984,8 @@ class MeshObject(CompoundObject):
 
     @property
     def pts(self):
-        """Return vertices as a trf.PointCloud object."""
-        return trf.PointCloud(self.data.v, self.frame)
+        """Return vertices as a cf.PointCloud object."""
+        return cf.PointCloud(self.data.v, self.frame)
 
     @pts.setter
     def pts(self, new_pts):
@@ -993,7 +994,7 @@ class MeshObject(CompoundObject):
         point cloud into the desired frame of reference before putting
         it here.
         """
-        assert isinstance(new_pts, trf.PointCloud)
+        assert isinstance(new_pts, cf.PointCloud)
         self.data.v = new_pts.co
         self.frame = new_pts.frame
     
@@ -1006,7 +1007,7 @@ class MeshObject(CompoundObject):
         """
         bpy.context.view_layer.update()
         self.data.v_bkp = self.data.v # for undoing
-        self.data.v = trf.apply_matrix(self().matrix_world, self.data.v)
+        self.data.v = cf.apply_matrix(self().matrix_world, self.data.v)
         self().matrix_world = mathutils.Matrix(np.eye(4))
         bpy.context.view_layer.update()
         return self
@@ -1270,7 +1271,7 @@ class GreasePencilObject(CompoundObject):
         if kwargs['color'] is not None:
             self.color = kwargs['color']
 
-        assert isinstance(ptcloud, trf.PointCloud)
+        assert isinstance(ptcloud, cf.PointCloud)
         gp_stroke = self.data.keyframe.strokes.new()
         gp_stroke.display_mode = kwargs['display_mode']
 

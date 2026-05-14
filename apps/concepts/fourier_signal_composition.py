@@ -50,13 +50,13 @@ def draw_axes():
     gpax.color = color_ptvector
     smp = np.r_[-grid_lim:grid_lim:0.05]*grid_scale
 
-    gpax.stroke(trf.PointCloud(np.vstack((smp, 0*smp, 0*smp)).T, trf.CoordFrame()), color='crd_i', layer='main', keyframe=0, line_width=5)
-    gpax.stroke(trf.PointCloud(np.vstack((0*smp, smp, 0*smp)).T, trf.CoordFrame()), color='crd_j', layer='main', keyframe=0, line_width=5)
-    gpax.stroke(trf.PointCloud(np.vstack((0*smp, 0*smp, smp)).T, trf.CoordFrame()), color='crd_k', layer='main', keyframe=0, line_width=5)
+    gpax.stroke(cf.PointCloud(np.vstack((smp, 0*smp, 0*smp)).T, cf.CoordFrame()), color='crd_i', layer='main', keyframe=0, line_width=5)
+    gpax.stroke(cf.PointCloud(np.vstack((0*smp, smp, 0*smp)).T, cf.CoordFrame()), color='crd_j', layer='main', keyframe=0, line_width=5)
+    gpax.stroke(cf.PointCloud(np.vstack((0*smp, 0*smp, smp)).T, cf.CoordFrame()), color='crd_k', layer='main', keyframe=0, line_width=5)
     gpax.color = color_grid
     for i in np.r_[-grid_lim:grid_lim+1]*grid_scale:
-        gpax.stroke(trf.PointCloud(np.vstack((smp, i*np.ones_like(smp), 0*smp)).T, trf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
-        gpax.stroke(trf.PointCloud(np.vstack((i*np.ones_like(smp), smp, 0*smp)).T, trf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
+        gpax.stroke(cf.PointCloud(np.vstack((smp, i*np.ones_like(smp), 0*smp)).T, cf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
+        gpax.stroke(cf.PointCloud(np.vstack((i*np.ones_like(smp), smp, 0*smp)).T, cf.CoordFrame()), color='gray', layer='grid', keyframe=0, line_width=3)
     return gpax
 
 def label_axes():
@@ -68,21 +68,21 @@ def label_axes():
                              scale=txt_size,
                              color=pal['crd_k'], 
                              coll_name='ax')
-    h_txt['ax_k'].frame = h_txt['ax_k'].frame.transform(trf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0)))
+    h_txt['ax_k'].frame = h_txt['ax_k'].frame.transform(cf.m4(i=(0, 0, 1), j=(0, -1, 0), k=(1, 0, 0)))
     h_txt['ax_j'] = new.Text(text_ylabel, 'y_label',
                              halign='left', 
                              valign='top', 
                              scale=txt_size,
                              color=pal['crd_j'], 
                              coll_name='ax')
-    h_txt['ax_j'].frame = h_txt['ax_j'].frame.transform(trf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0)))
+    h_txt['ax_j'].frame = h_txt['ax_j'].frame.transform(cf.m4(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0)))
     h_txt['ax_i'] = new.Text(text_xlabel, 'x_label',
                              halign='right', 
                              valign='top', 
                              scale=txt_size,
                              color=pal['crd_i'], 
                              coll_name='ax')
-    h_txt['ax_i'].frame = h_txt['ax_i'].frame.transform(trf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0)))
+    h_txt['ax_i'].frame = h_txt['ax_i'].frame.transform(cf.m4(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0)))
 
     h_txt['ax_i']().location = Vector((1*grid_scale, 0, -0.02*grid_scale))
     h_txt['ax_j']().location = Vector((0, 1*grid_scale, -0.02*grid_scale))
@@ -120,7 +120,7 @@ def wave_pts(amp, f, phi, t_end=4):
     for ta, tf, tp in zip(amp, f, phi):
         y += ta*np.sin(2*np.pi*tf*x + tp)
     y = y/len(np.array(amp))
-    return trf.PointCloud(np.vstack((x, y, z)).T*sine_scale, trf.CoordFrame())
+    return cf.PointCloud(np.vstack((x, y, z)).T*sine_scale, cf.CoordFrame())
 
 def draw_wave():
     """Set up greasepencil for drawing sine wave strokes."""
@@ -129,7 +129,7 @@ def draw_wave():
     wav.color = color_wave
 
     # point the sine wave to the camera
-    wav.frame = wav.frame.transform(trf.m4(c.camera.frame.m[:-1, :-1], unit_vectors=True)) # copy directions from the camera
+    wav.frame = wav.frame.transform(cf.m4(c.camera.frame.m[:-1, :-1], unit_vectors=True)) # copy directions from the camera
     wav.loc = np.array((2, -2, 1))*grid_scale
     return wav
 
@@ -157,7 +157,7 @@ def sin_eqn():
     # for mtrl in bpy.data.objects[txt_eqn.obj_names[14]].data.materials:
     #     mtrl.diffuse_color = pal['crd_i']
 
-    txt_eqn.frame = txt_eqn.frame.transform(trf.m4(c.camera.frame.m[:-1, :-1], unit_vectors=True))
+    txt_eqn.frame = txt_eqn.frame.transform(cf.m4(c.camera.frame.m[:-1, :-1], unit_vectors=True))
     txt_eqn.loc = w.loc + Vector((0*grid_scale, -0*grid_scale, 0.5*grid_scale))
     return txt_eqn
 
@@ -185,11 +185,11 @@ def stroke_loc(sph, phi=0, f=0.5, amp=1, key_num=0, guide_type='axes', ghost=Fal
         # sphere guides
         if guide_type is not None:
             if guide_type == 'axes':
-                axg.stroke(trf.PointCloud(np.array([[0, tf, 0], [0, tf, ta]])*grid_scale, trf.CoordFrame()), color='crd_k', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
-                axg.stroke(trf.PointCloud(np.array([[0, tf, ta], [tp, tf, ta]])*grid_scale, trf.CoordFrame()), color='crd_i', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
-                axg.stroke(trf.PointCloud(np.array([[0, 0, ta], [0, tf, ta]])*grid_scale, trf.CoordFrame()), color='crd_j', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
+                axg.stroke(cf.PointCloud(np.array([[0, tf, 0], [0, tf, ta]])*grid_scale, cf.CoordFrame()), color='crd_k', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
+                axg.stroke(cf.PointCloud(np.array([[0, tf, ta], [tp, tf, ta]])*grid_scale, cf.CoordFrame()), color='crd_i', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
+                axg.stroke(cf.PointCloud(np.array([[0, 0, ta], [0, tf, ta]])*grid_scale, cf.CoordFrame()), color='crd_j', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides)
             if guide_type == 'vector':
-                axg.stroke(trf.PointCloud(np.array([[0, 0, 0], [tp, tf, ta]])*grid_scale, trf.CoordFrame()), color='ptvector', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides/2)
+                axg.stroke(cf.PointCloud(np.array([[0, 0, 0], [tp, tf, ta]])*grid_scale, cf.CoordFrame()), color='ptvector', keyframe=key_num, layer=guide_type, line_width=line_width_ptguides/2)
 
 
 def sweep_freq(tkey):

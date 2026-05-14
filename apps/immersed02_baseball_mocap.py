@@ -37,7 +37,7 @@ stroke_list = list()
 while data_time <= anim_end:
     data_center_frame = int(np.round(data_time*data_rate))
     p.keyframe = anim_frame
-    stroke_list.append(p.stroke(trf.PointCloud(data[int(data_center_frame-traj_frame_pre):int(data_center_frame+traj_frame_post), :])))
+    stroke_list.append(p.stroke(cf.PointCloud(data[int(data_center_frame-traj_frame_pre):int(data_center_frame+traj_frame_post), :])))
     for sph_name in ts:
         ts[sph_name].loc = pos[sph_name][data_center_frame, :]
         ts[sph_name].key(anim_frame, 'l')

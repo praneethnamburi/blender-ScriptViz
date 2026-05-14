@@ -1,6 +1,7 @@
 """
 Turtle module
 """
+import coordframe as cf
 import inspect
 import numpy as np
 from numpy.linalg.linalg import inv
@@ -11,7 +12,7 @@ import mathutils #pylint: disable=import-error
 
 import pntools as pn
 
-from bpn import new, trf, utils, vef
+from bpn import new, utils, vef
 
 class Draw:
     """
@@ -126,8 +127,8 @@ class Draw:
                 tc = self.ngon(**kwargs)
             else:
                 tc = self.extrude(tc.e)
-            tfmat = trf.normal2tfmat(normals[i+1, :], 'rxry')
-            tfmat_prev = trf.normal2tfmat(normals[i, :], 'rxry')
+            tfmat = cf.normal2tfmat(normals[i+1, :], 'rxry')
+            tfmat_prev = cf.normal2tfmat(normals[i, :], 'rxry')
             for v in tc.v:
                 v.co = mathutils.Vector(tfmat@inv(tfmat_prev)@np.array(v.co))
             tc.center = pts[i, :]
@@ -331,8 +332,8 @@ class SubMsh:
         if not kwargs_curr['frame']:
             self._frame = self.parent.frame
         else:
-            if not isinstance(kwargs_curr['frame'], trf.CoordFrame):
-                self._frame = trf.CoordFrame(m=kwargs_curr['frame'])
+            if not isinstance(kwargs_curr['frame'], cf.CoordFrame):
+                self._frame = cf.CoordFrame(m=kwargs_curr['frame'])
             else:
                 self._frame = kwargs_curr['frame']
         
@@ -345,7 +346,7 @@ class SubMsh:
     
     @frame.setter
     def frame(self, new_frame):
-        assert isinstance(new_frame, trf.CoordFrame)
+        assert isinstance(new_frame, cf.CoordFrame)
         self._frame = new_frame
 
     @property
@@ -356,12 +357,12 @@ class SubMsh:
     @property
     def pts(self):
         """Vertex positions in the parent mesh's frame of reference."""
-        return trf.PointCloud(self.parent.v[self.vi, :], frame=self.parent.frame)
+        return cf.PointCloud(self.parent.v[self.vi, :], frame=self.parent.frame)
     
     @pts.setter
     def pts(self, ptcloud):
         """Write points back into the parent mesh."""
-        assert isinstance(ptcloud, trf.PointCloud)
+        assert isinstance(ptcloud, cf.PointCloud)
         assert ptcloud.n == self.nV
         v = self.parent.v
         v[self.vi, :] = ptcloud.in_frame(self.parent.frame).co
@@ -373,7 +374,7 @@ class SubMsh:
 
     def scale(self, s):
         """Apply scale transform in the local reference frame."""
-        self.transform(trf.scaletf(s))
+        self.transform(cf.scaletf(s))
 
 class CenteredSubMsh(SubMsh):
     """
@@ -390,23 +391,23 @@ class CenteredSubMsh(SubMsh):
     @property
     def frame(self):
         # ensure i, j, k are unit vectors, and origin is at the center of the points
-        return trf.CoordFrame(i=self._frame.i, j=self._frame.j, k=self._frame.k, origin=self.origin)
+        return cf.CoordFrame(i=self._frame.i, j=self._frame.j, k=self._frame.k, origin=self.origin)
 
     @origin.setter
     def origin(self, new_origin):
         # moving the origin for this type of mesh will move the points!
-        assert isinstance(new_origin, trf.PointCloud)
+        assert isinstance(new_origin, cf.PointCloud)
         self.pts = self.pts.in_world().transform(np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin)))
         self._frame = self.frame
     
     @frame.setter
     def frame(self, new_frame):
         # user can manually change the reference frame. If the origin is different, then the points are going to move!
-        assert isinstance(new_frame, trf.CoordFrame)
+        assert isinstance(new_frame, cf.CoordFrame)
         # this line moves the points, and explicitly specifies that the new frame was specified in world coordinates.
-        self.origin = trf.PointCloud(np.array([new_frame.origin]), trf.CoordFrame())
+        self.origin = cf.PointCloud(np.array([new_frame.origin]), cf.CoordFrame())
         # the orientation of the frame is simply taken from new_frame (vectors will be normalized!)
-        self._frame = trf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin)
+        self._frame = cf.CoordFrame(i=new_frame.i, j=new_frame.j, k=new_frame.k, origin=self.origin)
     
 
 class DirectedSubMsh(SubMsh):
@@ -428,8 +429,8 @@ class DirectedSubMsh(SubMsh):
     def __init__(self, parent, normal, **kwargs):
         super().__init__(parent, **kwargs)
         # initalization sets _frame, but it needs to be modified without bringing the points along
-        if not isinstance(normal, trf.PointCloud):
-            normal = trf.PointCloud(normal, self.parent.frame)
+        if not isinstance(normal, cf.PointCloud):
+            normal = cf.PointCloud(normal, self.parent.frame)
         self.change_normal(normal)
 
     @property
@@ -445,7 +446,7 @@ class DirectedSubMsh(SubMsh):
         x_vec = pts_in_world.co[0, :] - pts_in_world.center.co[0, :]
         j_vec = np.cross(k_vec, x_vec)
         i_vec = np.cross(j_vec, k_vec)
-        return trf.CoordFrame(i=i_vec, j=j_vec, k=k_vec, origin=self.origin, unit_vectors=True)
+        return cf.CoordFrame(i=i_vec, j=j_vec, k=k_vec, origin=self.origin, unit_vectors=True)
 
     @property
     def normal(self):
@@ -455,50 +456,50 @@ class DirectedSubMsh(SubMsh):
     @origin.setter
     def origin(self, new_origin):
         # moving the origin for this type of mesh will move the points!
-        assert isinstance(new_origin, trf.PointCloud)
+        assert isinstance(new_origin, cf.PointCloud)
         tfmat = np.array(mathutils.Matrix.Translation(new_origin.in_world().co[0, :] - self.origin))
-        new_frame = trf.CoordFrame(tfmat@self.frame.m)
+        new_frame = cf.CoordFrame(tfmat@self.frame.m)
         self.frame = new_frame
  
     @frame.setter
     def frame(self, new_frame):
         # User can manually change the reference frame. Points follow frame.
-        assert isinstance(new_frame, trf.CoordFrame)
-        new_frame = trf.CoordFrame(new_frame.m) # to ensure new_frame matrix has unit vectors vectors
+        assert isinstance(new_frame, cf.CoordFrame)
+        new_frame = cf.CoordFrame(new_frame.m) # to ensure new_frame matrix has unit vectors vectors
         # The relative positions of the points don't change because the points are following the frame
-        self.pts = trf.PointCloud(self.pts.in_frame(self.frame).co, new_frame)
+        self.pts = cf.PointCloud(self.pts.in_frame(self.frame).co, new_frame)
         self._frame = new_frame
     
     @normal.setter
     def normal(self, new_normal):
         """new_normal is a 'direction' in world coordinates."""
-        assert isinstance(new_normal, trf.PointCloud)
-        # trf.normal2tfmat takes a unit vector (or normalizes it) and computes a transformation matrix required to transform the point (0, 0, 1) to nhat
-        n2tf = trf.m4(trf.normal2tfmat(new_normal.in_frame(self.frame).co[0, :]))
+        assert isinstance(new_normal, cf.PointCloud)
+        # cf.normal2tfmat takes a unit vector (or normalizes it) and computes a transformation matrix required to transform the point (0, 0, 1) to nhat
+        n2tf = cf.m4(cf.normal2tfmat(new_normal.in_frame(self.frame).co[0, :]))
         # the new frame of reference is the transformed coordinate system pushed into the world.
-        new_frame = trf.CoordFrame(self.frame.m@n2tf)
+        new_frame = cf.CoordFrame(self.frame.m@n2tf)
         self.frame = new_frame
 
     def change_normal(self, new_normal):
         """Change the normal WITHOUT moving the points."""
-        assert isinstance(new_normal, trf.PointCloud)
+        assert isinstance(new_normal, cf.PointCloud)
         n = new_normal.in_world().co[0, :]
-        self._frame.k = trf.norm_vec(n)
+        self._frame.k = cf.norm_vec(n)
         self._frame = self.frame
 
     def twist(self, theta_deg=45):
         """Twist transform - clockwise rotation in local space."""
-        self.transform(trf.twisttf(np.radians(theta_deg)))
+        self.transform(cf.twisttf(np.radians(theta_deg)))
     
 #     def scale(self, delta):
 #         """Apply scaling along i_hat, j_hat, and k_hat."""
-#         self.apply_transform(trf.scaletf(delta))
+#         self.apply_transform(cf.scaletf(delta))
 
 #     @property
 #     def coord_system(self):
 #         """Coordinate system of the current object."""
-#         crdmat = trf.m4(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
-#         return trf.CoordFrame(crdmat, None)
+#         crdmat = cf.m4(i=self.i_hat, j=self.j_hat, k=self.k_hat, origin=self.center)
+#         return cf.CoordFrame(crdmat, None)
 
 #     def apply_transform(self, tf):
 #         """
@@ -506,4 +507,4 @@ class DirectedSubMsh(SubMsh):
 #         In none is specified, then apply the transformation in the local coordinate frame.
 #         """
 #         v = self.v
-#         self.v = trf.transform(tf, v, tf_frame_mat=self.coord_system)
+#         self.v = cf.transform(tf, v, tf_frame_mat=self.coord_system)

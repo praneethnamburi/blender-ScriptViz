@@ -66,7 +66,7 @@ h_inhale = new.Text('Inhale', 'txt_inhale',
                              scale=(300, 300, 300),
                              color=pal['MATLAB_00'], 
                              coll_name='ax')
-h_inhale.frame = trf.Quat([1, 0, 0], np.pi/2)*h_inhale.frame
+h_inhale.frame = cf.Quat([1, 0, 0], np.pi/2)*h_inhale.frame
 h_inhale.translate([0, -0.4, 0])
 h_inhale.show(1)
 h_inhale.hide(np.floor(0.5*sine_period*env.Key().fps))
@@ -77,7 +77,7 @@ h_exhale = new.Text('Exhale', 'txt_exhale',
                              scale=(300, 300, 300),
                              color=pal['MATLAB_01'], 
                              coll_name='ax')
-h_exhale.frame = trf.Quat([1, 0, 0], np.pi/2)*h_exhale.frame
+h_exhale.frame = cf.Quat([1, 0, 0], np.pi/2)*h_exhale.frame
 h_exhale.translate([0, -0.4, 0])
 h_exhale.hide(1)
 h_exhale.show(np.floor(0.5*sine_period*env.Key().fps)+1)

@@ -70,7 +70,7 @@ def reframe_bones_pca():
 # bpn.io.animate_simple(fname)
 
 def save_nutation_coordframes():
-    """Pickle Nutation trf.CoordFrame objects"""
+    """Pickle Nutation cf.CoordFrame objects"""
     from apps import anatomy
     import pickle
 

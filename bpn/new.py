@@ -2,6 +2,7 @@
 Creation submodule for bpn.
 Everything here should return instances of core classes.
 """
+import coordframe as cf
 import os
 import types
 from functools import partial
@@ -13,7 +14,7 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from bpn import vef, utils, core, mantle, turtle, trf, io, env
+from bpn import vef, utils, core, mantle, turtle, io, env
 
 def empty(name=None, typ='PLAIN_AXES', size=0.25, coll_name='Collection'):
     """
@@ -396,7 +397,7 @@ def box(name=None, **kwargs):
                 self.loc = new_origin
         
         def lim(self, round_dec=3):
-            v = trf.apply_matrix(self().matrix_world, self.data.v)
+            v = cf.apply_matrix(self().matrix_world, self.data.v)
             x, y, z = [(round(np.min(v[:, dim]), round_dec), round(np.max(v[:, dim]), round_dec)) for dim in (0, 1, 2)]
             return pn.dotdict(x=x, y=y, z=z)
 
@@ -474,7 +475,7 @@ def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
 
     ax = mantle.Space(utils.new_name(f'ax_{name}'), type=type, **kwargs)
     if type == '3D':
-        frame = trf.CoordFrame(origin=origin)
+        frame = cf.CoordFrame(origin=origin)
     else:
         offset = kwargs.pop('offset', None)
         if isinstance(origin, (int, float)):
@@ -482,11 +483,11 @@ def figure(orientation='xz', origin=(0., 0., 0.), **kwargs):
         if offset is not None:
             origin = {'xy': (0., 0., offset), 'xz': (0., offset, 0.), 'yz': (offset, 0., 0.)}[orientation]
         if orientation == 'xz':
-            frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 0, 1), k=(0, -1, 0), origin=origin)
+            frame = cf.CoordFrame(i=(1, 0, 0), j=(0, 0, 1), k=(0, -1, 0), origin=origin)
         elif orientation == 'xy':
-            frame = trf.CoordFrame(i=(1, 0, 0), j=(0, 1, 0), k=(0, 0, 1), origin=origin)
+            frame = cf.CoordFrame(i=(1, 0, 0), j=(0, 1, 0), k=(0, 0, 1), origin=origin)
         elif orientation == 'yz':
-            frame = trf.CoordFrame(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0), origin=origin)
+            frame = cf.CoordFrame(i=(0, 1, 0), j=(0, 0, 1), k=(1, 0, 0), origin=origin)
 
     f.add(ax)
     f.frame = frame
@@ -549,7 +550,7 @@ class Tube(core.MeshObject):
             new_centers = np.array(new_centers)
             assert np.shape(new_centers) == (self.n, 3)
             for i in range(self.n):
-                self.all[i].origin = trf.PointCloud(new_centers[i, :], np.eye(4))
+                self.all[i].origin = cf.PointCloud(new_centers[i, :], np.eye(4))
 
         def update_normals(self):
             """Update normals based on the location of the centers."""
@@ -572,7 +573,7 @@ class Tube(core.MeshObject):
             new_normal_dir = np.array(new_normal_dir)
             assert np.shape(new_normal_dir) == (self.n, 3)
             for i in range(np.shape(new_normal_dir)[0]):
-                self.all[i].normal = trf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
+                self.all[i].normal = cf.PointCloud(new_normal_dir[i, :]+self.all[i].origin, np.eye(4))
 
 
 class Text(core.Object):

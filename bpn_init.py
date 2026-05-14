@@ -9,6 +9,7 @@ Usage:
 """
 #pylint:disable=unused-import
 # Imports from the standard library
+import coordframe as cf
 import os
 import sys
 import inspect
@@ -29,7 +30,7 @@ import pntools as pn
 import pysampled
 import bpn
 # modules
-from bpn import new, env, demo, utils, turtle, vef, trf, io, mantle, core
+from bpn import new, env, demo, utils, turtle, vef, io, mantle, core
 # classes
 from bpn.mantle import Pencil, Screen
 # functions

@@ -7,11 +7,12 @@ exec(''.join(open('apps/concepts/articulations_nutations.py').readlines()[0:117]
 Used these videos in the slides:
 Luca lab documentation -> 20200430 NCSOFT awardees meeting.pptm
 """
+import coordframe as cf
 import numpy as np
 
 import bpy #pylint: disable=import-error
 
-from bpn import io, env, utils, trf, new
+from bpn import io, env, utils, new
 from apps import anatomy
 from apps.anatomy import nutations
 
@@ -38,8 +39,8 @@ nutations_in, nutations_out = nutations.load_nutation_coordframes()
 nutation_trf_out2in = {}
 nutation_trf_in2out = {}
 for bone_name in nutations_in:
-    nutation_trf_out2in[bone_name] = trf.CoordFrame(nutations_in[bone_name].m@np.linalg.inv(nutations_out[bone_name].m))
-    nutation_trf_in2out[bone_name] = trf.CoordFrame(nutations_out[bone_name].m@np.linalg.inv(nutations_in[bone_name].m))
+    nutation_trf_out2in[bone_name] = cf.CoordFrame(nutations_in[bone_name].m@np.linalg.inv(nutations_out[bone_name].m))
+    nutation_trf_in2out[bone_name] = cf.CoordFrame(nutations_out[bone_name].m@np.linalg.inv(nutations_in[bone_name].m))
 
 if 'Skeletal_Sys' not in [c.name for c in bpy.data.collections]:
     SKELETON = "D:\\Dropbox (MIT)\\Anatomy\\Workspace\\Ultimate_Human_Anatomy_Rigged_Blend_2-81\\skeletalSystem_originAtCenter_bkp02.blend"
@@ -57,9 +58,9 @@ hip_articulation_angle = -66*np.pi/180
 knee_articulation_angle = 77*np.pi/180
 ankle_articulation_angle = 1*np.pi/180
 
-hip_articulation_center_rel_ilium = trf.PointCloud(hip_articulation_center_world, np.eye(4)).in_frame(utils.get('Ilium_R').frame).co[0, :]
-knee_articulation_center_rel_femur = trf.PointCloud(knee_articulation_center_world, np.eye(4)).in_frame(utils.get('Femur_R').frame).co[0, :]
-ankle_articulation_center_rel_tibia = trf.PointCloud(ankle_articulation_center_world, np.eye(4)).in_frame(utils.get('Tibia_R').frame).co[0, :]
+hip_articulation_center_rel_ilium = cf.PointCloud(hip_articulation_center_world, np.eye(4)).in_frame(utils.get('Ilium_R').frame).co[0, :]
+knee_articulation_center_rel_femur = cf.PointCloud(knee_articulation_center_world, np.eye(4)).in_frame(utils.get('Femur_R').frame).co[0, :]
+ankle_articulation_center_rel_tibia = cf.PointCloud(ankle_articulation_center_world, np.eye(4)).in_frame(utils.get('Tibia_R').frame).co[0, :]
 
 def _transform_bones(bones, articulation_center_rel, articulation_center_frames, articulation_angle):
     """
@@ -70,9 +71,9 @@ def _transform_bones(bones, articulation_center_rel, articulation_center_frames,
     :param articulation angle: (radians) how much to articulate that joint
     """
     for tkf in range(1, n_keyframes):
-        articulation_center = trf.PointCloud(articulation_center_rel, articulation_center_frames[tkf]).in_world().co[0, :]
+        articulation_center = cf.PointCloud(articulation_center_rel, articulation_center_frames[tkf]).in_world().co[0, :]
         progress = (tkf/n_keyframes)**1
-        q = trf.Quat([1, 0, 0], articulation_angle*progress, trf.CoordFrame(origin=articulation_center))
+        q = cf.Quat([1, 0, 0], articulation_angle*progress, cf.CoordFrame(origin=articulation_center))
         for b in bones:
             all_frames[b.name][tkf] = q*all_frames[b.name][tkf]
 
@@ -104,7 +105,7 @@ _transform_bones(bone_list, ankle_articulation_center_rel_tibia, all_frames['Tib
 
 # add nutations
 for bone in leg_bones:
-    all_frames[bone.name]['nutation_in'] = trf.CoordFrame(nutation_trf_out2in[bone.name].m@all_frames[bone.name][0].m)
+    all_frames[bone.name]['nutation_in'] = cf.CoordFrame(nutation_trf_out2in[bone.name].m@all_frames[bone.name][0].m)
 
 # Insert keyframes for transformed bones in blender
 for kf in range(n_keyframes):

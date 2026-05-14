@@ -1,5 +1,6 @@
+import coordframe as cf
 import numpy as np
-from bpn import new, trf
+from bpn import new
 from bpn.utils import get
 from numpy.linalg.linalg import inv
 
@@ -31,7 +32,7 @@ class Dancer:
         
         # create markers
         m1 = new.sphere(name='m1', r=0.05)
-        self.m1_pos = trf.PointCloud((-0.1, 0, 1)) # both body frame and world frame
+        self.m1_pos = cf.PointCloud((-0.1, 0, 1)) # both body frame and world frame
         
         self.body = body
         self.head = head
@@ -54,7 +55,7 @@ class Dancer:
 
     def turn(self, angle_deg):
         self.body.rotate((0., 0., angle_deg))
-        self.screen.frame = self.screen.frame.transform(trf.m4(trf.twisttf(angle_deg*np.pi/180)), tf_frame=self.head.frame)
+        self.screen.frame = self.screen.frame.transform(cf.m4(cf.twisttf(angle_deg*np.pi/180)), tf_frame=self.head.frame)
         self.head.rotate((0., 0., angle_deg))
         self._update_m1()
         self.body.show_frame()
@@ -63,7 +64,7 @@ class Dancer:
 
     def turn_head(self, angle_deg):
         self.head.rotate((0., 0., angle_deg))
-        self.screen.frame = self.screen.frame.transform(trf.m4(trf.twisttf(angle_deg*np.pi/180)), tf_frame=self.head.frame) 
+        self.screen.frame = self.screen.frame.transform(cf.m4(cf.twisttf(angle_deg*np.pi/180)), tf_frame=self.head.frame) 
         self.head.show_frame()
         self.screen.show_frame()
         self._update_m1()
@@ -71,7 +72,7 @@ class Dancer:
     def _update_m1(self):
         self.m1.loc = self.m1_pos.transform(self.body.frame.m).co[0]
         self.m1viz.loc = (self.screen.frame.m@inv(self.body.frame.m)@np.hstack((self.m1.loc, 1)))[:-1]
-        # self.m1viz.loc = trf.PointCloud(trf.PointCloud(self.m1.loc).in_frame(self.body.frame.m).co[0], self.screen.frame).in_world().co[0]
+        # self.m1viz.loc = cf.PointCloud(cf.PointCloud(self.m1.loc).in_frame(self.body.frame.m).co[0], self.screen.frame).in_world().co[0]
 
     def __neg__(self):
         -self.body

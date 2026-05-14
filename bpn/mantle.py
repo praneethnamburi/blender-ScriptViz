@@ -16,12 +16,13 @@ Consequently, don't pass keyword arguments up the chain.
 All classes in this module also require a name for creation.
 They are some derivates of the CompoundObject class in core.
 """
+import coordframe as cf
 import numpy as np
 
 import pntools as pn
 import pysampled
 
-from bpn import core, utils, trf
+from bpn import core, utils
 
 class Pencil(core.GreasePencilObject):
     """
@@ -132,7 +133,7 @@ class Screen(Pencil):
 
     def draw_axes(self, **kwargs):
         """Draw a rectangular box. Re-draws strokes every time!"""
-        screen_points = trf.PointCloud(self.loc + np.vstack((
+        screen_points = cf.PointCloud(self.loc + np.vstack((
             [0, 0, 0],
             [self._width, 0, 0],
             [self._width, self._height, 0],
@@ -181,7 +182,7 @@ class Screen(Pencil):
             
         x_plt = pn.scale_data(x, self._xlim, clip=True)*self._width
         y_plt = pn.scale_data(y, self._ylim, clip=True)*self._height
-        pc = trf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
+        pc = cf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         return self.stroke(pc, **{**plot_defaults, **kwargs})
 
@@ -256,7 +257,7 @@ class Space(Pencil):
 
     def draw_axes(self, **kwargs):
         """Draw a cube. Re-draws strokes every time!"""
-        screen_points = trf.PointCloud(self.loc + np.vstack((
+        screen_points = cf.PointCloud(self.loc + np.vstack((
             [0, 0, 0],
             [self._width, 0, 0],
             [self._width, self._height, 0],
@@ -288,7 +289,7 @@ class Space(Pencil):
         """
         3D plots - 
             plot(x, y, z)
-            plot(arr) # arr is n points x 3 or trf.PointCloud
+            plot(arr) # arr is n points x 3 or cf.PointCloud
         2D plots - 
             plot(x, y) # x is n x 1, y is n x 1
             plot(x, y) # x is n x 1, y is n x m (the function will be called multiple times with each n x 1 array)
@@ -299,7 +300,7 @@ class Space(Pencil):
         if self.type == '3D':
             if arg2 is None:
                 assert arg3 is None
-                if isinstance(arg1, trf.PointCloud): # this function ignores the frame, so make sure the coordinates are in the correct frame before plotting!
+                if isinstance(arg1, cf.PointCloud): # this function ignores the frame, so make sure the coordinates are in the correct frame before plotting!
                     x, y, z = arg1.x, arg1.y, arg1.z
                 else:
                     if not isinstance(arg1, np.ndarray):
@@ -356,7 +357,7 @@ class Space(Pencil):
             if self._zlim is None:
                 self._zlim = (np.min(z), np.max(z))
             z_plt = pn.scale_data(z, self._zlim, clip=True)*self._depth
-        pc = trf.PointCloud(np.vstack((x_plt, y_plt, z_plt)).T, self.frame)
+        pc = cf.PointCloud(np.vstack((x_plt, y_plt, z_plt)).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         final_kwargs = {**plot_defaults, **kwargs}
         stroke = self.stroke(pc, **final_kwargs)
@@ -395,7 +396,7 @@ class PlotData:
         return pn.scale_data(self.z, self.zlim, clip=True)*self.depth
 
     def __call__(self):
-        return trf.PointCloud(np.vstack((self.x_plt, self.y_plt, self.z_plt)).T)
+        return cf.PointCloud(np.vstack((self.x_plt, self.y_plt, self.z_plt)).T)
     
     @property
     def zero_location(self):

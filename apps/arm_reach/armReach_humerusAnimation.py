@@ -10,7 +10,7 @@ env.reset()
 
 from apps import anatomy
 
-PC = trf.PointCloud
+PC = cf.PointCloud
 
 def get_traj(xlname='armReach_ineffTrial'):
     fname = 'D:\\Workspace\\blenderPython\\apps\\animation\\'+xlname+'.xlsx'
@@ -24,14 +24,14 @@ def get_traj(xlname='armReach_ineffTrial'):
     norm = lambda n: np.sqrt(np.sum(n**2, axis=1, keepdims=True))
     hat = lambda n: n/norm(n)
     
-    anatomy_frame = trf.CoordFrame(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))
+    anatomy_frame = cf.CoordFrame(i=(-1, 0, 0), j=(0, 0, 1), k=(0, 1, 0))
     pos = {ob: PC(loc(ob), np.eye(4)).in_frame(anatomy_frame).co for ob in pt_names}
     origin = pos['RH_AcromioClavicular']
     k_hat = hat((pos['RH_ElbowLat'] + pos['RH_ElbowMed'])/2 - origin)
     j_hat = hat(pos['RH_ElbowLat'] - pos['RH_ElbowMed'])
     i_hat = hat(np.cross(j_hat, k_hat)) # should already be normalized
 
-    return pos, [trf.CoordFrame(origin=o, i=i, j=j, k=k) for o, i, j, k in zip(origin, i_hat, j_hat, k_hat)]
+    return pos, [cf.CoordFrame(origin=o, i=i, j=j, k=k) for o, i, j, k in zip(origin, i_hat, j_hat, k_hat)]
 
 bone_names = ['Humerus_R', 'Scapula_R', 'Clavicle_R']
 bones = anatomy.load(bone_names)

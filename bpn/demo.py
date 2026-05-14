@@ -26,6 +26,7 @@ Tube class:
     spring - animating a spring using the Tube class
     mobius - make a mobius strip
 """
+import coordframe as cf
 import sys
 import types
 import copy
@@ -38,7 +39,7 @@ import bpy #pylint: disable=import-error
 import bmesh  #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-from bpn import new, env, turtle, trf, utils, handlers
+from bpn import new, env, turtle, utils, handlers
 
 def spheres():
     """
@@ -227,7 +228,7 @@ def spiral2():
     """
     sp = new.spiral('spiral', n_rot=6)
     sp.scl = (0.5, 1, 1)
-    sp.frame = trf.Quat([1, 0, 0], np.pi/6)*sp.frame
+    sp.frame = cf.Quat([1, 0, 0], np.pi/6)*sp.frame
 
     s = new.sphere('sph', u=4, v=3)
     s.show_frame() # this one is just to create the gp object
@@ -236,7 +237,7 @@ def spiral2():
     sp_pts = sp.pts.in_world().co
     for frame_number in range(0, np.shape(sp.pts.co)[0]):
         s.loc = sp_pts[frame_number, :]
-        s.frame = trf.Quat([0, 0, 1], 5*np.pi/180, origin=s.loc)*s.frame
+        s.frame = cf.Quat([0, 0, 1], 5*np.pi/180, origin=s.loc)*s.frame
         s.frame_gp.keyframe = frame_number+1
         s.show_frame()
         s.key(frame_number+1)
@@ -353,9 +354,9 @@ def grease_pencil():
     x1 = θ/2
 
     # equivalent of plot
-    pc1 = trf.PointCloud(np.vstack((x1, y1, z1)).T, np.eye(4))
+    pc1 = cf.PointCloud(np.vstack((x1, y1, z1)).T, np.eye(4))
     pc2 = copy.deepcopy(pc1)
-    pc1.frame = trf.Quat([-1, 1, 0], np.pi/4)*pc1.frame
+    pc1.frame = cf.Quat([-1, 1, 0], np.pi/4)*pc1.frame
     
     gp.layer = 'sl1'
     gp.keyframe = 1
@@ -369,7 +370,7 @@ def grease_pencil():
     gp.keyframe = 20
     gp.stroke(pc1, color=2, strength=np.linspace(0, 1, len(θ)))
     gp.keyframe = 30
-    gp.stroke(trf.PointCloud([0, 0, 0]))
+    gp.stroke(cf.PointCloud([0, 0, 0]))
 
     # show the frame for point cloud 1
     emp = new.empty('pc1_frame', coll_name='Pencil')
@@ -435,12 +436,12 @@ def mobius():
     X = t.xsec.all
     nX = len(X)
     for ix, x in enumerate(X):
-        x.origin = trf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
-        x.normal = trf.PointCloud(normals[ix, :]+x.origin, np.eye(4))
+        x.origin = cf.PointCloud((x1[ix], y1[ix], z1[ix]), np.eye(4))
+        x.normal = cf.PointCloud(normals[ix, :]+x.origin, np.eye(4))
         x.twist(360*ix/(nX-1))
     
     for ix in (0, -1):
-        X[ix].normal = trf.PointCloud(np.array([0, 1, 0])+X[ix].origin, np.eye(4))
+        X[ix].normal = cf.PointCloud(np.array([0, 1, 0])+X[ix].origin, np.eye(4))
     
     ## make a merge_XS feature
     # bm = bmesh.new()
@@ -451,8 +452,8 @@ def mobius():
     # bm.clear()
     # bm.free()
 
-    X[0].origin = trf.PointCloud((2, 0, 0), np.eye(4))
-    X[-1].origin = trf.PointCloud((2, 0, 0), np.eye(4))
+    X[0].origin = cf.PointCloud((2, 0, 0), np.eye(4))
+    X[-1].origin = cf.PointCloud((2, 0, 0), np.eye(4))
     return t
 
 
@@ -530,17 +531,17 @@ def capsule():
     links = []
 
     # For the first link, create a transformation matrix as you would in blender
-    s1.frame = trf.CoordFrame(origin=[0, 0, -0.5*(h+r)])
-    s1.frame = trf.Quat([1, 0, 0], np.pi/4, trf.CoordFrame())*s1.frame
+    s1.frame = cf.CoordFrame(origin=[0, 0, -0.5*(h+r)])
+    s1.frame = cf.Quat([1, 0, 0], np.pi/4, cf.CoordFrame())*s1.frame
     links.append( make_link("left", name+".stl", st, 10, s1.frame.m) )
 
     # create the joint before creating the second link!
     j2 = new.empty("left_right")
-    j2.frame = trf.Quat([1, 0, 0], -np.pi/4, j2.frame)*j2.frame
+    j2.frame = cf.Quat([1, 0, 0], -np.pi/4, j2.frame)*j2.frame
 
     # the second link (child in joint 2) will have its coordinate frame defined in j2
     s2 = s1.deepcopy()
-    s2.frame = trf.CoordFrame(origin=[0, 0, -0.5*(h+r)])
+    s2.frame = cf.CoordFrame(origin=[0, 0, -0.5*(h+r)])
     links.append( make_link("right", name+".stl", st, 1, s2.frame.m,  [1, 1, 1]) )
 
     joints = [u.Joint("left_right", "continuous", "left", "right", axis=[1, 0, 0], origin=j2.frame.m)]
