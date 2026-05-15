@@ -379,7 +379,7 @@ def spiral(name=None, n_rot=3, res=10, offset_rot=0, **kwargs):
 def box(name=None, **kwargs):
     """
     Extend the functionality of a cube to create bounding boxes
-    b = new.box(limits=pn.dotdict({'x': (-0.383, 0.165), 'y': (-0.143, 0.405), 'z': (0.069, 0.617)}))
+    b = new.box(limits={'x': (-0.383, 0.165), 'y': (-0.143, 0.405), 'z': (0.069, 0.617)})
     """
     class Box(core.MeshObject):
         def __init__(self, name, **kwargs):
@@ -387,7 +387,7 @@ def box(name=None, **kwargs):
             this_obj = easycreate(bmesh.ops.create_cube, name, **kwargs)
             super().__init__(this_obj.name, this_obj.data)
             if limits is not None: # put the cube in the right place
-                assert isinstance(limits, pn.dotdict)
+                assert isinstance(limits, dict)
                 new_origin = [np.mean(limits[dim]) for dim in limits]
                 new_span = [np.diff(limits[dim])[0] for dim in limits]
                 curr_lim = self.lim()
@@ -395,11 +395,11 @@ def box(name=None, **kwargs):
                 self.loc = (0., 0., 0.)
                 self.scale(np.array(new_span)/np.array(curr_span))
                 self.loc = new_origin
-        
+
         def lim(self, round_dec=3):
             v = cf.apply_matrix(self().matrix_world, self.data.v)
             x, y, z = [(round(np.min(v[:, dim]), round_dec), round(np.max(v[:, dim]), round_dec)) for dim in (0, 1, 2)]
-            return pn.dotdict(x=x, y=y, z=z)
+            return dict(x=x, y=y, z=z)
 
     name = utils.new_name('new_box', [o.name for o in bpy.data.objects]) if name is None else name
     return Box(name, **kwargs)

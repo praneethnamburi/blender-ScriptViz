@@ -365,13 +365,13 @@ class Space(Pencil):
             this_plot_data = PlotData(x, self._xlim, self._width, y, self._ylim, self._height)
         else:
             this_plot_data = PlotData(x, self._xlim, self._width, y, self._ylim, self._height, z, self._zlim, self._depth)
-        ret = pn.dotdict({
+        ret = {
             'params': final_kwargs,
             'stroke': stroke,
             'data': this_plot_data,
             'ax': self, # Screen object, convenient when using new.plot
             'f': self().parent if self().parent is None else utils.enhance(self().parent) # Empty container object, also convenient when using new.plot
-        })
+        }
         self.plot_data.append(ret)
         return ret
 
