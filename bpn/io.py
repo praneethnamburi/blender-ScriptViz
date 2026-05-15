@@ -12,8 +12,6 @@ import pandas as pd
 
 import bpy #pylint: disable=import-error
 
-import pntools as pn
-
 from bpn import new, env, utils, core
 
 # File IO
@@ -93,7 +91,7 @@ def loadSVG(svgfile, name=None, **kwargs):
         'halign' : 'center', # 'center', 'left', 'right', None
         'valign' : 'middle', # 'top', 'middle', 'bottom', None
         }
-    kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def)
+    kwargs, _ = utils.clean_kwargs(kwargs, kwargs_def)
 
     @env.ReportDelta
     def _loadSVG(files):

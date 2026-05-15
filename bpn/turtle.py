@@ -10,8 +10,6 @@ import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
-import pntools as pn
-
 from bpn import new, utils, vef
 
 class Draw:
@@ -40,7 +38,7 @@ class Draw:
         a = Draw()
         geom = a.ngon(n=6, r=1)
         """
-        kwargs_fun, _ = pn.clean_kwargs(kwargs, {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':False}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']})
+        kwargs_fun, _ = utils.clean_kwargs(kwargs, {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':False}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']})
         v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
         if not kwargs_fun['fill']:
             f = []
@@ -321,7 +319,7 @@ class SubMsh:
         """
         kwargs_def = {'vi': [], 'ei': [], 'fi': [], 'tags': [], 'call_stack': None, 'frame': None}
         kwargs_alias = {'vi': ['vi', 'v_idx'], 'ei': ['ei', 'e_idx'], 'fi': ['fi', 'f_idx'], 'tags': ['tags'], 'call_stack': ['call_stack'], 'frame': ['frame', 'coord_frame', 'm']}
-        kwargs_curr, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs_curr, _ = utils.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
         self.parent = parent
         self.vi = kwargs_curr['vi']
         self.ei = kwargs_curr['ei']

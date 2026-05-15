@@ -2,7 +2,7 @@
 Support for nutations.
 """
 from bpn_init import *
-pn.reload()
+utils.reload()
 
 FRAME_INIT = 1
 FRAME_INRIGHT = 100

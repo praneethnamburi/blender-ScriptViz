@@ -4,7 +4,7 @@ Also useful for initalizing blender's workspace.
 
 Usage:
     from bpn_init import *
-    pn.reload() # useful when developing the module alongside the app
+    utils.reload() # useful when developing the module alongside the app
     env.reset() # if you want to delete objects, this is useful!
 """
 #pylint:disable=unused-import
@@ -26,7 +26,6 @@ import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
 
 # Peronal library
-import pntools as pn
 import pysampled
 import bpn
 # modules
@@ -40,12 +39,6 @@ from pntools import run
 # # Convenience
 # Matrix = mathutils.Matrix
 # Vector = mathutils.Vector
-
-# for using matplotlib from within blender
-if os.name == 'nt':
-    import multiprocess
-    multiprocess.set_executable(pn.locate_command('python', 'conda', verbose=False).split('\r\n')[0])
-    from plots import plot
 
 def reset():
     env.reset()

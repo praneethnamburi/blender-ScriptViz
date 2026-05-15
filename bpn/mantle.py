@@ -39,7 +39,7 @@ class Pencil(core.GreasePencilObject):
         layer_name = names['layer_name']
 
         # Create palette in the blender file
-        kwargs01, kwargs02 = pn.clean_kwargs(kwargs00, {
+        kwargs01, kwargs02 = utils.clean_kwargs(kwargs00, {
             'palette_list': ['MATLAB', 'blender_ax'], 
             'palette_prefix': ['MATLAB_', ''], 
             'palette_alpha': [1, 0.8],
@@ -56,7 +56,7 @@ class Pencil(core.GreasePencilObject):
         for color in this_palette:
             self.color = color
 
-        custom, _ = pn.clean_kwargs(kwargs02, {'color': 'white', 'keyframe': 1})
+        custom, _ = utils.clean_kwargs(kwargs02, {'color': 'white', 'keyframe': 1})
         color = custom['color']
         if isinstance(color, int):
             # NOTE: This is confusing, because the color behavior is core.greasepencilobject is different!
@@ -180,8 +180,8 @@ class Screen(Pencil):
                 ret.append(self.plot(x, y[:, col_count], **kwargs))
             return ret
             
-        x_plt = pn.scale_data(x, self._xlim, clip=True)*self._width
-        y_plt = pn.scale_data(y, self._ylim, clip=True)*self._height
+        x_plt = utils.scale_data(x, self._xlim, clip=True)*self._width
+        y_plt = utils.scale_data(y, self._ylim, clip=True)*self._height
         pc = cf.PointCloud(np.vstack((x_plt, y_plt, np.zeros_like(x_plt))).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         return self.stroke(pc, **{**plot_defaults, **kwargs})
@@ -349,14 +349,14 @@ class Space(Pencil):
         if self._ylim is None:
             self._ylim = (np.min(y), np.max(y))
         
-        x_plt = pn.scale_data(x, self._xlim, clip=True)*self._width
-        y_plt = pn.scale_data(y, self._ylim, clip=True)*self._height
+        x_plt = utils.scale_data(x, self._xlim, clip=True)*self._width
+        y_plt = utils.scale_data(y, self._ylim, clip=True)*self._height
         if self.type == '2D':
             z_plt = z
         else:
             if self._zlim is None:
                 self._zlim = (np.min(z), np.max(z))
-            z_plt = pn.scale_data(z, self._zlim, clip=True)*self._depth
+            z_plt = utils.scale_data(z, self._zlim, clip=True)*self._depth
         pc = cf.PointCloud(np.vstack((x_plt, y_plt, z_plt)).T, self.frame)
         plot_defaults = {'layer':'plot', 'color':self.current_color, 'keyframe':0, 'pressure':1.0, 'strength':1.0}
         final_kwargs = {**plot_defaults, **kwargs}
@@ -383,17 +383,17 @@ class PlotData:
     
     @property
     def x_plt(self):
-        return pn.scale_data(self.x, self.xlim, clip=True)*self.width
+        return utils.scale_data(self.x, self.xlim, clip=True)*self.width
     
     @property
     def y_plt(self):
-        return pn.scale_data(self.y, self.ylim, clip=True)*self.height
+        return utils.scale_data(self.y, self.ylim, clip=True)*self.height
     
     @property
     def z_plt(self):
         if self.depth is None:
             return
-        return pn.scale_data(self.z, self.zlim, clip=True)*self.depth
+        return utils.scale_data(self.z, self.zlim, clip=True)*self.depth
 
     def __call__(self):
         return cf.PointCloud(np.vstack((self.x_plt, self.y_plt, self.z_plt)).T)
@@ -401,8 +401,8 @@ class PlotData:
     @property
     def zero_location(self):
         return (
-            pn.scale_data(0, self.xlim, clip=False)*self.width,
-            pn.scale_data(0, self.ylim, clip=False)*self.height,
-            pn.scale_data(0, self.zlim, clip=False)*self.depth,
+            utils.scale_data(0, self.xlim, clip=False)*self.width,
+            utils.scale_data(0, self.ylim, clip=False)*self.height,
+            utils.scale_data(0, self.zlim, clip=False)*self.depth,
         )
     

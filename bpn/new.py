@@ -205,7 +205,7 @@ def pencil(name=None, **kwargs):
     layer_name = names['layer_name']
 
     # Create palette in the blender file
-    kwargs, _ = pn.clean_kwargs(kwargs, {
+    kwargs, _ = utils.clean_kwargs(kwargs, {
         'palette_list': ['MATLAB', 'blender_ax'], 
         'palette_prefix': ['MATLAB_', ''], 
         'palette_alpha': [1, 0.8],
@@ -232,7 +232,7 @@ def bezier_circle(name=None, **kwargs):
     Returns core.Object
     """
     names, kwargs = utils.clean_names(name, kwargs, {'curve_name':'Bezier', 'obj_name':'bezier', 'priority_curve':'current', 'priority_obj':'new'}, 'curve')
-    kwargs, _ = pn.clean_kwargs(kwargs, {'r':1, 'h':None})
+    kwargs, _ = utils.clean_kwargs(kwargs, {'r':1, 'h':None})
     r = kwargs['r']
     h = kwargs['h']
     if h is None:
@@ -288,17 +288,17 @@ def easycreate(mshfunc, name=None, **kwargs):
     if str(mshfunc) == str(bmesh.ops.create_uvsphere):
         kwargs_def = {'u_segments':16, 'v_segments':8, size_param_name:0.5}
         kwargs_alias = {'u_segments': ['u', 'u_segments'], 'v_segments': ['v', 'v_segments'], size_param_name: ['r', 'radius', 'diameter']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = utils.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_cube):
         kwargs_def = {'size':1}
         kwargs_alias = {'size': ['size', 'sz', 's', 'r']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = utils.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
     if str(mshfunc) == str(bmesh.ops.create_cone):
         kwargs_def = {'segments':12, f'{size_param_name}1':2, f'{size_param_name}2':0, 'depth':3, 'cap_ends':True, 'cap_tris':False}
         kwargs_alias = {'segments':['segments', 'seg', 'u', 'n'], f'{size_param_name}1':['diameter1', 'radius1', 'r1', 'r'], f'{size_param_name}2':['diameter2', 'radius2', 'r2'], 'depth':['depth', 'd', 'h'], 'cap_ends':['cap_ends', 'fill'], 'cap_tris':['cap_tris', 'fill_tri']}
-        kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+        kwargs, _ = utils.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
 
     if str(mshfunc) == str(bmesh.ops.create_monkey):
         kwargs = {}
@@ -324,7 +324,7 @@ def ngon(name=None, **kwargs):
     """Create a new n-sided polygon with one face inscribed in a circle of radius r."""
     kwargs_def = {'n':6, 'r':1, 'theta_offset_deg':'auto', 'fill':True}
     kwargs_alias = {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg'], 'fill':['fill']}
-    kwargs_fun, kwargs_msh = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    kwargs_fun, kwargs_msh = utils.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
     v, e, f = vef.ngon(n=kwargs_fun['n'], r=kwargs_fun['r'], th_off_deg=kwargs_fun['theta_offset_deg'])
     if not kwargs_fun['fill']:
@@ -348,7 +348,7 @@ def torus(name=None, **kwargs):
 
     kwargs_def = {'n_u':16, 'r_u':0.3, 'n_v':32, 'r_v':1, 'theta_offset_deg':'auto'}
     kwargs_alias = {'n_u':['n_u', 'u'], 'r_u':['r_u', 't', 'thickness'], 'n_v':['n_v', 'v'], 'r_v':['r_v', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg', 'th_u']}
-    kwargs, _ = pn.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
+    kwargs, _ = utils.clean_kwargs(kwargs, kwargs_def, kwargs_alias)
     
     a = turtle.Draw(**names)
     start = a.ngon(n=kwargs['n_u'], r=kwargs['r_u'], th_off_deg=kwargs['theta_offset_deg'])
@@ -498,7 +498,7 @@ def plot(arg1, arg2=None, arg3=None, **kwargs):
     kwargs_figure_default = {'orientation': 'xz', 'figsize':(20, 15), 'origin':(0., 0., 0.), 'name':'figure'}
     if 'offset' in kwargs:
         kwargs_figure_default['offset'] = kwargs.pop('offset')
-    kwargs_figure, kwargs_plot = pn.clean_kwargs(kwargs, kwargs_figure_default)
+    kwargs_figure, kwargs_plot = utils.clean_kwargs(kwargs, kwargs_figure_default)
     print(kwargs_figure)
     _, ax = figure(**kwargs_figure)
     h_plt = ax.plot(arg1, arg2, arg3, **kwargs_plot)
@@ -516,7 +516,7 @@ class Tube(core.MeshObject):
 
     def __init__(self, name=None, x=0, y=0, z=0, **kwargs):
         names, kwargs = utils.clean_names(name, kwargs, {'msh_name':'tube_msh', 'obj_name':'tube_obj', 'priority_obj':'new', 'priority_msh':'new'})
-        kwargs_ngon, _ = pn.clean_kwargs(kwargs, {'n':6, 'r':0.3, 'theta_offset_deg':-1}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg']})
+        kwargs_ngon, _ = utils.clean_kwargs(kwargs, {'n':6, 'r':0.3, 'theta_offset_deg':-1}, {'n':['segments', 'seg', 'u', 'n'], 'r':['radius', 'r'], 'theta_offset_deg':['theta_offset_deg', 'th', 'offset', 'th_off_deg']})
         
         spine = np.array([np.array((tx, ty, tz)) for tx, ty, tz in zip(x, y, z)])
         normals = np.vstack((spine[1, :] - spine[0, :], spine[2:, :] - spine[:-2, :], spine[-1, :] - spine[-2, :]))

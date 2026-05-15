@@ -4,7 +4,7 @@ Animate motion capture trajectory with bones.
 
 #-----------------
 from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
-pn.reload()
+utils.reload()
 env.reset()
 #-----------------
 

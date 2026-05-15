@@ -337,7 +337,7 @@ class Object(Thing):
             'priority_obj': 'new',
             'priority_gp': 'new'
             }, 'gp')
-        kwargs, _ = pn.clean_kwargs(kwargs, {
+        kwargs, _ = utils.clean_kwargs(kwargs, {
             'palette_list': ['blender_ax'], 
             'palette_prefix': [''],
             'palette_alpha': [0.8],
@@ -577,7 +577,7 @@ class Object(Thing):
         # update optional attributes
             # kwargs_other: if you didn't specify, don't change
             # kwargs_impose: if you didn't specify, impose a certain value
-        kwargs_impose, kwargs_keep = pn.clean_kwargs(kwargs, {
+        kwargs_impose, kwargs_keep = utils.clean_kwargs(kwargs, {
             'subdivision_type' : 'CATMULL_CLARK' #('CATMULL_CLARK', 'SIMPLE')
         })
         for key, val in {**kwargs_impose, **kwargs_keep}.items():
@@ -611,7 +611,7 @@ class Object(Thing):
 
         path_constraint = self.get_constraint('follow_path')
         path_constraint.target = path_obj
-        kwargs, _ = pn.clean_kwargs(kwargs, {
+        kwargs, _ = utils.clean_kwargs(kwargs, {
             'use_curve_follow': True,
             'use_curve_radius': False,
             'use_fixed_location': True,
@@ -632,7 +632,7 @@ class Object(Thing):
 
         track_constraint = self.get_constraint('track_to')
         track_constraint.target = targ_obj
-        kwargs, _ = pn.clean_kwargs(kwargs, {
+        kwargs, _ = utils.clean_kwargs(kwargs, {
             'up_axis': 'UP_Y', # ('UP_X', 'UP_Y', 'UP_Z')
             'track_axis': 'TRACK_NEGATIVE_Z', # ('TRACK_X', 'TRACK_Y', 'TRACK_Z', 'TRACK_NEGATIVE_X', 'TRACK_NEGATIVE_Y', 'TRACK_NEGATIVE_Z')
         })
@@ -1251,7 +1251,7 @@ class GreasePencilObject(CompoundObject):
         (which change the current settings)
         Add pressure and strength arrays
         """
-        kwargs, _ = pn.clean_kwargs(kwargs, {
+        kwargs, _ = utils.clean_kwargs(kwargs, {
             'pressure': 1.0, 
             'strength': 1.0, 
             'line_width': 40, 

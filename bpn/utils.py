@@ -16,16 +16,19 @@ Color management:
     color_palette - preset color palettes, returns {color_name: rgba}
     new_gp_color  - create a new grease pencil color
 """
+import importlib
+import inspect
 import os
 import re
+import subprocess
+import sys
+from copy import deepcopy
 
 import numpy as np
 import matplotlib.colors as mc
 
 import bpy # pylint: disable=import-error
 import mathutils # pylint: disable=import-error
-
-import pntools as pn
 
 from bpn import core, env
 
@@ -224,8 +227,8 @@ def clean_names(name, kwargs, kwargs_def=None, mode='msh'):
     if not kwargs_def:
         kwargs_def = {}
 
-    kwargs_def, _ = pn.clean_kwargs(kwargs_def, kwargs_defdef)
-    kwargs_names, kwargs_other = pn.clean_kwargs(kwargs, kwargs_def)
+    kwargs_def, _ = clean_kwargs(kwargs_def, kwargs_defdef)
+    kwargs_names, kwargs_other = clean_kwargs(kwargs, kwargs_def)
     
     # what to do if 'obj_name' and/or 'msh_name' already exist in the blender workspace
     if kwargs_names['priority_obj'] == 'new':
@@ -413,3 +416,124 @@ def copy_curve(curve_src):
         for attr in attrs_spline:
             setattr(spl_targ, attr, getattr(spl, attr))
     return curve_targ
+
+
+# ---------------------------------------------------------------------------
+# Helpers relocated from ``pntools/__init__.py`` (2026-05-15).
+# bpn is the only real consumer of these, so the home is here. See
+# ``plans/20260515_pntools_spawn_and_bpn_cluster.md`` in pn-specs for the
+# migration log.
+# ---------------------------------------------------------------------------
+
+def clean_kwargs(kwargs, kwargs_def, kwargs_alias=None):
+    """
+    Clean keyword arguments based on default values and aliasing.
+
+    :param kwargs: (dict) input kwargs that require cleaning.
+    :param kwargs_def: (dict) should have all the possible keyword arguments.
+    :param kwargs_alias: (dict) lists all possible aliases for each keyword.
+        {kw1: [kw1, kw1_alias1, ..., kw1_aliasn], ...}
+        kw1 is used inside the function, but kw1=val, kw1_alias1=val, ..., kw1_aliasn are all valid
+
+    Returns:
+        (dict) keyword arguments after cleaning. Ensures all keywords in kwargs_def are present, and have the names used in the function.
+        (dict) remaining keyword arguments
+    """
+    if not kwargs_alias:
+        kwargs_alias = {key : [key] for key in kwargs_def.keys()}
+    kwargs_fun = deepcopy(kwargs_def)
+    kwargs_out = deepcopy(kwargs)
+    for k in kwargs_fun:
+        for ka in kwargs_alias[k]:
+            if ka in kwargs:
+                kwargs_fun[k] = kwargs_out.pop(ka)
+
+    return kwargs_fun, kwargs_out
+
+
+def scale_data(d:np.ndarray, d_lim:tuple=None, clip:bool=True) -> np.ndarray: # scale the input between 0 and 1
+    """Scale data in a numpy array such that the entries in d_lim scale to (0,1)"""
+    if d_lim is None:
+        d_lim = (np.min(d), np.max(d))
+    do = d_lim[0]
+    dw = d_lim[1] - d_lim[0]
+    if clip:
+        d[d < d_lim[0]] = np.nan
+        d[d > d_lim[1]] = np.nan
+    return (d - do)/dw
+
+
+def reload(constraint='Workspace'):
+    """
+    Reloads all modules in sys with a specified constraint.
+    :param constraint: (str) name to be present within the module's path for reload
+    Returns:
+        names of all the modules that were identified for reload.
+    """
+    all_mod = [mod for key, mod in sys.modules.items() if constraint in str(mod)]
+    reloaded_mod = []
+    for mod in all_mod:
+        try:
+            importlib.reload(mod)
+            reloaded_mod.append(mod.__name__)
+        except: # pylint: disable=bare-except
+            #Using a specific exception creates a problem when developing with runpy (Blender development plugin workflow)
+            if '<run_path>' not in  mod.__name__:
+                print('Could not reload ' + mod.__name__)
+    return reloaded_mod
+
+
+def locate_command(thingToFind, requireStr=None, verbose=True):
+    """
+    Locate an executable on your computer.
+
+    :param thingToFind: string name of the executable (e.g. python)
+    :param requireStr: require path to thingToFind to have a certain string
+    :returns: Full path (like realpath) to thingToFind if it exists
+              Empty string if thing does not exist
+    """
+    if sys.platform == 'linux' or sys.platform == 'darwin':
+        queryCmd = 'which'
+    elif sys.platform == 'win32':
+        queryCmd = 'where'
+    proc = subprocess.Popen(queryCmd+' '+thingToFind, stdout=subprocess.PIPE, shell=True)
+    thingPath = proc.communicate()[0].decode('utf-8').rstrip('\n').rstrip('\r')
+    if not thingPath:
+        print('Terminal cannot find ', thingToFind)
+        return ''
+
+    if verbose:
+        print('Terminal found: ', thingPath)
+    if requireStr is not None:
+        if requireStr not in thingPath:
+            print('Path to ' + thingToFind + ' does not have ' + requireStr + ' in it!')
+            return ''
+    return thingPath
+
+
+def ospath(thingToFind, errContent=None):
+    """
+    Find file or directory.
+
+    :param thingToFind: string input to os path
+    :param errContent=None: what to show when not found
+    :returns: Full path to thingToFind if it exists.
+              Empty string if thingToFind does not exist.
+    """
+    if errContent is None:
+        errContent = thingToFind
+    if os.path.exists(thingToFind):
+        print('Found: ', os.path.realpath(thingToFind))
+        return os.path.realpath(thingToFind)
+    print('Did not find ', errContent)
+    return ''
+
+
+def module_members(mod, includeSubModules=True):
+    """Return members of a module."""
+    members = {}
+    for name, data in inspect.getmembers(mod):
+        if name.startswith('__') or (inspect.ismodule(data) and not includeSubModules):
+            continue
+        members[name] = str(type(inspect.unwrap(data))).split("'")[1]
+    return members

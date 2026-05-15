@@ -72,6 +72,7 @@ Tips:
 """
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -79,7 +80,55 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 if THIS_DIR not in sys.path:
     sys.path.append(THIS_DIR)
 
-import pntools as pn
+# Relocated from ``pntools/__init__.py`` (2026-05-15). Kept inline here
+# rather than imported from ``bpn.utils`` because this script must run
+# outside Blender (it bootstraps the Blender environment), and
+# ``bpn.utils`` imports ``bpy``.
+def locate_command(thingToFind, requireStr=None, verbose=True):
+    """
+    Locate an executable on your computer.
+
+    :param thingToFind: string name of the executable (e.g. python)
+    :param requireStr: require path to thingToFind to have a certain string
+    :returns: Full path (like realpath) to thingToFind if it exists
+              Empty string if thing does not exist
+    """
+    if sys.platform == 'linux' or sys.platform == 'darwin':
+        queryCmd = 'which'
+    elif sys.platform == 'win32':
+        queryCmd = 'where'
+    proc = subprocess.Popen(queryCmd+' '+thingToFind, stdout=subprocess.PIPE, shell=True)
+    thingPath = proc.communicate()[0].decode('utf-8').rstrip('\n').rstrip('\r')
+    if not thingPath:
+        print('Terminal cannot find ', thingToFind)
+        return ''
+
+    if verbose:
+        print('Terminal found: ', thingPath)
+    if requireStr is not None:
+        if requireStr not in thingPath:
+            print('Path to ' + thingToFind + ' does not have ' + requireStr + ' in it!')
+            return ''
+    return thingPath
+
+
+def ospath(thingToFind, errContent=None):
+    """
+    Find file or directory.
+
+    :param thingToFind: string input to os path
+    :param errContent=None: what to show when not found
+    :returns: Full path to thingToFind if it exists.
+              Empty string if thingToFind does not exist.
+    """
+    if errContent is None:
+        errContent = thingToFind
+    if os.path.exists(thingToFind):
+        print('Found: ', os.path.realpath(thingToFind))
+        return os.path.realpath(thingToFind)
+    print('Did not find ', errContent)
+    return ''
+
 
 def writeBlenderStartupFile(fName_full):
     """
@@ -120,13 +169,13 @@ def listDiff(lstA, lstB):
 
 def main():
     print('Checking if Blender exists:')
-    blenderPath = pn.locate_command('blender')
+    blenderPath = locate_command('blender')
     if not blenderPath:
         return
 
     print('Checking for the correct python:')
-    pythonPath = pn.locate_command('python', 'blender')
-    pythonPath = pn.locate_command('python3.7m', 'blender') if not pythonPath else pythonPath
+    pythonPath = locate_command('python', 'blender')
+    pythonPath = locate_command('python3.7m', 'blender') if not pythonPath else pythonPath
     if not pythonPath:
         return
 
@@ -137,7 +186,7 @@ def main():
     if not blenderVersionDirName:
         return
     assert len(blenderVersionDirName) == 1
-    blenderStartupPath = pn.ospath(str(os.path.join(blenderBaseDir, blenderVersionDirName[0], 'scripts', 'startup')))
+    blenderStartupPath = ospath(str(os.path.join(blenderBaseDir, blenderVersionDirName[0], 'scripts', 'startup')))
     if not blenderStartupPath:
         return
     writeBlenderStartupFile(os.path.join(blenderStartupPath, 'pnStartup.py'))

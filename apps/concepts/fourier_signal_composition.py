@@ -3,7 +3,7 @@ Fourier transform (signal composition) illustration v1.0
 """
 #-----------------
 from bpn_init import * # pylint: disable=wildcard-import, unused-wildcard-import
-pn.reload()
+utils.reload()
 env.reset()
 #-----------------
 
