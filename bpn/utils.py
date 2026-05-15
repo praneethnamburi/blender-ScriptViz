@@ -16,6 +16,7 @@ Color management:
     color_palette - preset color palettes, returns {color_name: rgba}
     new_gp_color  - create a new grease pencil color
 """
+import functools
 import importlib
 import inspect
 import os
@@ -537,3 +538,114 @@ def module_members(mod, includeSubModules=True):
             continue
         members[name] = str(type(inspect.unwrap(data))).split("'")[1]
     return members
+
+
+# Container-pattern decorator. Internalized from pntools 2026-05-15
+# (Cluster 4 retirement). Permanent home — bpn's MeshObject /
+# GreasePencilObject / CurveObject in core.py are decorated with
+# `@PortProperties(Mesh|GreasePencil|Curve, 'data')`. The matching
+# private copy in `immersionlab/ot.py` is provisional pending a
+# marker-delegation-pattern investigation; this bpn copy is the
+# canonical reference. If a bug is found, fix here first then port.
+def port_properties(src_class, trg_class, trg_attr_name='data'):
+    """
+    Port properties and methods (not hidden) from source class src_class
+    to target class trg_class.
+
+    Differs from Mixin and inheriance. Used to design 'containers' with automatic routing.
+
+    :param src_class: (class)
+    :param trg_class: (class)
+    :param trg_attr_name: (str)
+
+    Basically, trg_class objects have an attribute with name
+    trg_attr_name, which is an instance of trg_class
+    Example:
+        MeshObject class has an attribute (or property) 'data' that is an instance of trg class
+        s = MeshObject() # MeshObject is the trg_class
+        s.data = Mesh()  # Mesh is the src_class
+    Now,
+        s.data.prop : to execute this, I want to say s.prop
+        s.data.func() : to execute this, I want to say s.func()
+
+    Within MeshObject, defining the __init__ function as follows achieves this!
+    class MeshObject(Object):
+        def __init__(self, name, *args, **kwargs):
+            super().__init__(name, *args, **kwargs) # make an instance of Object
+            self.data = Mesh(...) # make an instance of mesh
+            port_properties(Mesh, self.__class__, 'data')
+            # grants direct access to Mesh's stuff with appropritate routing
+
+    Now a MeshObject instance inherits all methods and properties from
+    Object class, AND from Mesh class. Methods from Mesh class are
+    automagically called with the correct Mesh object as the first input.
+
+    Note that trg_class itself is being modified
+    (i.e., return statement is just to enable the decorator)
+
+    Note that attributes of the Mesh class will NOT be copied
+    """
+    # properties
+    def swap_input_fget(this_prop):
+        return lambda x: this_prop.fget(getattr(x, trg_attr_name))
+
+    def swap_input_fset(this_prop):
+        return lambda x, s: this_prop.fset(getattr(x, trg_attr_name), s)
+
+    src_properties = {p_name : p for p_name, p in src_class.__dict__.items() if isinstance(p, property)}
+    for p_name, p in src_properties.items():
+        if not hasattr(trg_class, p_name): # no overwrites - this implmentation is more readable
+            if p.fset is None:
+                setattr(trg_class, p_name, property(swap_input_fget(p)))
+            else:
+                setattr(trg_class, p_name, property(swap_input_fget(p), swap_input_fset(p)))
+
+    # methods
+    def swap_first_input(func): # when we don't know how many inputs func has
+        return lambda x: functools.partial(func, getattr(x, trg_attr_name))
+
+    src_methods = {func_name:func for func_name, func in src_class.__dict__.items() if type(func).__name__ == 'function' and func_name[0] != '_'}
+    for src_func_name, src_func in src_methods.items():
+        if not hasattr(trg_class, src_func_name): # no overwrites
+            setattr(trg_class, src_func_name, property(swap_first_input(src_func)))
+
+    return trg_class
+
+
+class PortProperties:
+    """
+    Providing port_properties functionality as a decorator.
+
+    This is for implementing the idea of a 'container' in blender, that
+    I could not solve using multiple inheritance. A container is an
+    instance of a specific class, but also contains instances of other
+    classes. You can act on any 'contained' object directly (you just
+    have to use the method name)
+    cont = primary_class()
+    cont.two = secondary_class()
+    If dummy is a method of cont.two, then I want to say:
+    cont.dummy() instead of cont.two.dummy(),
+    BUT cont.dummy() should execute cont.two.dummy() if cont doesn't have a method called dummy()
+
+    A container class is created by:
+    Inheriting from a primary class.
+    Modifiying the container class with port_properties (or using the PortProperties decorator)
+
+    Example:
+    @PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property
+    class MeshObject(Object):
+        def __init__(self):
+            super().__init__()
+            self.data = Mesh()
+
+    m = MeshObject()
+
+    In this example, MeshObject is the container class.
+    It inherits from Object class.
+    Mesh is the secondary class
+    """
+    def __init__(self, src_class, trg_attr_name):
+        self.src_class = src_class
+        self.trg_attr_name = trg_attr_name
+    def __call__(self, trg_class):
+        return port_properties(self.src_class, trg_class, self.trg_attr_name)

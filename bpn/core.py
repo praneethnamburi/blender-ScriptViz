@@ -19,8 +19,6 @@ import blinker
 from matplotlib.pyplot import rcParams
 COLOR_LIST = rcParams['axes.prop_cycle'].by_key()['color']
 
-import pntools as pn
-
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
@@ -966,7 +964,7 @@ class CompoundObject(Object):
         bpy.context.view_layer.update()
 
 
-@pn.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
+@utils.PortProperties(Mesh, 'data') # instance of MeshObject MUST have 'data' attribute/property that is an instance of Mesh class
 class MeshObject(CompoundObject):
     """
     This is a core.Object. Automatically calls the appropriate methods
@@ -1164,7 +1162,7 @@ class GreasePencil(Thing):
         return ret
 
 
-@pn.PortProperties(GreasePencil, 'data') # instance of CompundObject OR GreasePencilObject MUST have 'data' attribute/property that is an instance of Mesh class
+@utils.PortProperties(GreasePencil, 'data') # instance of CompundObject OR GreasePencilObject MUST have 'data' attribute/property that is an instance of Mesh class
 class GreasePencilObject(CompoundObject):
     """
     This is a core.Object. Automatically calls the appropriate methods
@@ -1306,7 +1304,7 @@ class Curve(Thing):
         super().__init__(name, 'Curve', 'CURVE', **kwargs)
 
 
-@pn.PortProperties(Curve, 'data') # CurveObject (or CompoundObject) MUST define data as an attribute or property
+@utils.PortProperties(Curve, 'data') # CurveObject (or CompoundObject) MUST define data as an attribute or property
 class CurveObject(CompoundObject):
     """Wrapper for curve object"""
     def __new__(cls, name, *args, **kwargs):
