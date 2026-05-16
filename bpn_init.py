@@ -34,7 +34,6 @@ from bpn import new, env, demo, utils, turtle, vef, io, mantle, core
 from bpn.mantle import Pencil, Screen
 # functions
 from bpn.utils import get
-from pntools import run
 
 # # Convenience
 # Matrix = mathutils.Matrix
