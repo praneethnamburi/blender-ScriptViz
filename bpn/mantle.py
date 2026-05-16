@@ -19,7 +19,6 @@ They are some derivates of the CompoundObject class in core.
 import coordframe as cf
 import numpy as np
 
-import pntools as pn
 import pysampled
 
 from bpn import core, utils

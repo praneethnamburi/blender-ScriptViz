@@ -8,8 +8,6 @@ import types
 from functools import partial
 import numpy as np
 
-import pntools as pn
-
 import bpy #pylint: disable=import-error
 import bmesh #pylint: disable=import-error
 import mathutils #pylint: disable=import-error
